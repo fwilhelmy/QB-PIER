@@ -12,10 +12,11 @@ class VQCLayer(nn.Module):
         self.n_qubits = n_qubits
         self.n_qdepth = n_qdepth
 
+        self.circuit = circuits.StronglyEntangling
         self.layers = []
         for _ in range(math.ceil(size_in / n_qubits)):
             # Generate a quantum node for
-            self.layers.append(circuits.StronglyEntangling(n_qubits, n_qdepth))
+            self.layers.append(self.circuit(n_qubits, n_qdepth))
 
     def forward(self, x):
         # Split the input into the number of qubits
@@ -26,23 +27,20 @@ class VQCLayer(nn.Module):
 
         # Concatenate the outputs of individual quantum layers
         return torch.cat(outputs, dim=1)
+    
+    def printCircuit(self):
+        """
+        Prints the circuit diagram of the Quanvolution layer
+        """
+        qml.draw_mpl(self.circuit)(torch.tensor([0.1, 0.2, 0.3, 0.4]), torch.randn(2, 3))
+        plt.show()
 
 
 if __name__ == "__main__":
     """
-    Prints the circuit diagram of the VQCLayer when the file is run
+    Prints the circuit diagram of the Quanvolution layer when the file is run
     """
-    dev = qml.device("lightning.qubit", wires=5)
 
-    @qml.qnode(dev)
-    @qml.compile()
-    def circuit(inputs, weights):
-        qml.AngleEmbedding(inputs, wires=range(5), rotation="X")
-        qml.StronglyEntanglingLayers(weights, wires=range(5))
-        return [qml.expval(qml.PauliZ(wires=i)) for i in range(5)]
-
-    qml.draw_mpl(circuit)(
-        torch.tensor([0.1, 0.2, 0.3, 0.4, 0.5]),
-        torch.randn(3, 5, 3),
-    )
-    plt.show()
+    # Create an instance of the Quanvolution layer
+    layer = VQCLayer(4, 2, 3)
+    layer.printCircuit()

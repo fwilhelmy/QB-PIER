@@ -6,7 +6,7 @@ import torch.nn as nn
 import pennylane as qml
 from pennylane import numpy as np
 import matplotlib.pyplot as plt
-
+import QuanvolutionCircuits as circuits
 
 class QuanvolutionLayer(nn.Module):
     def __init__(self, kernel_size=(2, 2), stride=2, padding=0, n_qdepth=1):
@@ -15,7 +15,7 @@ class QuanvolutionLayer(nn.Module):
         self.stride = stride
         self.padding = padding
         self.n_qdepth = n_qdepth
-        self.circuit = qnode(self.kernel_size[0] * self.kernel_size[1], self.n_qdepth)
+        self.circuit = circuits.FixedStructure(self.kernel_size[0] * self.kernel_size[1], self.n_qdepth)
 
     def qnodeRandomLayers(self):
         """
@@ -73,36 +73,19 @@ class QuanvolutionLayer(nn.Module):
                         out[i, c, j // 2, k // 2] = q_results[c]
 
         return torch.tensor(out)
-
+    
+    def printCircuit(self):
+        """
+        Prints the circuit diagram of the Quanvolution layer
+        """
+        qml.draw_mpl(self.circuit)(torch.tensor([0.1, 0.2, 0.3, 0.4]), torch.randn(2, 3))
+        plt.show()
 
 if __name__ == "__main__":
     """
     Prints the circuit diagram of the Quanvolution layer when the file is run
     """
 
-    n_qubits = 4
-    n_qdepth = 1
-    dev = qml.device("lightning.qubit", wires=n_qubits)
-    weight_shapes = {"weights": (n_qdepth, n_qubits)}
-
-    @qml.qnode(dev)
-    @qml.compile()
-    def circuit(inputs, weights):
-        qml.templates.AngleEmbedding(inputs, wires=range(n_qubits), rotation="Y")
-        # for j in range(n_qubits):
-        #    qml.RY(np.pi *inputs[j], wires=j)
-
-        # qml.RX(weights[0, 0], wires=0)
-        # qml.RX(weights[0, 1], wires=1)
-        # qml.CNOT(wires=[2, 3])
-        # qml.CNOT(wires=[0, 2])
-        # qml.CNOT(wires=[0, 3])
-        # qml.RY(weights[0, 2], wires=0)
-        # qml.RY(weights[0, 3], wires=3)
-
-        qml.RandomLayers(weights, wires=range(n_qubits), ratio_imprim=0.75)
-
-        return [qml.expval(qml.PauliZ(j)) for j in range(n_qubits)]
-
-    qml.draw_mpl(circuit)(torch.tensor([0.1, 0.2, 0.3, 0.4]), torch.randn(2, 3))
-    plt.show()
+    # Create an instance of the Quanvolution layer
+    layer = QuanvolutionLayer(kernel_size=(2, 2), stride=2, padding=0, n_qdepth=3)
+    layer.printCircuit()
