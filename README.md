@@ -55,4 +55,7 @@ Project Organization
 
 --------
 
+Credits to Samuel Richard for helping write the initial version of the code in this repository.
+Especially the QuanvolutionLayer and the VQCLayer.
+
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>.</small></p>
