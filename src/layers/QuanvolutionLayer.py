@@ -6,7 +6,7 @@ import torch.nn as nn
 import pennylane as qml
 from pennylane import numpy as np
 import matplotlib.pyplot as plt
-import QuanvolutionCircuits as circuits
+import layers.QuanvolutionCircuits as circuits
 
 class QuanvolutionLayer(nn.Module):
     def __init__(self, kernel_size=(2, 2), stride=2, padding=0, n_qdepth=1):
