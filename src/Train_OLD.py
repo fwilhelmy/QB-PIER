@@ -141,7 +141,7 @@ for e in range(0, EPOCHS):
     # Print the model training and validation information
     print(
         "[TRAIN] EPOCH: {}/{} | Train loss: {:0.6f} | Train acc: {:0.4f} | Val loss: {:0.6f} | Val acc: {:0.4f} "
-        "| Time elapsed: {:0.2f} ".format(
+        "| Time elapsed: {:0.2f}".format(
             e + 1,
             EPOCHS,
             avgTrainLoss,
