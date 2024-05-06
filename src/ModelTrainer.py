@@ -19,20 +19,22 @@ from models.HQNN_Quanv import HQNN_Quanv
 # from models import LeNet, HQNN_Quanv, HQNN_Parallel
 # HQNN_Quanv(in_channels=1, classes=len(trainData.dataset.classes))
 
-class TrainingModule():
-    def __init__(self, model, init_lr=1e-3, batch_size=64, epochs=10, train_split=0.7, val_split=0.3, device=None, dataset=None, optimizer=None, lossFn=None):
+class ModelTrainer():
+    def __init__(self, model, optimizer=None, lossFn=None, dataset=None, device=None, init_lr=1e-3, batch_size=64, epochs=10, train_split=0.7, val_split=0.3):
         self.init_lr = init_lr
         self.batch_size = batch_size
         self.epochs = epochs
+        self.train_split = train_split
+        self.val_split = val_split
         self.device = device if device else torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.dataset = dataset if dataset else MNIST(root="../data", train=True, download=True, transform=ToTensor())
-        self.model = model.to(device)
-        self.optimizer = optimizer if optimizer else Adam(self.model.parameters(), lr=init_lr)
+        self.model = model.to(self.device)
+        self.optimizer = optimizer if optimizer else Adam(self.model.parameters(), lr=self.init_lr)
         self.lossFn = lossFn if lossFn else nn.CrossEntropyLoss()
 
         # Calculate the train/validation split
-        trainSamples = int((len(dataset)) * train_split)
-        valSamples = int((len(dataset)) * val_split)
+        trainSamples = int((len(dataset)) * self.train_split)
+        valSamples = int((len(dataset)) * self.val_split)
         unusedSamples = len(dataset) - trainSamples - valSamples
 
         # Create Subset objects for train, validation, and test
@@ -42,12 +44,12 @@ class TrainingModule():
         )
 
         # Initialize the train, validation, and test data loaders
-        self.trainDataLoader = DataLoader(trainData, shuffle=True, batch_size=BATCH_SIZE)
-        self.valDataLoader = DataLoader(valData, batch_size=BATCH_SIZE)
+        self.trainDataLoader = DataLoader(trainData, shuffle=True, batch_size=self.batch_size)
+        self.valDataLoader = DataLoader(valData, batch_size=self.batch_size)
 
         # Calculate steps per epoch for training and validation set
-        self.trainSteps = len(self.trainDataLoader.dataset) // BATCH_SIZE
-        self.valSteps = len(self.valDataLoader.dataset) // BATCH_SIZE
+        self.trainSteps = len(self.trainDataLoader.dataset) // self.batch_size
+        self.valSteps = len(self.valDataLoader.dataset) // self.batch_size
 
     def train(self):
         # Initialize a dictionary to store training history
@@ -127,7 +129,10 @@ class TrainingModule():
 
         return H
     
-    def evaluate(self):
+    def evaluate(self, data):
+        testDataset = MNIST(root="../data", train=False, download=True, transform=ToTensor())
+        testDataLoader = DataLoader(testDataset, batch_size=self.batch_size)
+
         correct = 0
         total = 0
 
@@ -137,7 +142,7 @@ class TrainingModule():
             self.model.eval()  # Set the model in evaluation mode
             preds = []  # Initialize a list to store our predictions
             # Evaluation with test dataset
-            for x, y in self.testDataLoader:
+            for x, y in testDataLoader:
                 # Send the input to the device
                 x = x.to(self.device)
                 # Make the predictions and add them to the list
