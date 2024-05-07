@@ -6,6 +6,11 @@ from torchvision.transforms import ToTensor
 import matplotlib.pyplot as plt
 from datetime import datetime
 import os
+from torch.utils.data import random_split
+
+from models.LeNet import LeNet
+from models.HQNN_Quanv import HQNN_Quanv
+from models.HQNN_Parallel import HQNN_Parallel
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -25,7 +30,8 @@ def train_all(models, train_dataset, val_dataset):
     for model_name, model_info in models.items():
         logging.info(f"Training model '{model_name}'...")
         trainer = model_info['trainer']
-        results[model_name] = trainer.train(dataset, train_split, val_split)
+        results[model_name] = trainer.train(train_dataset, val_dataset)
+        plot_training_result(rootdir, model_name, trainer, results[model_name])
 
     return results
 
@@ -35,7 +41,7 @@ def evaluate_all(models, test_dataset):
     for model_name, model_info in models.items():
         logging.info(f"Evaluating model '{model_name}'...")
         trainer = model_info['trainer']
-        results[model_name] = trainer.evaluate()
+        results[model_name] = trainer.evaluate(test_dataset)
     return results
 
 def plot_training_result(rootdir, model_name, model_trainer, training_results):
@@ -63,7 +69,7 @@ def plot_training_result(rootdir, model_name, model_trainer, training_results):
             model_trainer.batch_size,
             training_results["train_samples"],
             training_results["val_samples"],
-            training_results["elapsed_time"],
+            training_results["time_elapsed"],
         ),
         fontsize=10,
     )
@@ -79,21 +85,28 @@ def plot_training_result(rootdir, model_name, model_trainer, training_results):
 rootdir = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
 os.mkdir(f"results/{rootdir}")
 
-# Load the dataset for the experiments
-split = 0.7
-
-train_samples = 128
-val_samples = 128
-test_samples = 128
-
+# Load the datasets for the experiments
 data = MNIST(root="../data", train=True, download=True, transform=ToTensor())
 
-if debug:
-    
-dataset = MNIST(root="../data", train=True, download=True, transform=ToTensor())
-testDataset = MNIST(root="../data", train=False, download=True, transform=ToTensor())
+""" train_split = 0.4
+val_split = 0.4
+test_split = 0.2
+numTrainSamples = int((len(data)) * train_split)
+numValSamples = int((len(data)) * val_split)
+numTestSamples = int((len(data)) * test_split) """
 
-model = HQNN_Quanv(in_channels=1, classes=len(dataset.classes))
+numTrainSamples = 128
+numValSamples = 128
+numTestSamples = 128
+
+trainDataset, valDataset, testDataset, _ = random_split(data, [
+    numTrainSamples,
+    numValSamples,
+    numTestSamples,
+    len(data) - numTrainSamples - numValSamples - numTestSamples])
+
+# model = HQNN_Quanv(in_channels=1, classes=len(data.classes))
+model = LeNet(numChannels=1, classes=len(data.classes))
 models = {}
 models = register_model('Model1_Test_64', ModelTrainer(
     model))
@@ -101,7 +114,7 @@ models = register_model('Model2_Test_70', ModelTrainer(
     model,
     batch_size=70))
 
-training_results = train_all(models, dataset, train_split=0.0083333334, val_split=0.008333334)
+training_results = train_all(models, trainDataset, valDataset)
 evaluation_results = evaluate_all(models, testDataset)
 
 fig, ax = plt.subplots(2, 1, figsize=(10, 10))

@@ -3,7 +3,7 @@ import torch.nn as nn
 import pennylane as qml
 import math
 import matplotlib.pyplot as plt
-import VQCCircuits as circuits
+import layers.VQCCircuits as circuits
 
 class VQCLayer(nn.Module):
     def __init__(self, size_in, n_qubits, n_qdepth):
