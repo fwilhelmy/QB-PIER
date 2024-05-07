@@ -1,6 +1,6 @@
 import torch
 from torch.optim import Adam
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 import logging
 import time
 from torch import nn
@@ -16,27 +16,19 @@ class ModelTrainer():
         self.optimizer = Adam(self.model.parameters(), lr=self.init_lr)
         self.loss_fn = nn.CrossEntropyLoss()
 
-    def train(self, dataset, train_split=0.7, val_split=0.3):
+    def train(self, train_dataset, val_dataset):
         H = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
 
-        # Calculate the train/validation split
-        H["train_samples"] = int((len(dataset)) * train_split)
-        H["val_samples"] = int((len(dataset)) * val_split)
-        unusedSamples = len(dataset) - H["train_samples"] - H["val_samples"]
-
-        # Create Subset objects for train, validation, and test
-        trainData, valData, _ = random_split(
-            dataset,
-            [H["train_samples"], H["val_samples"], unusedSamples],
-        )
-
         # Initialize the train, validation, and test data loaders
-        trainDataLoader = DataLoader(trainData, shuffle=True, batch_size=self.batch_size)
-        valDataLoader = DataLoader(valData, batch_size=self.batch_size)
+        trainDataLoader = DataLoader(train_dataset, shuffle=True, batch_size=self.batch_size)
+        valDataLoader = DataLoader(val_dataset, batch_size=self.batch_size)
 
         # Calculate steps per epoch for training and validation set
         trainSteps = len(trainDataLoader.dataset) // self.batch_size
         valSteps = len(valDataLoader.dataset) // self.batch_size
+
+        H["train_samples"] = int(len(trainDataLoader.dataset))
+        H["val_samples"] = int(len(val_dataset.dataset))
 
         start_time = time.time()
         for epoch in range(self.epochs):
@@ -76,8 +68,8 @@ class ModelTrainer():
                     valCorrect += (pred.argmax(1) == y).type(torch.float).sum().item()
 
             # Calculate the average training and validation loss
-            avgTrainLoss = totalTrainLoss / self.trainSteps
-            avgValLoss = totalValLoss / self.valSteps
+            avgTrainLoss = totalTrainLoss / trainSteps
+            avgValLoss = totalValLoss / valSteps
             # Calculate the training and validation accuracy
             trainCorrect = trainCorrect / len(trainDataLoader.dataset)
             valCorrect = valCorrect / len(valDataLoader.dataset)
@@ -89,7 +81,7 @@ class ModelTrainer():
             H["val_acc"].append(valCorrect)
             H["time_elapsed"] = time.time() - start_time
             
-            logging.info(('Epoch [{}/{}]: Train Acc: {:.2f}%, Train Loss: {:.4f} | Val Acc: {:.2f}%, Val Loss: {:.4f}').format(
+            logging.info(('Epoch {}/{} - Train [AC {:.2f}%, LS {:.4f}] | Val [AC {:.2f}%, LS {:.4f}]').format(
                 epoch + 1,
                 self.epochs,
                 trainCorrect,
@@ -101,10 +93,10 @@ class ModelTrainer():
         logging.info(f'Training complete in {H["time_elapsed"]/60:.2f}m')
         return H
 
-    def validate(self, dataset):
+    def evaluate(self, test_dataset):
         logging.info(f'Validating model...')
 
-        testDataLoader = DataLoader(dataset, batch_size=self.batch_size)
+        testDataLoader = DataLoader(test_dataset, batch_size=self.batch_size)
 
         start_time = time.time()
         with torch.no_grad():  # Turn off autograd for testing evaluation
