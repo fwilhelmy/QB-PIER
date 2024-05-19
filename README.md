@@ -25,30 +25,12 @@ Project Organization
     │
     ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
     │
-    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-    │   └── figures        <- Generated graphics and figures to be used in reporting
-    │
     ├── results            <- Logs & results dump to keep track of all our experimentations
     │
     ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
     │                         generated with `pip freeze > requirements.txt`
     │
     ├── src                <- Source code for use in this project.
-    │   ├── __init__.py    <- Makes src a Python module
-    |   ├── quantum            <- Code for the quantum classifier
-    |   │   │
-    |   │   ├── features       <- Scripts to turn raw data into features for modeling
-    |   │   │
-    |   │   └── models         <- Scripts to train models and then use trained models to make
-    |   │                         predictions
-    |   ├── classical          <- Code for the classical classifier
-    |   │   │
-    |   │   ├── features       <- Scripts to turn raw data into features for modeling
-    |   │   │
-    |   │   └── models         <- Scripts to train models and then use trained models to make
-    |   │                         predictions
-    │   │
-    │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
     │
     └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
 
@@ -57,5 +39,8 @@ Project Organization
 
 Credits to Samuel Richard for helping write the initial version of the code in this repository.
 Especially the QuanvolutionLayer and the VQCLayer.
+Credits to ChatGPT for helping structure the code and some bowlerplate functions.
+Credits to https://pyimagesearch.com/2021/07/19/pytorch-training-your-first-convolutional-neural-network-cnn/
+    For helping work and setup the first original model from which everything started
 
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>.</small></p>
