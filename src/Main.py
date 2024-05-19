@@ -3,7 +3,7 @@ from ModelTrainer import ModelTrainer
 from datetime import datetime
 import os
 
-from models.LeNet import LeNet
+from src.models.Classical.LeNet import LeNet
 from models.HQNN_Quanv import HQNN_Quanv
 from models.HQNN_Parallel import HQNN_Parallel
 
