@@ -3,17 +3,7 @@ import torch
 import torch.nn as nn
 import pennylane as qml
 import numpy as np
-
-# Constants for device configuration
-DEVICE = "lightning.qubit"
-INTERFACE = "torch"
-DIFF_METHOD = "parameter-shift"
-
-# Helper functions for creating circuits
-def create_qnode(n_qubits, circuit):
-    dev = qml.device(DEVICE, wires=n_qubits)
-    qnode_obj, weight_shapes = qml.QNode(circuit, dev, interface=INTERFACE, diff_method=DIFF_METHOD)
-    return qml.qnn.TorchLayer(qnode_obj, weight_shapes)
+from Utils import create_qnode
 
 def strongly_entangling_circuit(n_qubits, n_qdepth):
     weight_shapes = {"weights": (n_qdepth, n_qubits, 3)}
@@ -38,7 +28,6 @@ def basic_entangling_circuit(n_qubits, n_qdepth):
 def no_entanglement_circuit(n_qubits, n_qdepth):
     weight_shapes = {"weights": (0,)}
     
-    @qml.qnode(qml.device(DEVICE, wires=n_qubits))
     def circuit(inputs, weights):
         qml.AngleEmbedding(inputs, wires=range(n_qubits), rotation="X")
         return [qml.expval(qml.PauliZ(wires=i)) for i in range(n_qubits)]
@@ -55,17 +44,16 @@ class VQCLayer(nn.Module):
         
         # Choose the appropriate circuit type
         if circuit_type == "strongly_entangling":
-            self.circuit = strongly_entangling_circuit(n_qubits, n_qdepth)
+            self.circuit, self.weight_shapes = strongly_entangling_circuit(n_qubits, n_qdepth)
         elif circuit_type == "basic_entangling":
-            self.circuit = basic_entangling_circuit(n_qubits, n_qdepth)
+            self.circuit, self.weight_shapes = basic_entangling_circuit(n_qubits, n_qdepth)
         elif circuit_type == "no_entanglement":
-            self.circuit = no_entanglement_circuit(n_qubits, n_qdepth)
+            self.circuit, self.weight_shapes = no_entanglement_circuit(n_qubits, n_qdepth)
         else:
             raise ValueError("Invalid circuit type provided.")
         
-        self.circuit = create_qnode(n_qubits, n_qdepth, self.circuit)
         self.layers = nn.ModuleList(
-            [self.circuit for _ in range(math.ceil(size_in / n_qubits))]
+            [create_qnode(self.n_qubits, self.circuit, self.weight_shapes) for _ in range(math.ceil(size_in / n_qubits))]
         )
 
     def forward(self, x):
