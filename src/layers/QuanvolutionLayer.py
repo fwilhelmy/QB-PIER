@@ -74,18 +74,31 @@ class QuanvolutionLayer(nn.Module):
 
         return torch.tensor(out)
     
-    def printCircuit(self):
-        """
-        Prints the circuit diagram of the Quanvolution layer
-        """
-        qml.draw_mpl(self.circuit)(torch.tensor([0.1, 0.2, 0.3, 0.4]), torch.randn(2, 3))
-        plt.show()
-
-if __name__ == "__main__":
+def FixedStructure(n_qubits, n_qdepth):
     """
-    Prints the circuit diagram of the Quanvolution layer when the file is run
+    QNode with a fixed circuit structure
+
+    Returns:
+        qml.qnn.TorchLayer: A TorchLayer instance
     """
 
-    # Create an instance of the Quanvolution layer
-    layer = QuanvolutionLayer(kernel_size=(2, 2), stride=2, padding=0, n_qdepth=3)
-    layer.printCircuit()
+    dev = qml.device("lightning.qubit", wires=n_qubits)
+    weight_shapes = {"weights": (n_qdepth, n_qubits)}
+
+    @qml.qnode(dev)
+    def circuit(inputs, weights):
+        qml.templates.AngleEmbedding(inputs, wires=range(n_qubits), rotation="Y")
+        # for j in range(n_qubits):
+        #    qml.RY(np.pi *inputs[j], wires=j)
+
+        qml.RX(weights[0, 0], wires=0)
+        qml.RX(weights[0, 1], wires=1)
+        qml.CNOT(wires=[2, 3])
+        qml.CNOT(wires=[0, 2])
+        qml.CNOT(wires=[0, 3])
+        qml.RY(weights[0, 2], wires=0)
+        qml.RY(weights[0, 3], wires=3)
+
+        return [qml.expval(qml.PauliZ(j)) for j in range(n_qubits)]
+
+    return qml.qnn.TorchLayer(circuit, weight_shapes)
