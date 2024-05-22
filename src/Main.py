@@ -4,11 +4,11 @@ from datetime import datetime
 import os
 
 from src.models.Classical.LeNet import LeNet
-from models.HQNN_Quanv import HQNN_Quanv
-from models.HQNN_Parallel import HQNN_Parallel
+from models.Hybrid.HQNN_Quanv import HQNN_Quanv
+from models.Hybrid.HQNN_Parallel import HQNN_Parallel
 
 from Visualisation import plot_training_result, plot_models_together
-from Utils import load_data
+from DataLoader import load_data
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -46,7 +46,7 @@ def batch_evaluate(models, test_dataset):
 rootdir = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
 os.mkdir(f"results/{rootdir}")
 
-trainDataset, valDataset, testDataset = load_data()
+trainDataset, valDataset, testDataset = load_data('FMNIST', num_samples=128)
 
 # model = HQNN_Quanv(in_channels=1, classes=len(data.classes))
 model = LeNet(numChannels=1, classes=len(data.classes))

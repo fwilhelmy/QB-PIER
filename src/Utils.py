@@ -18,26 +18,3 @@ def load_model(path):
     with open(path, 'rb') as f:
         model = pickle.load(f)
     return model
-
-def load_data():
-    # Load the datasets for the experiments
-    data = MNIST(root="../data", train=True, download=True, transform=ToTensor())
-
-    """ train_split = 0.4
-    val_split = 0.4
-    test_split = 0.2
-    numTrainSamples = int((len(data)) * train_split)
-    numValSamples = int((len(data)) * val_split)
-    numTestSamples = int((len(data)) * test_split) """
-
-    numTrainSamples = 128
-    numValSamples = 128
-    numTestSamples = 128
-
-    trainDataset, valDataset, testDataset, _ = random_split(data, [
-        numTrainSamples,
-        numValSamples,
-        numTestSamples,
-        len(data) - numTrainSamples - numValSamples - numTestSamples])
-    
-    return trainDataset, valDataset, testDataset
