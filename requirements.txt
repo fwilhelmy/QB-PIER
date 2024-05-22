@@ -1,5 +1,10 @@
 # local package
--e .
+matplotlib
+torch
+torchvision
+numpy
+pennylane
+pyto
 
 # external requirements
 click
