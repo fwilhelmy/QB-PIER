@@ -61,8 +61,3 @@ def plot_models_together(rootdir, training_results):
 
     # Saving the results to the ./results directory
     plt.savefig(f"results/{rootdir}/full_train.png")
-
-
-def printCircuit(self):
-    qml.draw_mpl(self.circuit)(torch.tensor([0.1, 0.2, 0.3, 0.4]), torch.randn(2, 3))
-    plt.show()
