@@ -23,8 +23,7 @@ def get_split_lengths(dataset_length, train_split, val_split, test_split, num_sa
     remaining_samples = dataset_length - (train_samples + val_samples + test_samples)
     return [train_samples, val_samples, test_samples, remaining_samples]
 
-def load_data(dataset_name, root="../data", train_split=0.4, val_split=0.4, test_split=0.2, num_samples=None):
-    dataset = load_dataset(dataset_name, root)
+def split_dataset(dataset, train_split=0.4, val_split=0.4, test_split=0.2, num_samples=None):
     dataset_length = len(dataset)
     split_lengths = get_split_lengths(dataset_length, train_split, val_split, test_split, num_samples)
     train_dataset, val_dataset, test_dataset, _ = random_split(dataset, split_lengths)
