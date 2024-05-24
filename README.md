@@ -39,8 +39,13 @@ Project Organization
 
 Credits to Samuel Richard for helping write the initial version of the code in this repository.
 Especially the QuanvolutionLayer and the VQCLayer.
+
 Credits to ChatGPT for helping structure the code and some bowlerplate functions.
-Credits to https://pyimagesearch.com/2021/07/19/pytorch-training-your-first-convolutional-neural-network-cnn/
-    For helping work and setup the first original model from which everything started
+
+Credits For LeNet  https://pyimagesearch.com/2021/07/19/pytorch-training-your-first-convolutional-neural-network-cnn/
+- For helping work and setup the first original model from which everything started
+
+Credits for initial code of the FGSM attacks:
+**Author:** [Nathan Inkawhich](https://github.com/inkawhich)
 
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>.</small></p>
