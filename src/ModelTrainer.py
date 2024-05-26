@@ -1,10 +1,9 @@
 import torch
-from torch.optim import Adam
+from torch import nn
 from torch.utils.data import DataLoader
 import logging
 import time
-from torch import nn
-from Utils import get_device
+from Utils import get_device, get_optimizer, get_lossfn
 
 class ModelTrainer():
     def __init__(self, model, device=None, init_lr=1e-3, batch_size=64, epochs=10):
@@ -13,8 +12,8 @@ class ModelTrainer():
         self.epochs = epochs
         self.device = get_device() if device is None else device
         self.model = model.to(self.device)
-        self.optimizer = Adam(self.model.parameters(), lr=self.init_lr)
-        self.loss_fn = nn.CrossEntropyLoss()
+        self.optimizer = get_optimizer(self.model, init_lr)
+        self.loss_fn = get_lossfn()
 
     def train(self, train_dataset, val_dataset):
         H = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
