@@ -4,9 +4,6 @@ from torchvision import transforms
 import logging
 from Utils import get_device
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 def fgsm(image, epsilon, data_grad):
     """
     Perform FGSM attack by adding perturbations to the input image based on the gradient sign.
