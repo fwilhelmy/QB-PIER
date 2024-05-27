@@ -6,6 +6,7 @@ from torchvision.transforms import ToTensor
 import Configuration as cfg
 from torch.optim import Adam
 from torch import nn
+import os
 
 # Helper functions for creating circuits
 def create_qnode(n_qubits, circuit, weight_shapes):
@@ -16,9 +17,9 @@ def create_qnode(n_qubits, circuit, weight_shapes):
 def get_device():
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def get_model(path):
-    with open(path, 'rb') as f:
-        model = pickle.load(f)
+def load_model(model, model_path):
+    state_dict = torch.load(model_path)
+    model.load_state_dict(state_dict)
     return model
 
 def get_optimizer(model, init_lr):
