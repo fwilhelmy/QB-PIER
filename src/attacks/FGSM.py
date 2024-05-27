@@ -32,7 +32,6 @@ def fgsm_attack(model, test_dataset, epsilon):
     adv_examples = []
 
     device = get_device()
-    testDataLoader = DataLoader(test_dataset, batch_size=1)
 
     start_time = time.time()
 
