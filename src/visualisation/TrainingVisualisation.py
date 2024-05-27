@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import os
 import pennylane as qml
 
-def plot_training_result(rootdir, model_name, model_trainer, training_results):
+def plot_training_result(path, model_name, model_trainer, training_results):
     # Plot the training loss and accuracy
     plt.style.use("ggplot")
     fig, (ax1, ax2) = plt.subplots(2, figsize=(8, 6))
@@ -32,14 +32,10 @@ def plot_training_result(rootdir, model_name, model_trainer, training_results):
         fontsize=10,
     )
 
-    # Create a directory to store the results
-    path = f"results/{rootdir}/{model_name}"
-    os.mkdir(path)
-
     # Saving the results to the ./results directory
-    plt.savefig(path + "/train_plot.png")
+    plt.savefig(f"{path}/train_plot.png")
 
-def plot_models_together(rootdir, training_results):
+def plot_models_together(path, training_results):
     fig, ax = plt.subplots(2, 1, figsize=(10, 10))
     # Plotting training loss
     ax[0].set_title('Training Loss per Epoch')
@@ -60,4 +56,4 @@ def plot_models_together(rootdir, training_results):
     ax[1].legend()
 
     # Saving the results to the ./results directory
-    plt.savefig(f"results/{rootdir}/full_train.png")
+    plt.savefig(f"{path}/full_train.png")

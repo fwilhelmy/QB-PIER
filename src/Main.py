@@ -63,21 +63,31 @@ def batch_attack(models, attacks, test_dataset):
             results[model_name]['examples'].append(adv_examples)
     return results
 
-def batch_visualise(rootdir, training_results, evaluation_results, attack_results):
+def batch_save(models, training_results, evaluation_results, attack_results):
     """Visualise the training results and models together."""
-    for model_name, result in training_results.items():
-        trainer = models[model_name]['trainer']
-        plot_training_result(rootdir, model_name, trainer, result)
-    
-    # Plot accuracy vs. epsilon for each attack
-    for model_name, result in attack_results.items():
-        plot_accuracy_vs_epsilon(rootdir, model_name, result['accuracies'], result['epsilons'])
 
-    plot_models_together(rootdir, training_results)
+    # Create a directory to store the results
+    timestring = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
+    path = f"results/{timestring}"   
+    os.makedirs(path, exist_ok=True)
 
-# Create a directory to store the results
-rootdir = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
-os.makedirs(f"results/{rootdir}", exist_ok=True)
+    for model_name, model in models.items():
+        model_path = f"{path}/{model_name}"
+        os.makedirs(model_path)
+
+        # Save the model
+        model_file = f"{model_path}/model.pt"
+        with open(model_file, 'wb') as f:
+            torch.save(model.state_dict(), f)
+
+        # Plot the training results
+        plot_training_result(path, model_name, model, training_results[model_name])
+
+        # Plot results for each attack
+        for attack_name, result in attack_results[model_name].items():
+            plot_accuracy_vs_epsilon(path, model_name, attack_name, result['accuracies'], result['epsilons'])
+
+    plot_models_together(path, training_results)
 
 dataset = load_dataset(dataset_name='MNIST', root="../data")
 trainDataset, valDataset, testDataset = split_dataset(dataset, num_samples=128)
@@ -94,4 +104,4 @@ training_results = batch_train(models, trainDataset, valDataset)
 evaluation_results = batch_evaluate(models, testDataset)
 attack_results = batch_attack(models, attacks, testDataset)
 
-batch_visualise(rootdir, training_results, evaluation_results, attack_results)
+batch_save(models, training_results, evaluation_results, attack_results)

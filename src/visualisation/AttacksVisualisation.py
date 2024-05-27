@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 # Function to plot adversarial examples
-def plot_adversarial_examples(rootdir, model_name, epsilons, examples):
+def plot_adversarial_examples(path, model_name, epsilons, examples):
     cnt = 0
     plt.figure(figsize=(8, 10))
     for i in range(len(epsilons)):
@@ -19,27 +19,18 @@ def plot_adversarial_examples(rootdir, model_name, epsilons, examples):
             plt.imshow(ex, cmap="gray")
     plt.tight_layout()
 
-    # Create a directory to store the results
-    path = f"results/{rootdir}/{model_name}"
-    os.mkdir(path)
-
     # Saving the results to the ./results directory
-    plt.savefig(path + "/adversarial_examples.png")
+    plt.savefig(f"{path}/adversarial_examples.png")
 
 # Function to plot accuracy vs epsilon
-def plot_accuracy_vs_epsilon(rootdir, model_name, epsilons, accuracies):
+def plot_accuracy_vs_epsilon(path, model_name, attack_name, epsilons, accuracies):
     plt.figure(figsize=(5, 5))
     plt.plot(epsilons, accuracies, "*-")
     plt.yticks(np.arange(0, 1.1, step=0.1))
     plt.xticks(np.arange(0, 0.35, step=0.05))
-    plt.title("Accuracy vs Epsilon")
+    plt.title(f"{attack_name} attack on {model_name} model (Accuracy vs Epsilon)" )
     plt.xlabel("Epsilon")
     plt.ylabel("Accuracy")
 
-    # Create a directory to store the results if it doesn't exist
-    path = f"results/{rootdir}/{model_name}"
-    if not os.path.exists(path):
-        os.mkdir(path)
-
     # Saving the results to the ./results directory
-    plt.savefig(path + "/accuracy_vs_epsilon.png")
+    plt.savefig(f"{path}/{attack_name}.png")
