@@ -1,107 +1,154 @@
 import logging
-from ModelTrainer import ModelTrainer
 from datetime import datetime
 import os
 import torch
+from pytorch_lightning import Trainer
+from torch.utils.data import DataLoader
 
+from models.BaseModel import BaseModel
 from models.Classical.LeNet import LeNet
 from models.Hybrid.HQNN_Quanv import HQNN_Quanv
 from models.Hybrid.HQNN_Parallel import HQNN_Parallel
 
-from attacks.FGSM import fgsm_attack
+from attacks.FGSM import evaluate_attack
 
 from visualisation.AttacksVisualisation import plot_accuracy_vs_epsilon
 from visualisation.TrainingVisualisation import plot_training_result, plot_models_together
 
-from DataLoader import load_dataset, split_dataset
+from DataManager import DataManager
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Dictionary to store registered models and attacks
-models = {}
-attacks = {}
+# Arrays to store registered models and attacks
+models = []
+attacks = []
 
-def register_model(model_name, model_trainer):
-    models[model_name] = {'trainer': model_trainer}
+trainer = Trainer(max_epochs=4)
+
+def register_model(model_name, model, configuration):
+    models.append({'name': model_name, 'model': model, 'configuration': configuration, 'trainer': trainer})
     logging.info(f"Model '{model_name}' registered.")
     return models
 
 def register_attack(attack_name, attack_function, epsilon):
-    attacks[attack_name] = {'function': attack_function, 'epsilon': epsilon}
+    attacks.append({'name': attack_name, 'function': attack_function, 'epsilon': epsilon})
     logging.info(f"Attack '{attack_name}' registered with epsilon {epsilon}.")
     return attacks
 
-def batch_train(models, train_dataset, val_dataset):
+def batch_train(models, train_loader, val_loader):
     results = {}
-    for model_name, model_info in models.items():
+    for model in models:
+        model_name = model['name']
         logging.info(f"Training model '{model_name}'...")
-        trainer = model_info['trainer']
-        results[model_name] = trainer.train(train_dataset, val_dataset)
+        trainer = model['trainer']
+        model_instance = model['model']
+        trainer.fit(model_instance, train_loader, val_loader)
+        results[model_name] = trainer.logged_metrics
     return results
 
-def batch_evaluate(models, test_dataset):
+def batch_evaluate(models, test_loader):
     results = {}
-    for model_name, model_info in models.items():
+    for model in models:
+        model_name = model['name']
         logging.info(f"Evaluating model '{model_name}'...")
-        trainer = model_info['trainer']
-        results[model_name] = trainer.evaluate(test_dataset)
+        trainer = model['trainer']
+        model_instance = model['model']
+        results[model_name] = trainer.test(model_instance, dataloaders=test_loader)[0]
     return results
 
-def batch_attack(models, attacks, test_dataset):
+def batch_attack(models, attacks, test_loader):
     results = {}
-    for model_name, model_info in models.items():
+    for model in models:
+        model_name = model['name']
         results[model_name] = {'epsilons': [], 'accuracies': [], 'examples': []}
-        for attack_name, attack_info in attacks.items():
-            attack_function = attack_info['function']
-            model = model_info['trainer'].model
-            epsilon = attack_info['epsilon']
+        for attack in attacks:
+            attack_name = attack['name']
+            attack_function = attack['function']
+            model_instance = model['model']
+            epsilon = attack['epsilon']
             logging.info(f"Performing '{attack_name}' on model '{model_name}'...")
-            acc, adv_examples = attack_function(model, test_dataset, epsilon)
+            acc, adv_examples = attack_function(model_instance, test_loader, epsilon)
             results[model_name]['epsilons'].append(epsilon)
             results[model_name]['accuracies'].append(acc)
             results[model_name]['examples'].append(adv_examples)
     return results
 
 def batch_save(models, training_results, evaluation_results, attack_results):
-    """Visualise the training results and models together."""
+    """Visualize the training results and models together."""
 
     # Create a directory to store the results
     timestring = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
-    path = f"results/{timestring}"   
+    path = f"results/{timestring}"
     os.makedirs(path, exist_ok=True)
 
-    for model_name, model in models.items():
+    for model in models:
+        model_name = model['name']
+        model_instance = model['model']
         model_path = f"{path}/{model_name}"
         os.makedirs(model_path)
 
         # Save the model
         model_file = f"{model_path}/model.pt"
-        with open(model_file, 'wb') as f:
-            torch.save(model.state_dict(), f)
+        torch.save(model_instance.state_dict(), model_file)
 
         # Plot the training results
-        plot_training_result(path, model_name, model, training_results[model_name])
+        plot_training_result(path, model, training_results[model_name])
 
         # Plot results for each attack
-        for attack_name, result in attack_results[model_name].items():
-            plot_accuracy_vs_epsilon(path, model_name, attack_name, result['accuracies'], result['epsilons'])
+        if attack_results is not None:
+            for attack_name, result in attack_results[model_name].items():
+                plot_accuracy_vs_epsilon(path, model_name, attack_name, result['accuracies'], result['epsilons'])
 
     plot_models_together(path, training_results)
 
-dataset = load_dataset(dataset_name='MNIST', root="../data")
-trainDataset, valDataset, testDataset = split_dataset(dataset, num_samples=128)
+# Example configuration
+class ExampleConfiguration:
+    def __init__(self, optimiser, init_lr, loss_function, max_epochs=10, batch_size=64, gpus=None):
+        self.optimiser = optimiser
+        self.init_lr = init_lr
+        self.loss_function = loss_function
+        self.max_epochs = max_epochs
+        self.batch_size = batch_size
+        self.gpus = gpus
 
-model = LeNet(numChannels=1, classes=10)
-models = register_model('Model1_Test_64', ModelTrainer(model))
-models = register_model('Model2_Test_70', ModelTrainer(model, batch_size=70))
 
+# Load the dataset using DataManager
+data_manager = DataManager(dataset_name='MNIST')
+train_loader, val_loader = data_manager.split_dataset(train_samples=500, val_samples=100, batch_size=64)
+
+# Define model configuration
+config = ExampleConfiguration(
+    optimiser=torch.optim.Adam,
+    init_lr=0.001,
+    loss_function=torch.nn.CrossEntropyLoss(),
+    max_epochs=10,
+    batch_size=64,
+    gpus=1  # Set to None for CPU training
+)
+
+# Register models
+model1 = LeNet(config, numChannels=1, classes=10)
+models = register_model('LeNet_Test_1', model1, config)
+
+model2 = LeNet(config, numChannels=1, classes=10)
+models = register_model('LeNet_Test_2', model2, config)
+
+# Register attacks
 epsilons = [0, .05, .1, .15, .2, .25, .3]
 for eps in epsilons:
-    register_attack(f'fgsm({eps})', fgsm_attack, epsilon=eps)
+    register_attack(f'fgsm({eps})', evaluate_attack, epsilon=eps)
 
-training_results = batch_train(models, trainDataset, valDataset)
-evaluation_results = batch_evaluate(models, testDataset)
-attack_results = batch_attack(models, attacks, testDataset)
+# Train models
+training_results = batch_train(models, train_loader, val_loader)
 
-batch_save(models, training_results, evaluation_results, attack_results)
+# Evaluate models
+test_dataset = data_manager.load_dataset(train=False)
+test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True)
+evaluation_results = batch_evaluate(models, test_loader)
+
+# Perform attacks
+# attack_results = batch_attack(models, attacks, test_loader)
+
+# Save results
+batch_save(models, training_results, evaluation_results, None)

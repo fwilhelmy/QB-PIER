@@ -3,9 +3,9 @@ from torch import nn
 from torch.utils.data import DataLoader
 import logging
 import time
-from Utils import get_device, get_optimizer, get_lossfn
+from utils import get_device, get_optimizer, get_lossfn
 
-class ModelTrainer():
+class ModelManager():
     def __init__(self, model, device=None, init_lr=1e-3, batch_size=64, epochs=10):
         self.init_lr = init_lr
         self.batch_size = batch_size
@@ -15,6 +15,7 @@ class ModelTrainer():
         self.optimizer = get_optimizer(self.model, init_lr)
         self.loss_fn = get_lossfn()
 
+    # ADD EPOCH HERE INSTEAD OF INIT
     def train(self, train_dataset, val_dataset):
         H = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
 

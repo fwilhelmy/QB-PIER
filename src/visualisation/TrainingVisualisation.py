@@ -2,18 +2,18 @@ import matplotlib.pyplot as plt
 import os
 import pennylane as qml
 
-def plot_training_result(path, model_name, model_trainer, training_results):
+def plot_training_result(path, model, results):
     # Plot the training loss and accuracy
     plt.style.use("ggplot")
     fig, (ax1, ax2) = plt.subplots(2, figsize=(8, 6))
-    fig.suptitle(f"Training Loss and Accuracy with {model_name}")
+    fig.suptitle(f"Training Loss and Accuracy with {model['name']}")
     fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.15, hspace=0.2)
-    ax1.plot(training_results["train_acc"], label="Training")
-    ax1.plot(training_results["val_acc"], label="Validation")
+    ax1.plot(results["train_acc"], label="Training")
+    ax1.plot(results["val_acc"], label="Validation")
     ax1.set_ylabel("Accuracy")
     ax1.legend(loc="upper right")
-    ax2.plot(training_results["train_loss"], label="Training")
-    ax2.plot(training_results["val_loss"], label="Validation")
+    ax2.plot(results["train_loss"], label="Training")
+    ax2.plot(results["val_loss"], label="Validation")
     ax2.set_ylabel("Loss")
     ax2.set_xlabel("Epoch #")
 
@@ -21,16 +21,16 @@ def plot_training_result(path, model_name, model_trainer, training_results):
     fig.text(
         0.01,
         0.01,
-        "Epochs: {}, Learning Rate: {}, Batch Size: {}, Train Size: {}, Val Size: {}, Time: {:.2f}s".format(
-            model_trainer.epochs,
-            model_trainer.init_lr,
-            model_trainer.batch_size,
-            training_results["train_samples"],
-            training_results["val_samples"],
-            training_results["time_elapsed"],
+        "Epochs: {}, Learning Rate: {}, Batch Size: {}".format(
+            model['configuration'].max_epochs,
+            model['configuration'].init_lr,
+            model['configuration'].batch_size,
         ),
         fontsize=10,
     )
+
+    # TODO Extract the time taken to train the model
+    # TODO Extract number of training and validation samples
 
     # Saving the results to the ./results directory
     plt.savefig(f"{path}/train_plot.png")

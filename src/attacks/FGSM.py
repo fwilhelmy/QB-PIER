@@ -2,31 +2,25 @@ import torch
 import torch.nn.functional as F
 from torchvision import transforms
 import logging
-from Utils import get_device, get_lossfn
+from utils import get_device, get_lossfn
 from torch.utils.data import DataLoader
 import time
 import numpy as np
 
 def fgsm(image, epsilon, data_grad):
-    """
-    Perform FGSM attack by adding perturbations to the input image based on the gradient sign.
-    """
     sign_data_grad = data_grad.sign()
     perturbed_image = image + epsilon * sign_data_grad
     perturbed_image = torch.clamp(perturbed_image, 0, 1)
     return perturbed_image
 
 def denorm(batch, mean=[0.1307], std=[0.3081]):
-    """
-    Restore the tensors to their original scale.
-    """
     device = get_device()
     mean = torch.tensor(mean).to(device)
     std = torch.tensor(std).to(device)
     return batch * std.view(1, -1, 1, 1) + mean.view(1, -1, 1, 1)
 
 # TODO Really need to rework this function before implementing PGD attack
-def fgsm_attack(model, test_dataset, epsilon):
+def evaluate_attack(model, test_dataset, epsilon):
     # Accuracy counter
     correct = 0
     adv_examples = []
@@ -41,7 +35,6 @@ def fgsm_attack(model, test_dataset, epsilon):
     for data, target in test_dataset:
         # Send the data and label to the device
         tr_image = torch.tensor(data, dtype=torch.float32, requires_grad=True).to(device)
-
         model.requires_grad=True
 
         # Forward pass the data through the model

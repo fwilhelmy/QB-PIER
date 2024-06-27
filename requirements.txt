@@ -1,9 +1,13 @@
 # local package
 matplotlib
+numpy
+
+pennylane
+qiskit
+
 torch
 torchvision
-numpy
-pennylane
+lightning
 
 # external requirements
 click

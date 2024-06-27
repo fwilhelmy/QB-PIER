@@ -27,3 +27,9 @@ def get_optimizer(model, init_lr):
 
 def get_lossfn():
     return nn.CrossEntropyLoss()
+
+def calculate_accuracy(y_hat, y):
+    _, predicted = torch.max(y_hat, dim=1)
+    correct = (predicted == y).float()
+    accuracy = correct.sum() / len(correct)
+    return accuracy

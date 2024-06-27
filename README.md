@@ -48,4 +48,6 @@ Credits For LeNet  https://pyimagesearch.com/2021/07/19/pytorch-training-your-fi
 Credits for initial code of the FGSM attacks:
 **Author:** [Nathan Inkawhich](https://github.com/inkawhich)
 
+Computations were made on the supercomputer name-of-the-server, managed by Calcul Québec and the Digital Research Alliance of Canada. The operation of this supercomputer is funded by the Canada Foundation for Innovation (CFI), Ministère de l’Économie et de l’Innovation du Québec (MEI) and le Fonds de recherche du Québec (FRQ).
+
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>.</small></p>

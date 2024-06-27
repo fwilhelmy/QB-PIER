@@ -8,11 +8,12 @@ from torch.nn import MaxPool2d
 from torch.nn import ReLU
 from torch.nn import LogSoftmax
 from torch import flatten
+from models.BaseModel import BaseModel
 
-class LeNet(Module):
-	def __init__(self, numChannels, classes):
+class LeNet(BaseModel):
+	def __init__(self, configuration, numChannels, classes):
 		# Call the parent constructor
-		super(LeNet, self).__init__()
+		super().__init__(configuration)
 
 		# Initialize first set of CONV => RELU => POOL layers
 		self.conv1 = Conv2d(in_channels=numChannels, out_channels=16, kernel_size=(5, 5), padding=2)

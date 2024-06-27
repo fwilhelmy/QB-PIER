@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import pennylane as qml
 from pennylane import numpy as np
-from Utils import create_qnode
+from utils import create_qnode
 
 def random_layers_circuit(n_qubits, n_qdepth):
     weight_shapes = {"weights": (n_qdepth, n_qubits)}
