@@ -16,6 +16,7 @@ from visualisation.AttacksVisualisation import plot_accuracy_vs_epsilon
 from visualisation.TrainingVisualisation import plot_training_result, plot_models_together
 
 from DataManager import DataManager
+from Configuration import LIGHTNING_DIR
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -24,8 +25,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 models = []
 attacks = []
 
-trainer = Trainer(max_epochs=4)
+# TODO MAX EPOCHS AND STUFF SHOULD BE IN A CONFIG
+trainer = Trainer(max_epochs=4, default_root_dir=LIGHTNING_DIR)
 
+# Default value for configuration is Configuration()
 def register_model(model_name, model, configuration):
     models.append({'name': model_name, 'model': model, 'configuration': configuration, 'trainer': trainer})
     logging.info(f"Model '{model_name}' registered.")

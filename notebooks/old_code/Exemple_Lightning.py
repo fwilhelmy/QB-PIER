@@ -6,6 +6,7 @@ from torchvision import transforms
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
 import lightning as L
+from DataManager import DataManager
 
 class Encoder(nn.Module):
     def __init__(self):
@@ -14,7 +15,6 @@ class Encoder(nn.Module):
 
     def forward(self, x):
         return self.l1(x)
-
 
 class Decoder(nn.Module):
     def __init__(self):
@@ -29,6 +29,7 @@ class LitAutoEncoder(L.LightningModule):
         super().__init__()
         self.encoder = encoder
         self.decoder = decoder
+        self.save_hyperparameters()
 
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop.
@@ -44,15 +45,16 @@ class LitAutoEncoder(L.LightningModule):
         return optimizer
 
 # dataset
-dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
-train_loader = DataLoader(dataset)
+data_manager = DataManager(dataset_name='MNIST')
+train_loader, val_loader = data_manager.split_dataset(train_samples=500, val_samples=100, batch_size=64)
 
 # model
-autoencoder = LitAutoEncoder(Encoder(), Decoder())
+# autoencoder = LitAutoEncoder(Encoder(), Decoder())
+autoencoder = LitAutoEncoder.load_from_checkpoint("./logs/lightning_logs/version_1/checkpoints/epoch=9-step=80.ckpt")
 
 # train model
-trainer = L.Trainer()
-trainer.fit(model=autoencoder, train_dataloaders=train_loader)
+trainer = L.Trainer(max_epochs=10, default_root_dir="logs/")
+trainer.fit(model=autoencoder, train_dataloaders=train_loader, val_dataloaders=val_loader)
 
 # find where
 # self.init_lr = init_lr

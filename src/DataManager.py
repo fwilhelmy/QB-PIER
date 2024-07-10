@@ -1,10 +1,10 @@
 from torchvision.datasets import MNIST, FashionMNIST
 from torchvision.transforms import ToTensor
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, random_split   
 
 # TODO add batch_size and num_workers as parameters in the constructor
 class DataManager:
-    def __init__(self, dataset_name: str, root: str = "../data"):
+    def __init__(self, dataset_name: str, root: str = "../data/processed"):
         self.dataset_name = dataset_name
         self.root = root
         self.dataset = self.load_dataset(train=True)

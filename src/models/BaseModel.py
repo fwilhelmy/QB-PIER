@@ -1,6 +1,11 @@
 import pytorch_lightning as L
 from utils import calculate_accuracy
 
+# TODO Would early stopping be interesting??
+# If so, how to implement it??
+
+# TODO Implement predict_step as a basic, might need to implement more advanced predict_step in the quantum models since we need multiple shots, etc.
+
 # Base class
 class BaseModel(L.LightningModule):
     def __init__(self, configuration):
