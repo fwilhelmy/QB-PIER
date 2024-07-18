@@ -1,0 +1,14 @@
+from torchvision.datasets import MNIST
+from torchvision.transforms import ToTensor
+from data.DatasetManager import DatasetManager
+
+class MNISTManager(DatasetManager):
+    def __init__(self, root: str, batch_size: int, num_workers: int):
+        super().__init__(root, batch_size, num_workers)
+
+        # Pre-calculated mean and std for the MNIST dataset
+        self.mean = [0.1307]
+        self.std = [0.3081]
+
+    def load_dataset(self, train: bool):
+        return MNIST(root=self.root, train=train, download=True, transform=ToTensor())

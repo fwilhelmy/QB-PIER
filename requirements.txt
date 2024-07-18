@@ -3,6 +3,7 @@ matplotlib
 numpy
 
 cvxpy
+tensorboard
 
 pennylane
 qiskit

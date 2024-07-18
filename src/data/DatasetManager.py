@@ -1,21 +1,36 @@
-from torchvision.datasets import MNIST, FashionMNIST
-from torchvision.transforms import ToTensor
-from torch.utils.data import DataLoader, random_split   
+from torch.utils.data import DataLoader, random_split
+import torch
+from tqdm import tqdm
 
-# TODO add batch_size and num_workers as parameters in the constructor
-class DataManager:
-    def __init__(self, dataset_name: str, root: str = "../data/processed"):
-        self.dataset_name = dataset_name
+class DatasetManager:
+    def __init__(self, root: str, batch_size: int, num_workers: int):
         self.root = root
+        self.batch_size = batch_size
+        self.num_workers = num_workers
         self.dataset = self.load_dataset(train=True)
 
     def load_dataset(self, train: bool):
-        if self.dataset_name == 'MNIST':
-            return MNIST(root=self.root, train=train, download=True, transform=ToTensor())
-        elif self.dataset_name == 'FMNIST':
-            return FashionMNIST(root=self.root, train=train, download=True, transform=ToTensor())
-        else:
-            raise ValueError(f"Unsupported dataset: {self.dataset_name}")
+        raise NotImplementedError("This method should be overridden in subclasses")
+    
+    def __calculate_stats(self):
+        psum = torch.tensor([0.0])
+        psum_sq = torch.tensor([0.0])
+        
+        for data, _ in tqdm(self.dataset):
+            psum += data.sum()
+            psum_sq += (data ** 2).sum()
+        
+        count = len(self.dataset) * 28 * 28
+        
+        self.mean = psum / count
+        self.var = (psum_sq / count) - (self.mean ** 2)
+        self.std = torch.sqrt(self.var)
+    
+    def get_stats(self):
+        if None in [self.mean, self.std]:
+            self.__calculate_stats()
+        
+        return self.mean.item(), self.std.item()
 
     def calculate_split_sizes(self, train_split: float, val_split: float):
         dataset_length = len(self.dataset)
