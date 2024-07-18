@@ -1,5 +1,6 @@
-import pytorch_lightning as L
+from pytorch_lightning import LightningModule
 from utils import calculate_accuracy
+import torchvision
 
 # TODO Would early stopping be interesting??
 # If so, how to implement it??
@@ -7,7 +8,7 @@ from utils import calculate_accuracy
 # TODO Implement predict_step as a basic, might need to implement more advanced predict_step in the quantum models since we need multiple shots, etc.
 
 # Base class
-class BaseModel(L.LightningModule):
+class BaseModel(LightningModule):
     def __init__(self, configuration):
         super().__init__()
         self.learning_rate = configuration.init_lr
@@ -25,12 +26,17 @@ class BaseModel(L.LightningModule):
         loss = self.loss_function(y_hat, y)
         acc = calculate_accuracy(y_hat, y)
 
-        # TODO
-        #self.log('step', self.trainer.current_epoch)
-        #self.log('loss', {'train': loss})
-
-        self.log("train_loss", loss)
-        self.log("train_acc", acc)
+        self.log_dict({
+            "train_loss": loss, 
+            "train_acc": acc},
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True)
+        
+        if batch_idx % 20 == 0:
+            selected_x = x[:8]
+            grid = torchvision.utils.make_grid(selected_x.view(-1, 1, 28, 28))
+            self.logger.experiment.add_image("input_images", grid, 0)
 
         return loss
 
@@ -42,8 +48,12 @@ class BaseModel(L.LightningModule):
         loss = self.loss_function(y_hat, y)
         acc = calculate_accuracy(y_hat, y)
 
-        self.log("val_loss", loss)
-        self.log("val_acc", acc)
+        self.log_dict({
+            "val_loss": loss, 
+            "val_acc": acc},
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True)
 
     # The test loop
     def test_step(self, batch, batch_idx):
@@ -52,9 +62,13 @@ class BaseModel(L.LightningModule):
 
         loss = self.loss_function(y_hat, y)
         acc = calculate_accuracy(y_hat, y)
-
-        self.log("test_loss", loss)
-        self.log("test_acc", acc)
+        
+        self.log_dict({
+            "test_loss": loss, 
+            "test_acc": acc},
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True)
 
     def configure_optimizers(self):
         return self.optimizer(self.parameters(), lr=self.learning_rate)

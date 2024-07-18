@@ -1,9 +1,15 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 from models.BaseModel import BaseModel
+from pytorch_lightning import Trainer
 
 @dataclass
-class ModelConfiguration:
+class ModelWrapper:
+    # Model configuration
+    model_name: str
+    trainer: Trainer
+    model: BaseModel
+
     # Training configuration
     batch_size: int = 32
     learning_rate: float = 0.001
