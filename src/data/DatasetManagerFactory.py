@@ -1,7 +1,7 @@
 from Configuration import DATA_DIR
 
 from data.FMNISTManager import FMNISTManager
-from src.data.MNISTManager import MNISTManager
+from data.MNISTManager import MNISTManager
 
 def DatasetManagerFactory(dataset_name: str, root: str = DATA_DIR, batch_size: int = 32, num_workers: int = 0):
     if dataset_name == 'MNIST':
