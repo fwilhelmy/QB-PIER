@@ -13,7 +13,7 @@ def fgsm(image, epsilon, data_grad):
     perturbed_image = torch.clamp(perturbed_image, 0, 1)
     return perturbed_image
 
-def denorm(batch, mean=[0.1307], std=[0.3081]):
+def denorm(batch, mean, std):
     device = get_device()
     mean = torch.tensor(mean).to(device)
     std = torch.tensor(std).to(device)
@@ -26,8 +26,6 @@ def evaluate_attack(model, test_dataset, epsilon):
     adv_examples = []
 
     device = get_device()
-
-    start_time = time.time()
 
     model.eval()  # Set the model in evaluation mode
     
@@ -58,7 +56,7 @@ def evaluate_attack(model, test_dataset, epsilon):
         data_grad = tr_image.grad.data
 
         # Restore the data to its original scale
-        data_denorm = denorm(data_grad)
+        data_denorm = denorm(data_grad, mean=[0.1307], std=[0.3081])
 
         # Call FGSM Attack
         perturbed_data = fgsm(data_denorm, epsilon, data_grad)
