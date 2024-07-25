@@ -20,7 +20,7 @@ class DatasetManager:
             psum += data.sum()
             psum_sq += (data ** 2).sum()
         
-        count = len(self.dataset) * 28 * 28
+        count = np.prod(self.dataset.data.shape)
         
         self.mean = psum / count
         self.var = (psum_sq / count) - (self.mean ** 2)
