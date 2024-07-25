@@ -11,14 +11,14 @@ if __name__ == "__main__":
     # Load the dataset using DataManager
     data_manager = DatasetManagerFactory('MNIST')
     train_split, val_split = data_manager.calculate_split_sizes(1, 0)
-    train_loader, val_loader = data_manager.split_dataset(train_samples=train_split, val_samples=val_split, batch_size=64)
+    train_loader, val_loader = data_manager.split_dataset(train_samples=500, val_samples=150, batch_size=64)
 
     # Define model configuration
     config = ExampleConfiguration(
         optimiser=torch.optim.Adam,
         init_lr=0.001,
         loss_function=torch.nn.CrossEntropyLoss(),
-        max_epochs=10,
+        max_epochs=6,
         batch_size=64,
         gpus=1  # Set to None for CPU training
     )
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     evaluation_results = model_manager.batch_evaluate(test_loader)
 
     # Perform attacks
-    # attack_results = model_manager.batch_attack(test_loader)
+    attack_results = model_manager.batch_attack(test_loader)
 
     # Save results
     model_manager.batch_save(training_results, evaluation_results, None)

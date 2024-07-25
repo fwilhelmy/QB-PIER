@@ -12,3 +12,9 @@ class MNISTManager(DatasetManager):
 
     def load_dataset(self, train: bool):
         return MNIST(root=self.root, train=train, download=True, transform=ToTensor())
+    
+        # If you want to apply normalization, use this instead
+        # return MNIST(root=self.root, train=train, download=True, transform=Compose([
+        #     ToTensor(),
+        #     Normalize((self.mean,), (self.std,)),
+        #     ]))
