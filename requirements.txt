@@ -6,11 +6,16 @@ cvxpy
 tensorboard
 
 pennylane
+
 qiskit
+qiskit-ibm-runtime
 
 torch
 torchvision
 lightning
+
+adversarial-robustness-toolbox
+adversarial-robustness-toolbox[pytorch_image]
 
 # external requirements
 click
