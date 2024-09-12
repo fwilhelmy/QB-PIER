@@ -3,6 +3,7 @@ import numpy as np
 import os
 
 # Function to plot adversarial examples
+# TODO ADD TITLE WITH MODEL NAME
 def plot_adversarial_examples(path, model_name, epsilons, examples):
     cnt = 0
     plt.figure(figsize=(8, 10))
@@ -20,7 +21,7 @@ def plot_adversarial_examples(path, model_name, epsilons, examples):
     plt.tight_layout()
 
     # Saving the results to the ./results directory
-    plt.savefig(f"{path}/adversarial_examples.png")
+    plt.savefig(f"{path}/{model_name}_adversarial_examples.png")
 
 # Function to plot accuracy vs epsilon
 def plot_accuracy_vs_epsilon(path, model_name, attack_name, epsilons, accuracies):
