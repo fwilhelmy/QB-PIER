@@ -6,6 +6,10 @@ from ModelsManager import ModelsManager, ExampleConfiguration
 from data.DatasetManagerFactory import DatasetManagerFactory
 from visualisation.AttacksVisualisation import plot_adversarial_examples
 import matplotlib.pyplot as plt
+from models.ModelConfiguration import ModelConfiguration
+import ModelsManager
+import AttacksManager
+import LogsManager
 
 def plot_adversarial_examples(results):
     fig, axes = plt.subplots(len(results['epsilons']), 4, figsize=(12, 12))
@@ -57,35 +61,28 @@ if __name__ == "__main__":
     # Load the dataset using DataManager
     data_manager = DatasetManagerFactory('MNIST')
     train_split, val_split = data_manager.calculate_split_sizes(1, 0)
-    train_loader, val_loader = data_manager.split_dataset(train_samples=500, val_samples=150, batch_size=64)
+    train_dataset, val_dataset = data_manager.split_dataset(train_samples=500, val_samples=150, batch_size=64)
 
-    # Define model configuration
-    config = ExampleConfiguration(
-        optimiser=torch.optim.Adam,
-        init_lr=0.001,
-        loss_function=torch.nn.CrossEntropyLoss(),
-        max_epochs=6,
-        batch_size=64,
-        gpus=1  # Set to None for CPU training
-    )
-
-    # Create ModelManager instance
-    model_manager = ModelsManager(10)
+    configuration = ModelConfiguration()
+    # Create services instance
+    logs_manager = LogsManager()
+    model_manager = ModelsManager(configuration)
+    attack_manager = AttacksManager()
 
     # Register models
-    model1 = LeNet(config, numChannels=1, classes=10)
-    # model_manager.register_model('LeNet_Test_1', model1, config)
+    model1 = LeNet('LeNet_Test_1', configuration, numChannels=1, classes=10)
+    model_manager.register_model(model1, configuration)
 
-    model2 = LeNet(config, numChannels=1, classes=10)
-    model_manager.register_model('LeNet_Test_2', model2, config)
+    model2 = LeNet('LeNet_Test_2', configuration, numChannels=1, classes=10)
+    model_manager.register_model(model2, configuration)
 
     # Register attacks
-    epsilons = [0, .15, .6, 0.9, 1.2, 5, 10]
-    for eps in epsilons:
-        model_manager.register_attack(f'FGSM', epsilon=eps)
+    attack_manager.register_attack(f'FGSM', 0)
+    attack_manager.register_attack(f'FGSM', 0.5)
+    attack_manager.register_attack(f'FGSM', 1)
 
     # Train models
-    training_results = model_manager.batch_train(train_loader, val_loader)
+    training_results = model_manager.prepare_models(train_dataset, val_dataset)
 
     # Evaluate models
     test_dataset = data_manager.load_dataset(train=False)
