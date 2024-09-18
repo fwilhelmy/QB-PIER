@@ -1,6 +1,7 @@
 from pytorch_lightning import LightningModule
 from utils import calculate_accuracy
 import torchvision
+from models.ModelConfiguration import ModelConfiguration
 
 # TODO Would early stopping be interesting??
 # If so, how to implement it??
@@ -9,11 +10,12 @@ import torchvision
 
 # Base class
 class BaseModel(LightningModule):
-    def __init__(self, configuration):
+    def __init__(self, model_name: str, configuration: ModelConfiguration):
         super().__init__()
-        self.learning_rate = configuration.init_lr
+        self.model_name = model_name
+        self.learning_rate = configuration.learning_rate
         self.loss_function = configuration.loss_function
-        self.optimizer = configuration.optimiser
+        self.optimizer_class = configuration.optimizer
 
     def forward(self, x):
         raise NotImplementedError
@@ -71,4 +73,4 @@ class BaseModel(LightningModule):
             prog_bar=True)
 
     def configure_optimizers(self):
-        return self.optimizer(self.parameters(), lr=self.learning_rate)
+        return self.optimizer_class(self.parameters(), lr=self.learning_rate)

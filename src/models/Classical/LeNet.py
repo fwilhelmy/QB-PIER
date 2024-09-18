@@ -11,7 +11,7 @@ from torch import flatten
 from models.BaseModel import BaseModel
 
 class LeNet(BaseModel):
-	def __init__(self, configuration, numChannels, classes):
+	def __init__(self, name, configuration, numChannels, classes):
 		# Call the parent constructor
 		super().__init__(configuration)
 
