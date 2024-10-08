@@ -17,17 +17,6 @@ def create_qnode(n_qubits, circuit, weight_shapes):
 def get_device():
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def load_model(model, model_path):
-    state_dict = torch.load(model_path)
-    model.load_state_dict(state_dict)
-    return model
-
-def get_optimizer(model, init_lr):
-    return Adam(model.parameters(), lr=init_lr)
-
-def get_lossfn():
-    return nn.CrossEntropyLoss()
-
 def calculate_accuracy(y_hat, y):
     _, predicted = torch.max(y_hat, dim=1)
     correct = (predicted == y).float()
