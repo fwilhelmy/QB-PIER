@@ -58,36 +58,34 @@ def plot_adversarial_examples(results):
     plt.show()
 
 if __name__ == "__main__":
+    # Create services instance
+    logs_manager = LogsManager()
+    attack_manager = AttacksManager()
+
+    # Create results lists
+    training_results = {}
+    evaluation_results = {}
+
     # Load the dataset using DataManager
     data_manager = DatasetManagerFactory('MNIST')
     train_split, val_split = data_manager.calculate_split_sizes(1, 0)
     train_dataset, val_dataset = data_manager.split_dataset(train_samples=500, val_samples=150, batch_size=64)
+    
+    # Training models
+    model1 = LeNet('LeNet_Test_1', numChannels=1, classes=10)
+    model1.trainer.fit(model1, train_dataset, val_dataset)
+    training_results[model1.model_name] = model1.trainer.logged_metrics
 
-    configuration = ModelConfiguration()
-    # Create services instance
-    logs_manager = LogsManager()
-    model_manager = ModelsManager(configuration)
-    attack_manager = AttacksManager()
+    model2 = LeNet('LeNet_Test_2', numChannels=1, classes=10)
+    model2.trainer.fit(model2, train_dataset, val_dataset)
+    training_results[model2.model_name] = model2.trainer.logged_metrics
+    
+    models = [model1, model2]
 
-    # Register models
-    model1 = LeNet('LeNet_Test_1', configuration, numChannels=1, classes=10)
-    model_manager.register_model(model1, configuration)
-
-    model2 = LeNet('LeNet_Test_2', configuration, numChannels=1, classes=10)
-    model_manager.register_model(model2, configuration)
-
-    # Register attacks
+    # Performing attacks
     attack_manager.register_attack(f'FGSM', 0)
     attack_manager.register_attack(f'FGSM', 0.5)
     attack_manager.register_attack(f'FGSM', 1)
-
-    # Train models
-    training_results = model_manager.prepare_models(train_dataset, val_dataset)
-
-    # Evaluate models
-    test_dataset = data_manager.load_dataset(train=False)
-    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True)
-    evaluation_results = model_manager.batch_evaluate(test_loader)
 
     # Perform attacks
     attack_results = model_manager.batch_attack(test_dataset)
