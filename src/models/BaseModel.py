@@ -94,7 +94,7 @@ class BaseModel(LightningModule):
         )
 
     def forward(self, x):
-        raise NotImplementedError
+        raise NotImplementedError("Forward method must be implemented")
 
     # The training loop
     def training_step(self, batch, batch_idx):
@@ -158,7 +158,7 @@ class BaseModel(LightningModule):
         return Trainer(
             max_epochs=self.max_epochs,
             gpus=self.gpus,
-            logger=logger
+            logger=logger,
             default_root_dir=self.logger_rootdir
         )
     
