@@ -22,3 +22,19 @@ def calculate_accuracy(y_hat, y):
     correct = (predicted == y).float()
     accuracy = correct.sum() / len(correct)
     return accuracy
+
+def evaluate_attack(self, classifier, dataset, adv_examples):
+    labels = dataset.targets.cpu().numpy()
+    original_preds = classifier.predict(dataset.data.unsqueeze(1).numpy())
+    perturbed_preds = classifier.predict(adv_examples)
+
+    # Calculate accuracy
+    original_accuracy = calculate_accuracy(original_preds, labels)
+    perturbed_accuracy = calculate_accuracy(perturbed_preds, labels)
+    accuracy_difference = original_accuracy - perturbed_accuracy
+    
+    # original_accuracy = (original_preds == labels).mean()
+    # perturbed_accuracy = (perturbed_preds == labels).mean()
+    # accuracy_difference = original_accuracy - perturbed_accuracy
+
+    return accuracy_difference
