@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from models.ModelConfiguration import ModelConfiguration
 import ModelsManager
 import AttacksManager
-import LogsManager
+import src.LoggingService as LoggingService
 
 def plot_adversarial_examples(results):
     fig, axes = plt.subplots(len(results['epsilons']), 4, figsize=(12, 12))
@@ -59,7 +59,7 @@ def plot_adversarial_examples(results):
 
 if __name__ == "__main__":
     # Create services instance
-    logs_manager = LogsManager()
+    logs_manager = LoggingService()
     attack_manager = AttacksManager()
 
     # Create results lists

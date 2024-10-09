@@ -162,6 +162,15 @@ class BaseModel(LightningModule):
             default_root_dir=self.logger_rootdir
         )
     
+    # TODO Still under construction
+    def save_model(self, model_name, model_instance):
+        """Save the model to the specified path."""
+        model_path = f"{self.root_dir}/{model_name}"
+        os.makedirs(model_path, exist_ok=True)
+        model_file = f"{model_path}/model.pt"
+        torch.save(model_instance.state_dict(), model_file)
+        print(f"Model '{model_name}' saved at '{model_file}'.")
+    
     # TODO Not sure is working at the moment
     def load_model(self, file_path):
         state_dict = load(file_path)
