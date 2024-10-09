@@ -16,9 +16,9 @@ NUM_ITER_ENGTANLING_LAYERS = (
 
 
 class HQNN_Parallel(Module):
-    def __init__(self, in_channels, classes):
+    def __init__(self, in_channels, classes, **kwargs):
         # Call the parent constructor
-        super(HQNN_Parallel, self).__init__()
+        super().__init__(**kwargs)
 
         # Initialize first set of CONV => RELU => POOL layers
         self.conv1 = Conv2d(

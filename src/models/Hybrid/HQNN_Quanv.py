@@ -6,9 +6,9 @@ from torch import flatten, float32
 from layers.QuanvolutionLayer import QuanvolutionLayer
 
 class HQNN_Quanv(Module):
-	def __init__(self, in_channels, classes):
+	def __init__(self, in_channels, classes, **kwargs):
 		# Call the parent constructor
-		super(HQNN_Quanv, self).__init__()
+		super().__init__(**kwargs)
 
 		self.quanv = QuanvolutionLayer()
 		

@@ -10,9 +10,9 @@ from torch.nn import LogSoftmax
 from torch import flatten
 
 class ReUpload(Module):
-	def __init__(self, numChannels, classes):
+	def __init__(self, numChannels, classes, **kwargs):
 		# Call the parent constructor
-		super(ReUpload, self).__init__()
+		super().__init__(**kwargs)
 
 		# Initialize first set of CONV => RELU => POOL layers
 		self.conv1 = Conv2d(in_channels=numChannels, out_channels=16, kernel_size=(5, 5), padding=2)
