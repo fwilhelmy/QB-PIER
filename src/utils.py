@@ -1,12 +1,6 @@
-import pennylane as qml
+# import pennylane as qml
 import torch
-from torchvision.datasets import MNIST
-from torch.utils.data import random_split
-from torchvision.transforms import ToTensor
 import Configuration as cfg
-from torch.optim import Adam
-from torch import nn
-import os
 
 # Helper functions for creating circuits
 def create_qnode(n_qubits, circuit, weight_shapes):
@@ -32,9 +26,5 @@ def evaluate_attack(self, classifier, dataset, adv_examples):
     original_accuracy = calculate_accuracy(original_preds, labels)
     perturbed_accuracy = calculate_accuracy(perturbed_preds, labels)
     accuracy_difference = original_accuracy - perturbed_accuracy
-    
-    # original_accuracy = (original_preds == labels).mean()
-    # perturbed_accuracy = (perturbed_preds == labels).mean()
-    # accuracy_difference = original_accuracy - perturbed_accuracy
 
     return accuracy_difference
