@@ -1,6 +1,4 @@
 import matplotlib.pyplot as plt
-import os
-import pennylane as qml
 
 def plot_training_result(path, model, results):
     # Plot the training loss and accuracy

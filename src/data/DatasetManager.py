@@ -1,6 +1,7 @@
 from torch.utils.data import DataLoader, random_split
 import torch
 from tqdm import tqdm
+import numpy as np
 
 class DatasetManager:
     def __init__(self, root: str, batch_size: int, num_workers: int):
