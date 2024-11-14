@@ -7,7 +7,8 @@ from typing import Any, Dict, Optional
 from pytorch_lightning import Trainer
 from torch.optim import Adam, SGD
 from torch.nn import CrossEntropyLoss, MSELoss
-from torch import nn, load
+from torch import load, save
+import os
 
 SUPPORTED_OPTIMIZERS = {
     "adam": Adam,
@@ -79,19 +80,8 @@ class BaseModel(LightningModule):
         self.seed = seed
         self.gpus = gpus
 
-        self.trainer = self._init_trainer()
-
-    def _init_trainer(self):
-        logger = TensorBoardLogger(self.log_dir, name="logs_test_" + self.model_name)
-
-        # TODO What is save top_k?? Should it be 3??
-        # TODO What is checkpoint_dir and checkpoint_callback=True??
-        # TODO How to use the GPUs
-        self.trainer = Trainer(
-            max_epochs=self.max_epochs,
-            logger=logger,
-            default_root_dir=self.log_dir
-        )
+        self.loggerT = self._configure_logger()
+        self.trainer = self._configure_trainer()
 
     def forward(self, x):
         raise NotImplementedError("Forward method must be implemented")
@@ -116,6 +106,8 @@ class BaseModel(LightningModule):
             grid = torchvision.utils.make_grid(selected_x.view(-1, 1, 28, 28))
             self.logger.experiment.add_image("input_images", grid, 0)
 
+        return loss
+
     # The validation loop
     def validation_step(self, batch, batch_idx):
         x, y = batch
@@ -131,6 +123,8 @@ class BaseModel(LightningModule):
             on_epoch=True,
             prog_bar=True)
 
+        return loss
+
     # The test loop
     def test_step(self, batch, batch_idx):
         x, y = batch
@@ -145,33 +139,38 @@ class BaseModel(LightningModule):
             on_step=False,
             on_epoch=True,
             prog_bar=True)
+        
+        return loss
+    
+    def _configure_logger(self):
+        return TensorBoardLogger(self.log_dir, name="logs_test_" + self.model_name)
+        
+    def _configure_trainer(self):
+        # TODO What is save top_k?? Should it be 3??
+        # TODO What is checkpoint_dir and checkpoint_callback=True??
+        # TODO How to use the GPUs
+        return Trainer(
+            max_epochs=self.max_epochs,
+            logger=self.loggerT,
+            default_root_dir=self.log_dir
+        )
 
     def configure_optimizers(self):
         return self.optimizer_class(self.parameters(), lr=self.learning_rate)
     
-    def get_trainer(self):
-        # TODO self.logger_rootdir in LogsManager now, should call the get_logger
-        logger = TensorBoardLogger(self.logger_rootdir, name="logs_test_" + self.model_name)
+    def fit(self, train_dataloaders, val_dataloaders):
+        self.trainer.fit(self, train_dataloaders, val_dataloaders)
 
-        # TODO What is save top_k?? Should it be 3??
-        # TODO What is checkpoint_dir and checkpoint_callback=True??
-        return Trainer(
-            max_epochs=self.max_epochs,
-            gpus=self.gpus,
-            logger=logger,
-            default_root_dir=self.logger_rootdir
-        )
-    
+    # TODO Not sure is working at the moment
+    def load_model(self, file_path):
+        state_dict = load(file_path)
+        self.load_state_dict(state_dict)
+
     # TODO Still under construction
     def save_model(self, model_name, model_instance):
         """Save the model to the specified path."""
         model_path = f"{self.root_dir}/{model_name}"
         os.makedirs(model_path, exist_ok=True)
         model_file = f"{model_path}/model.pt"
-        torch.save(model_instance.state_dict(), model_file)
+        save(model_instance.state_dict(), model_file)
         print(f"Model '{model_name}' saved at '{model_file}'.")
-    
-    # TODO Not sure is working at the moment
-    def load_model(self, file_path):
-        state_dict = load(file_path)
-        self.load_state_dict(state_dict)
