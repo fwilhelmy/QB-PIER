@@ -1,66 +1,77 @@
-import torch
-from torch.utils.data import DataLoader
-
 from models.Classical.LeNet import LeNet
-from ModelsManager import ModelsManager, ExampleConfiguration
 from data.DatasetManagerFactory import DatasetManagerFactory
 from visualisation.AttacksVisualisation import plot_adversarial_examples
 import matplotlib.pyplot as plt
-from models.ModelConfiguration import ModelConfiguration
-import ModelsManager
-import AttacksManager
-import src.LoggingService as LoggingService
+from LoggingService import LoggingService
+from attacks.FGSMAttack import FGSMAttack
 
-def plot_adversarial_examples(results):
-    fig, axes = plt.subplots(len(results['epsilons']), 4, figsize=(12, 12))
-    fig.suptitle('Original and Adversarial Images for Different Epsilons')
+import matplotlib.pyplot as plt
 
-    for i, (epsilon, examples) in enumerate(zip(results['epsilons'], results['examples'])):
-        exp1_original_img, exp2_original_img = examples['original_images'][0:2]
-        exp1_perturbed_img, exp2_perturbed_img = examples['perturbed_images'][0:2]
-        exp1_original_pred, exp2_original_pred = examples['original_preds'][0:2]
-        exp1_perturbed_pred, exp2_perturbed_pred = examples['perturbed_preds'][0:2]
+def visualize_attacks_results(attacks_results, num_images=5):
+    """
+    Visualizes adversarial attack results.
 
-        exp1_original_pred = exp1_original_pred.argmax().item()
-        exp1_perturbed_pred = exp1_perturbed_pred.argmax().item()
-        exp2_original_pred = exp2_original_pred.argmax().item()
-        exp2_perturbed_pred = exp2_perturbed_pred.argmax().item()
+    Parameters:
+    - attacks_results (dict): A dictionary where keys are epsilon levels and values are lists/arrays of perturbed images.
+                               Example format:
+                               {
+                                   0.0: [image1, image2, ...],
+                                   0.5: [image1_adv, image2_adv, ...],
+                                   1.0: [image1_adv, image2_adv, ...]
+                               }
+    - num_images (int): Number of images to display for each epsilon level.
 
-        # Plot original image 1
-        axes[i, 0].imshow(exp1_original_img.squeeze(), cmap='gray')
-        axes[i, 0].axis('off')
+    The function creates a grid where each row corresponds to an epsilon level and each column corresponds to a different image.
+    """
+    # Sort the epsilon levels for consistent ordering
+    epsilons = sorted(attacks_results.keys())
+    num_epsilons = len(epsilons)
 
-        # Plot adversarial image 1
-        axes[i, 1].imshow(exp1_perturbed_img.squeeze(), cmap='gray')
-        axes[i, 1].axis('off')
+    # Set up the matplotlib figure
+    fig, axes = plt.subplots(num_epsilons, num_images, figsize=(num_images * 2, num_epsilons * 2))
+    fig.suptitle('Adversarial Attacks Visualization', fontsize=16)
 
-        # Plot original image 2
-        axes[i, 2].imshow(exp2_original_img.squeeze(), cmap='gray')
-        axes[i, 2].axis('off')
+    # If there's only one epsilon level or one image, axes may not be a 2D array
+    if num_epsilons == 1:
+        axes = [axes]
+    else:
+        axes = axes
 
-        # Plot adversarial image 2
-        axes[i, 3].imshow(exp2_perturbed_img.squeeze(), cmap='gray')
-        axes[i, 3].axis('off')
+    for row, eps in enumerate(epsilons):
+        perturbed_images = attacks_results[eps]
+        for col in range(num_images):
+            ax = axes[row][col] if num_epsilons > 1 else axes[col]
+            
+            # Ensure the index does not exceed the available images
+            if col < len(perturbed_images):
+                img = perturbed_images[col]
+                # If the image has more than 2 dimensions, assume it's multi-channel and take the first channel
+                if img.ndim == 3 and img.shape[0] in [1, 3]:
+                    img = img.squeeze(0)
+                elif img.ndim == 2:
+                    img = img  # Grayscale image
 
-        # Set y-axis title to epsilon value
-        axes[i, 0].set_ylabel(f'Epsilon: {epsilon}', rotation=90, size='large')
+                ax.imshow(img, cmap='gray')
+            else:
+                ax.axis('off')  # Hide axes if no image is available
 
-    axes[0, 0].set_title(f'Img1 Org [{exp1_original_pred}]')
-    axes[0, 1].set_title(f'Img1 Pertub [{exp1_perturbed_pred}]')
-    axes[0, 2].set_title(f'Img2 Org [{exp2_original_pred}]')
-    axes[0, 3].set_title(f'Img2 Pertub [{exp2_perturbed_pred}]')
+            ax.axis('off')  # Hide axis ticks
 
-    # Adjust layout
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+            # Set titles for the first row
+            if row == 0:
+                ax.set_title(f"Image {col+1}", fontsize=10)
 
+        # Set y-axis labels for each row
+        axes[row][0].set_ylabel(f"Epsilon: {eps}", rotation=0, labelpad=50, fontsize=12, va='center')
+
+    plt.tight_layout(rect=[0, 0, 1, 0.96])  # Adjust layout to make room for the suptitle
     # Saving the results to the ./results directory
-    plt.savefig(f"./results/adversarial_examples.png")
+    plt.savefig(f"./results/adversarial_examples_NEW.png")
     plt.show()
 
 if __name__ == "__main__":
     # Create services instance
     logs_manager = LoggingService()
-    attack_manager = AttacksManager()
 
     # Create results lists
     training_results = {}
@@ -69,30 +80,27 @@ if __name__ == "__main__":
     # Load the dataset using DataManager
     data_manager = DatasetManagerFactory('MNIST')
     train_split, val_split = data_manager.calculate_split_sizes(1, 0)
-    train_dataset, val_dataset = data_manager.split_dataset(train_samples=500, val_samples=150, batch_size=64)
+    train_dataset, val_dataset = data_manager.split_dataset(train_samples=1500, val_samples=300, batch_size=64)
     
     # Training models
-    model1 = LeNet('LeNet_Test_1', numChannels=1, classes=10)
-    model1.trainer.fit(model1, train_dataset, val_dataset)
+    model1 = LeNet(model_name='LeNet_Test_1', numChannels=1, classes=10)
+    model1.fit(train_dataset, val_dataset)
     training_results[model1.model_name] = model1.trainer.logged_metrics
 
-    model2 = LeNet('LeNet_Test_2', numChannels=1, classes=10)
-    model2.trainer.fit(model2, train_dataset, val_dataset)
+    model2 = LeNet(model_name='LeNet_Test_2', numChannels=1, classes=10)
+    model2.fit(train_dataset, val_dataset)
     training_results[model2.model_name] = model2.trainer.logged_metrics
     
     models = [model1, model2]
 
     # Performing attacks
-    attack_manager.register_attack(f'FGSM', 0)
-    attack_manager.register_attack(f'FGSM', 0.5)
-    attack_manager.register_attack(f'FGSM', 1)
-
-    # Perform attacks
-    attack_results = model_manager.batch_attack(test_dataset)
-
+    attacks = [FGSMAttack(x) for x in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0]]
+    test_dataset = data_manager.load_dataset(train=False)
+    attacks_results = {model.model_name: {a.epsilon: a.evaluate_attack(model, test_dataset) for a in attacks} for model in models}
+    
     # Save results
     # model_manager.batch_save(training_results, evaluation_results, None)
 
     # TODO DOESNT STORE CORRECTLY THE ATTACK TYPE
-    plot_adversarial_examples(attack_results['LeNet_Test_2'])
+    visualize_attacks_results(attacks_results['LeNet_Test_2'])
             
