@@ -1,10 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import os
+from LoggingService import LoggingService
 
 # Function to plot adversarial examples
 # TODO ADD TITLE WITH MODEL NAME
-def plot_adversarial_examples(path, model_name, epsilons, examples):
+def plot_adversarial_examples(model_name, epsilons, examples):
     cnt = 0
     plt.figure(figsize=(8, 10))
     for i in range(len(epsilons)):
@@ -20,11 +20,12 @@ def plot_adversarial_examples(path, model_name, epsilons, examples):
             plt.imshow(ex, cmap="gray")
     plt.tight_layout()
 
-    # Saving the results to the ./results directory
-    plt.savefig(f"{path}/{model_name}_adversarial_examples.png")
+    # Saving the results
+    LoggingService().save_figure(plt, model_name)
+    plt.close()
 
 # Function to plot accuracy vs epsilon
-def plot_accuracy_vs_epsilon(path, model_name, attack_name, epsilons, accuracies):
+def plot_accuracy_vs_epsilon(model_name, attack_name, epsilons, accuracies):
     plt.figure(figsize=(5, 5))
     plt.plot(epsilons, accuracies, "*-")
     plt.yticks(np.arange(0, 1.1, step=0.1))
@@ -33,5 +34,6 @@ def plot_accuracy_vs_epsilon(path, model_name, attack_name, epsilons, accuracies
     plt.xlabel("Epsilon")
     plt.ylabel("Accuracy")
 
-    # Saving the results to the ./results directory
-    plt.savefig(f"{path}/{attack_name}.png")
+    # Saving the results
+    LoggingService().save_figure(plt, model_name)
+    plt.close()

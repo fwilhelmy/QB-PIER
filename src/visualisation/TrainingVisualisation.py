@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from LoggingService import LoggingService
 
 def plot_training_result(path, model, results):
     # Plot the training loss and accuracy
@@ -30,10 +31,10 @@ def plot_training_result(path, model, results):
     # TODO Extract the time taken to train the model
     # TODO Extract number of training and validation samples
 
-    # Saving the results to the ./results directory
-    plt.savefig(f"{path}/train_plot.png")
+    # Save the results
+    LoggingService().save_figure(plt, model['name'])
 
-def plot_models_together(path, training_results):
+def plot_models_together(training_results):
     fig, ax = plt.subplots(2, 1, figsize=(10, 10))
     # Plotting training loss
     ax[0].set_title('Training Loss per Epoch')
@@ -53,5 +54,6 @@ def plot_models_together(path, training_results):
     ax[0].legend()
     ax[1].legend()
 
-    # Saving the results to the ./results directory
-    plt.savefig(f"{path}/full_train.png")
+    # Saving the results
+    LoggingService().save_figure(plt)
+    plt.close()

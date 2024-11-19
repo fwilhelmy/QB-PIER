@@ -1,10 +1,8 @@
 import torch
 import matplotlib.pyplot as plt
 import random
-import numpy as np
-from torchvision.datasets import MNIST
-from torchvision.transforms import ToTensor
 from sklearn.manifold import TSNE
+from LoggingService import LoggingService
 
 # Function to print general information about the dataset
 def print_dataset_info(dataset):
@@ -26,7 +24,11 @@ def plot_class_distribution(dataset):
     plt.ylabel('Frequency')
     plt.title('Class Distribution in Dataset')
     plt.xticks(range(len(dataset.classes)), dataset.classes)
-    plt.show()
+
+    # Saving the results
+    LoggingService().save_figure(plt)
+    plt.close()
+    
 
 # Function to plot class visualizations: sample, mean, and standard deviation images
 def plot_class_visualizations(dataset):
@@ -62,7 +64,10 @@ def plot_class_visualizations(dataset):
         axes[3, i].set_title('STD')
         
     plt.tight_layout()
-    plt.show()
+
+    # Saving the results
+    LoggingService().save_figure(plt)
+    plt.close()
 
 # Function to perform t-SNE and plot the results
 def plot_tsne(dataset, subset_size=1000):
@@ -78,7 +83,10 @@ def plot_tsne(dataset, subset_size=1000):
     scatter = plt.scatter(tsne_results[:, 0], tsne_results[:, 1], c=labels, cmap='tab10', alpha=0.7)
     plt.colorbar(scatter, ticks=range(len(dataset.classes)))
     plt.title('t-SNE of Dataset')
-    plt.show()
+
+    # Saving the results
+    LoggingService().save_figure(plt)
+    plt.close()
 
 # Function to plot sample images from the dataset
 def plot_sample_images(dataset, x=10, rows=2, cols=5):
@@ -92,4 +100,7 @@ def plot_sample_images(dataset, x=10, rows=2, cols=5):
         ax.set_title(f"Label: {label}")
         ax.axis('off')
     plt.tight_layout()
-    plt.show()
+
+    # Saving the results
+    LoggingService().save_figure(plt)
+    plt.close()

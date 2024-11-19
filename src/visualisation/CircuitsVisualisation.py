@@ -1,7 +1,12 @@
 import matplotlib.pyplot as plt
-import os
+import torch
 import pennylane as qml
+from LoggingService import LoggingService
 
-def printCircuit(self):
-    qml.draw_mpl(self.circuit)(torch.tensor([0.1, 0.2, 0.3, 0.4]), torch.randn(2, 3))
-    plt.show()
+# TODO NOT WORKING
+def printCircuit(model_name, circuit):
+    qml.draw_mpl(circuit)(torch.tensor([0.1, 0.2, 0.3, 0.4]), torch.randn(2, 3))
+    
+    # Saving the results
+    LoggingService().save_figure(plt, model_name)
+    plt.close()
