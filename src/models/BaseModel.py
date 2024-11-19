@@ -10,6 +10,8 @@ from torch.nn import CrossEntropyLoss, MSELoss
 from torch import load, save
 import os
 
+from LoggingService import LoggingService
+
 SUPPORTED_OPTIMIZERS = {
     "adam": Adam,
     "sgd": SGD
@@ -33,10 +35,6 @@ class BaseModel(LightningModule):
     optimizer: Any
     loss_function: Any
 
-    # Logging configurations
-    log_dir: str
-    checkpoint_dir: str
-
     # Hardware configurations
     seed: Optional[int]
     gpus: Optional[int]
@@ -49,10 +47,6 @@ class BaseModel(LightningModule):
             max_epochs: int = 10,
             optimizer: str = "adam",
             loss_function: str = "cross_entropy",
-            log_dir: str = "logs",
-            checkpoint_dir: str = "checkpoints",
-            save_top_k: int = 3,
-            monitor_metric: str = "val_loss",
             seed: Optional[int] = 42,
             gpus: Optional[int] = None  # Set to None for CPU training
     ):
@@ -72,16 +66,32 @@ class BaseModel(LightningModule):
             raise ValueError(f"Unsupported loss function: {loss_function}")
         self.loss_function = SUPPORTED_LOSS_FUNCTIONS[loss_function.lower()]()
 
-        # Logging configuration
-        self.log_dir = log_dir
-        self.checkpoint_dir = checkpoint_dir
-
         # Hardware configurations
         self.seed = seed
         self.gpus = gpus
+        
+        self._configure_logging()
+        self._configure_trainer()
 
-        self.loggerT = self._configure_logger()
-        self.trainer = self._configure_trainer()
+    def _configure_logging(self):
+        self.log_service = LoggingService()
+        self.root_dir = self.log_service.get_root_dir()
+        os.makedirs(f"{self.root_dir}/{self.model_name}", exist_ok=True)
+        
+    def _configure_trainer(self):
+        logger = self.log_service.create_tb_logger(self.model_name)
+
+        # TODO What is save top_k?? Should it be 3??
+        # TODO What is checkpoint_dir and checkpoint_callback=True??
+        # TODO How to use the GPUs
+        self.trainer = Trainer(
+            max_epochs=self.max_epochs,
+            logger=logger,
+            default_root_dir=self.root_dir
+        )
+
+    def configure_optimizers(self):
+        return self.optimizer_class(self.parameters(), lr=self.learning_rate)
 
     def forward(self, x):
         raise NotImplementedError("Forward method must be implemented")
@@ -142,22 +152,6 @@ class BaseModel(LightningModule):
         
         return loss
     
-    def _configure_logger(self):
-        return TensorBoardLogger(self.log_dir, name="logs_test_" + self.model_name)
-        
-    def _configure_trainer(self):
-        # TODO What is save top_k?? Should it be 3??
-        # TODO What is checkpoint_dir and checkpoint_callback=True??
-        # TODO How to use the GPUs
-        return Trainer(
-            max_epochs=self.max_epochs,
-            logger=self.loggerT,
-            default_root_dir=self.log_dir
-        )
-
-    def configure_optimizers(self):
-        return self.optimizer_class(self.parameters(), lr=self.learning_rate)
-    
     def fit(self, train_dataloaders, val_dataloaders):
         self.trainer.fit(self, train_dataloaders, val_dataloaders)
 
@@ -169,8 +163,6 @@ class BaseModel(LightningModule):
     # TODO Still under construction
     def save_model(self, model_name, model_instance):
         """Save the model to the specified path."""
-        model_path = f"{self.root_dir}/{model_name}"
-        os.makedirs(model_path, exist_ok=True)
-        model_file = f"{model_path}/model.pt"
+        model_file = f"{self.model_dir}/model.pt"
         save(model_instance.state_dict(), model_file)
         print(f"Model '{model_name}' saved at '{model_file}'.")

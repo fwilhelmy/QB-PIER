@@ -5,24 +5,7 @@ import matplotlib.pyplot as plt
 from LoggingService import LoggingService
 from attacks.FGSMAttack import FGSMAttack
 
-import matplotlib.pyplot as plt
-
 def visualize_attacks_results(attacks_results, num_images=5):
-    """
-    Visualizes adversarial attack results.
-
-    Parameters:
-    - attacks_results (dict): A dictionary where keys are epsilon levels and values are lists/arrays of perturbed images.
-                               Example format:
-                               {
-                                   0.0: [image1, image2, ...],
-                                   0.5: [image1_adv, image2_adv, ...],
-                                   1.0: [image1_adv, image2_adv, ...]
-                               }
-    - num_images (int): Number of images to display for each epsilon level.
-
-    The function creates a grid where each row corresponds to an epsilon level and each column corresponds to a different image.
-    """
     # Sort the epsilon levels for consistent ordering
     epsilons = sorted(attacks_results.keys())
     num_epsilons = len(epsilons)
