@@ -2,7 +2,7 @@ import torch
 import matplotlib.pyplot as plt
 import random
 from sklearn.manifold import TSNE
-from LoggingService import LoggingService
+from VisualisationUtils import save_figure
 
 # Function to print general information about the dataset
 def print_dataset_info(dataset):
@@ -26,7 +26,7 @@ def plot_class_distribution(dataset):
     plt.xticks(range(len(dataset.classes)), dataset.classes)
 
     # Saving the results
-    LoggingService().save_figure(plt)
+    save_figure(plt)
     plt.close()
     
 
@@ -66,7 +66,7 @@ def plot_class_visualizations(dataset):
     plt.tight_layout()
 
     # Saving the results
-    LoggingService().save_figure(plt)
+    save_figure(plt)
     plt.close()
 
 # Function to perform t-SNE and plot the results
@@ -85,7 +85,7 @@ def plot_tsne(dataset, subset_size=1000):
     plt.title('t-SNE of Dataset')
 
     # Saving the results
-    LoggingService().save_figure(plt)
+    save_figure(plt)
     plt.close()
 
 # Function to plot sample images from the dataset
@@ -102,5 +102,5 @@ def plot_sample_images(dataset, x=10, rows=2, cols=5):
     plt.tight_layout()
 
     # Saving the results
-    LoggingService().save_figure(plt)
+    save_figure(plt)
     plt.close()

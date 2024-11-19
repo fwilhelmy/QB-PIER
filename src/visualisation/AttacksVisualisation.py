@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from LoggingService import LoggingService
+from VisualisationUtils import save_figure
 
 # Function to plot adversarial examples
 # TODO ADD TITLE WITH MODEL NAME
@@ -21,7 +21,7 @@ def plot_adversarial_examples(model_name, epsilons, examples):
     plt.tight_layout()
 
     # Saving the results
-    LoggingService().save_figure(plt, model_name)
+    save_figure(plt, model_name)
     plt.close()
 
 # Function to plot accuracy vs epsilon
@@ -35,5 +35,5 @@ def plot_accuracy_vs_epsilon(model_name, attack_name, epsilons, accuracies):
     plt.ylabel("Accuracy")
 
     # Saving the results
-    LoggingService().save_figure(plt, model_name)
+    save_figure(plt, model_name)
     plt.close()

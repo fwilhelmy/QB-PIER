@@ -83,9 +83,6 @@ if __name__ == "__main__":
     test_dataset = data_manager.load_dataset(train=False)
     attacks_results = {model.model_name: {a.epsilon: a.evaluate_attack(model, test_dataset) for a in attacks} for model in models}
     
-    # Save results
-    # model_manager.batch_save(training_results, evaluation_results, None)
-
     # TODO DOESNT STORE CORRECTLY THE ATTACK TYPE
     visualize_attacks_results(attacks_results)
             

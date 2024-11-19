@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from LoggingService import LoggingService
+from VisualisationUtils import save_figure
 
 def plot_training_result(path, model, results):
     # Plot the training loss and accuracy
@@ -32,7 +32,8 @@ def plot_training_result(path, model, results):
     # TODO Extract number of training and validation samples
 
     # Save the results
-    LoggingService().save_figure(plt, model['name'])
+    save_figure(plt, model['name'])
+    plt.close()
 
 def plot_models_together(training_results):
     fig, ax = plt.subplots(2, 1, figsize=(10, 10))
@@ -55,5 +56,5 @@ def plot_models_together(training_results):
     ax[1].legend()
 
     # Saving the results
-    LoggingService().save_figure(plt)
+    save_figure(plt)
     plt.close()

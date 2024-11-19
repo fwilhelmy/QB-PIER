@@ -30,11 +30,3 @@ class LoggingService:
     def create_tb_logger(self, model_name: str):
         """Create a TensorBoard logger for the given model."""
         return TensorBoardLogger(f"{self._root_dir}/tensorboard", name=model_name)
-
-    def save_figure(self, plt, model_name: str = None):
-        directory = f"{self._root_dir}/{model_name}" if model_name else self._root_dir
-        title = plt.title.get_text() or plt._suptitle.get_text() if plt._suptitle else "figure"
-        title.translate(str.maketrans(" ", "_", "()")).lower()
-
-        plt.savefig(f"{directory}/{title}.png")
-        plt.close()
