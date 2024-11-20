@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from LoggingService import LoggingService
 from attacks.FGSMAttack import FGSMAttack
 from utils import save_figure
+import pennylane as qml
 
 def visualize_attacks_results(models_results, num_images=5):
     for model_name, model_results in models_results.items():

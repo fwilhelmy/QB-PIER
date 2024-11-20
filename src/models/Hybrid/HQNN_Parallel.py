@@ -6,7 +6,7 @@ from torch.nn import ReLU
 from torch.nn import LogSoftmax
 from torch.nn import BatchNorm2d
 from torch import flatten
-from layers.VQCLayer import VQCLayer
+from src.models.Quantum.VQC import VQC
 
 NUM_QFEATURES = 20  # number of input features for all the quantum layers
 NUM_QUBITS = 5  # number of qubits for one quantum subcircuit
@@ -41,7 +41,7 @@ class HQNN_Parallel(Module):
         self.relu3 = ReLU()
 
         # Initialize the quantum layer
-        self.qlayer1 = VQCLayer(
+        self.qlayer1 = VQC(
             size_in=NUM_QFEATURES,
             n_qubits=NUM_QUBITS,
             n_qdepth=NUM_ITER_ENGTANLING_LAYERS,

@@ -3,7 +3,7 @@ from torch.nn import Linear
 from torch.nn import ReLU
 from torch.nn import LogSoftmax
 from torch import flatten, float32
-from layers.QuanvolutionLayer import QuanvolutionLayer
+from src.models.Quantum.QuanvolutionLayer import QuanvolutionLayer
 
 class HQNN_Quanv(Module):
 	def __init__(self, in_channels, classes, **kwargs):
