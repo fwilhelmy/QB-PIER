@@ -4,6 +4,7 @@ from visualisation.AttacksVisualisation import plot_adversarial_examples
 import matplotlib.pyplot as plt
 from LoggingService import LoggingService
 from attacks.FGSMAttack import FGSMAttack
+from utils import save_figure
 
 def visualize_attacks_results(models_results, num_images=5):
     for model_name, model_results in models_results.items():
@@ -51,7 +52,7 @@ def visualize_attacks_results(models_results, num_images=5):
         plt.tight_layout(rect=[0, 0, 1, 0.96])  # Adjust layout to make room for the suptitle
         
         plt.show()
-        LoggingService().save_figure(model_name, plt)
+        save_figure("adv_atcks", plt, model_name)
         plt.close()
 
 if __name__ == "__main__":

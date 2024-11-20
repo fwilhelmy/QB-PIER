@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import torch
 import pennylane as qml
-from VisualisationUtils import save_figure
+from utils import save_figure
 
 # TODO NOT WORKING
 def printCircuit(model_name, circuit):

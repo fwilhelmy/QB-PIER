@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from VisualisationUtils import save_figure
+from utils import save_figure
 
 def plot_training_result(path, model, results):
     # Plot the training loss and accuracy

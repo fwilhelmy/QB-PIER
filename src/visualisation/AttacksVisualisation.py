@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from VisualisationUtils import save_figure
+from utils import save_figure
 
 # Function to plot adversarial examples
 # TODO ADD TITLE WITH MODEL NAME

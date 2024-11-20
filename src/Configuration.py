@@ -5,7 +5,6 @@ DEVICE = "lightning.qubit"
 INTERFACE = "torch"
 DIFF_METHOD = "parameter-shift"
 
-TENSORBOARD_DIR = "tb_logs"
 DATA_DIR = "data/processed"
 
 # TODO add the run_nisq flag for the CLI (default to False): if True, the model will be run on a NISQ device
