@@ -1,5 +1,4 @@
 from attacks.BaseAttack import BaseAttack
-from art.attacks.evasion import FastGradientMethod
 import torch
 from models.BaseModel import BaseModel
 
