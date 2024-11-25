@@ -2,6 +2,7 @@
 import torch
 import Configuration as cfg
 from LoggingService import LoggingService
+import pennylane as qml
 
 def save_figure(plt_str, plt, model_name=None):
         directory = LoggingService().get_root_dir() + (f"/{model_name}" if model_name else "")
@@ -22,6 +23,12 @@ def calculate_accuracy(y_hat, y):
     correct = (predicted == y).float()
     accuracy = correct.sum() / len(correct)
     return accuracy
+
+
+def new_accuracy(labels, predictions):
+    acc = sum(abs(l - p) < 1e-5 for l, p in zip(labels, predictions))
+    acc = acc / len(labels)
+    return acc
 
 def evaluate_attack(self, classifier, dataset, adv_examples):
     labels = dataset.targets.cpu().numpy()
