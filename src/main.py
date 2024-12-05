@@ -86,6 +86,9 @@ if __name__ == "__main__":
     test_dataset = data_manager.load_dataset(train=False)
     attacks_results = {model.model_name: {a.epsilon: a.evaluate_attack(model, test_dataset) for a in attacks} for model in models}
     
+    # TODO DOESNT STORE CORRECTLY THE ATTACK TYPE
+    visualize_attacks_results(attacks_results)
+
     # Try to classify the images of each attack on each model and store the results
     attacks_acc = {}
     y = test_dataset.targets
@@ -100,6 +103,3 @@ if __name__ == "__main__":
                 attacks_acc[og_model_name][target_model_name][epsilon] = calculate_accuracy(y_hat, y)
 
     print(attacks_acc)
-    # TODO DOESNT STORE CORRECTLY THE ATTACK TYPE
-    visualize_attacks_results(attacks_results)
-            
