@@ -15,8 +15,8 @@ tensorboard
 matplotlib
 
 # Adversarial robustness libraries
-adversarial-robustness-toolbox
-adversarial-robustness-toolbox[pytorch_image]
+# adversarial-robustness-toolbox
+# adversarial-robustness-toolbox[pytorch_image]
 
 # Development tools
 #click
