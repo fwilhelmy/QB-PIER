@@ -85,6 +85,9 @@ class BaseModel(LightningModule):
         # TODO What is checkpoint_dir and checkpoint_callback=True??
         # TODO How to use the GPUs
         self.trainer = Trainer(
+            accelerator="auto", 
+            devices="auto",
+            strategy="auto",
             max_epochs=self.max_epochs,
             logger=logger,
             default_root_dir=self.root_dir
