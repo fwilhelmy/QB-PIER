@@ -71,8 +71,8 @@ if __name__ == "__main__":
     train_dataset, val_dataset = data_manager.split_dataset(train_samples=1500, val_samples=300, batch_size=64)
     
     # Training models
-    #model1 = HQNN_Parallel(model_name='HQNN_Parallel_Test_1', max_epochs=8, in_channels=1, classes=10)
-    #model1.fit(train_dataset, val_dataset)
+    model1 = HQNN_Parallel(model_name='HQNN_Parallel_Test_1', max_epochs=8, in_channels=1, classes=10)
+    model1.fit(train_dataset, val_dataset)
     training_results[model1.model_name] = model1.trainer.logged_metrics
 
     model2 = LeNet(model_name='LeNet_Test_2', in_channels=1, classes=10)
