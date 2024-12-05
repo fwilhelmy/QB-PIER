@@ -11,12 +11,12 @@ from torch import flatten
 from models.BaseModel import BaseModel
 
 class LeNet(BaseModel):
-	def __init__(self, numChannels, classes, **kwargs):
+	def __init__(self, in_channels, classes, **kwargs):
 		# Call the parent constructor
 		super().__init__(**kwargs)
 
 		# Initialize first set of CONV => RELU => POOL layers
-		self.conv1 = Conv2d(in_channels=numChannels, out_channels=16, kernel_size=(5, 5), padding=2)
+		self.conv1 = Conv2d(in_channels=in_channels, out_channels=16, kernel_size=(5, 5), padding=2)
 		self.relu1 = ReLU()
 		self.maxpool1 = MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
 

@@ -52,13 +52,7 @@ class VQC(nn.Module):
         else:
             raise ValueError("Invalid circuit type provided.")
         
-        self.layers = nn.ModuleList(
-            [create_qnode(self.n_qubits, self.circuit, self.weight_shapes) for _ in range(math.ceil(size_in / n_qubits))]
-        )
+        self.qnode = create_qnode(self.n_qubits, self.circuit, self.weight_shapes)
 
     def forward(self, x):
-        # Split the input into the number of qubits
-        x_split = torch.split(x, self.n_qubits, dim=1)
-        outputs = [layer(inputs) for layer, inputs in zip(self.layers, x_split)]
-        # Concatenate the outputs of individual quantum layers
-        return torch.cat(outputs, dim=1)
+        return self.qnode(x)
