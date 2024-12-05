@@ -1,9 +1,10 @@
 debug = True
 
 # Constants for qunodes configuration
-DEVICE = "lightning.qubit"
+# default.qubit lightning.qubit
+DEVICE = "default.qubit"
 INTERFACE = "torch"
-DIFF_METHOD = "parameter-shift"
+DIFF_METHOD = "backprop"
 
 DATA_DIR = "data/processed"
 
