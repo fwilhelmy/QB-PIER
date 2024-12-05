@@ -1,1 +1,11 @@
+== Connection au serveur ==
+ssh -l AP09650 replica.logti.etsmtl.ca
+
+== Copy files from remote to my computer ==
 scp -r AP09650@replica.logti.etsmtl.ca:QMLBenchmark C:\Users\fwilh\Desktop\GINO\
+
+== Run in background my job ==
+nohup python QMLBenchmark/src/main.py > funsies.out 2> oopsies.err < /dev/null &
+
+== Start tailing the output of my job ==
+tail -f funsies.out
