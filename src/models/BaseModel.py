@@ -109,7 +109,7 @@ class BaseModel(LightningModule):
             "train_acc": acc},
             on_step=False,
             on_epoch=True,
-            prog_bar=True)
+            prog_bar=False)
         
         if batch_idx % 20 == 0:
             selected_x = x[:8]
@@ -131,7 +131,7 @@ class BaseModel(LightningModule):
             "val_acc": acc},
             on_step=False,
             on_epoch=True,
-            prog_bar=True)
+            prog_bar=False)
 
         return loss
 
@@ -148,7 +148,7 @@ class BaseModel(LightningModule):
             "test_acc": acc},
             on_step=False,
             on_epoch=True,
-            prog_bar=True)
+            prog_bar=False)
         
         return loss
     
