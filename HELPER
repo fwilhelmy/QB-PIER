@@ -1,5 +1,13 @@
+screen [-ls] [-r]
+
+htop
+
+
 == Connection au serveur ==
 ssh -l AP09650 replica.logti.etsmtl.ca
+
+== Activate Conda ==
+source miniconda3/bin/activate
 
 == Copy files from remote to my computer ==
 scp -r AP09650@replica.logti.etsmtl.ca:QMLBenchmark C:\Users\fwilh\Desktop\GINO\
