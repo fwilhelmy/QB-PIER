@@ -9,6 +9,7 @@ from torch.optim import Adam, SGD
 from torch.nn import CrossEntropyLoss, MSELoss
 from torch import load, save
 import os
+from Configuration import CPU_NUMBER
 
 from LoggingService import LoggingService
 
@@ -86,7 +87,7 @@ class BaseModel(LightningModule):
         # TODO How to use the GPUs
         self.trainer = Trainer(
             accelerator="cpu", 
-            devices=60,
+            devices=CPU_NUMBER,
             strategy="auto",
             max_epochs=self.max_epochs,
             logger=logger,
