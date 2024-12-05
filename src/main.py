@@ -82,7 +82,7 @@ if __name__ == "__main__":
     models = [model2]
 
     # Performing attacks
-    attacks = [FGSMAttack(x) for x in [1.0]]
+    attacks = [FGSMAttack(x) for x in [0, 0.3, 1.0]]
     test_dataset = data_manager.load_dataset(train=False)
     # Extract 1 image for test from test_dataset
     test_image, test_label = test_dataset[0]
