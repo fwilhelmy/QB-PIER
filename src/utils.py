@@ -24,7 +24,6 @@ def calculate_accuracy(y_hat, y):
     accuracy = correct.sum() / len(correct)
     return accuracy
 
-
 def new_accuracy(labels, predictions):
     acc = sum(abs(l - p) < 1e-5 for l, p in zip(labels, predictions))
     acc = acc / len(labels)

@@ -59,6 +59,24 @@ def visualize_attacks_results(model_name, adv_exemples, num_images=5):
     save_figure("adv_atcks", plt, model_name)
     plt.close()
 
+def plot_attack_effect_on_accuracy(models, epsilons, accuracies):
+    plt.figure(figsize=(10, 6))
+
+    for model in models:
+        plt.plot(epsilons, accuracies[model.model_name], label=model.model_name, marker='o')
+
+    plt.xlabel('Attack Strength (Epsilon)', fontsize=12)
+    plt.ylabel('Accuracy (%)', fontsize=12)
+    plt.title('Effect of Adversarial Attacks on Model Accuracy', fontsize=14)
+    plt.xticks(epsilons, [f"{e:.2f}" for e in epsilons], rotation=45)
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.legend(title='Models', fontsize=10)
+    plt.tight_layout()
+
+    plt.show()
+    save_figure("accs", plt)
+    plt.close()
+
 if __name__ == "__main__":
     # Create services instance
     logs_manager = LoggingService()
@@ -74,26 +92,36 @@ if __name__ == "__main__":
     
     # Training models
     # TODO Do quantum models work?
-    # model1 = HQNN_Parallel(model_name='HQNN_Parallel_Test_1', max_epochs=8, in_channels=1, classes=10)
-    # model1.fit(train_dataset, val_dataset)
-    # training_results[model1.model_name] = model1.trainer.logged_metrics
+    model1 = HQNN_Parallel(model_name='HQNN_Parallel_Test_1', max_epochs=8, in_channels=1, classes=10)
+    model1.fit(train_dataset, val_dataset)
+    training_results[model1.model_name] = model1.trainer.logged_metrics
 
     model2 = LeNet(model_name='LeNet_Test_2', in_channels=1, classes=10)
     model2.fit(train_dataset, val_dataset)
     training_results[model2.model_name] = model2.trainer.logged_metrics
     
-    models = [model2]
+    models = [model1, model2]
 
     # Performing attacks
-    attacks = [FGSMAttack(x) for x in [0, 0.3, 1.0]]
+    epsilons = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 1.0]
+    attacks = [FGSMAttack(x) for x in epsilons]
     test_dataset = data_manager.load_dataset(train=False)
     
+    accuracies = {}
     for model in models:
         evaluation_results = {}
+        accuracies[model.model_name] = []
         for attack in attacks:
             adv_examples = attack.evaluate_attack(model, test_dataset)
             evaluation_results[attack.epsilon] = adv_examples
             # TODO Figure out how to use the datasets to do predictions now that I have them
-            #og_pred = model(test_dataset)
-            #adv_pred = model(adv_examples)
+            og_preds = model(test_dataset.data.unsqueeze(1).to(torch.float))
+            og_acc = calculate_accuracy(og_preds, test_dataset.targets)
+            adv_pred = model(torch.stack(adv_examples))
+            adv_acc = calculate_accuracy(adv_pred, test_dataset.targets[0:len(adv_examples)])
+            accuracies[model.model_name].append(adv_acc)
+            print("og_acc", og_acc)
+            print("adv_acc", adv_acc)
         visualize_attacks_results(model.model_name, evaluation_results)
+
+    plot_attack_effect_on_accuracy(models, epsilons, accuracies)

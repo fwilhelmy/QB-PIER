@@ -53,7 +53,8 @@ class FGSMAttack(BaseAttack):
             perturbed_data = self.attack(model, data, target)
             if perturbed_data is not None:
                 adv_examples.append(perturbed_data)
-            if n_entity > 6:
+            # TODO Remove that
+            if n_entity > 30:
                 break
             n_entity += 1
             
