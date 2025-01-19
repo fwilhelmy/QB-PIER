@@ -87,33 +87,33 @@ if __name__ == "__main__":
 
     # Load the dataset using DataManager
     data_manager = DatasetManagerFactory('MNIST')
-    train_split, val_split = data_manager.calculate_split_sizes(1, 0)
+    train_split, val_split = data_manager.calculate_split_sizes(0.7, 0.3)
     train_dataset, val_dataset = data_manager.split_dataset(train_samples=1500, val_samples=300, batch_size=64)
     
-    # Training models
-    # TODO Do quantum models work?
-    model1 = HQNN_Parallel(model_name='HQNN_Parallel_Test_1', max_epochs=8, in_channels=1, classes=10)
-    model1.fit(train_dataset, val_dataset)
-    training_results[model1.model_name] = model1.trainer.logged_metrics
+    # Configuration of models
+    models = []
 
-    model2 = LeNet(model_name='LeNet_Test_2', in_channels=1, classes=10)
-    model2.fit(train_dataset, val_dataset)
-    training_results[model2.model_name] = model2.trainer.logged_metrics
-    
-    models = [model1, model2]
+    models.append(HQNN_Parallel(model_name='HQNN_Parallel_8', max_epochs=8, in_channels=1, classes=10))
+    models.append(HQNN_Parallel(model_name='HQNN_Parallel_24', max_epochs=24, in_channels=1, classes=10))
+    models.append(LeNet(model_name='LeNet_8', max_epochs=8, in_channels=1, classes=10))
+    models.append(LeNet(model_name='LeNet_24', max_epochs=24, in_channels=1, classes=10))
+
+    for model in models:
+        model.fit(train_dataset, val_dataset)
+        training_results[model.model_name] = model.trainer.logged_metrics
 
     # Performing attacks
-    epsilons = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 1.0]
-    attacks = [FGSMAttack(x) for x in epsilons]
     test_dataset = data_manager.load_dataset(train=False)
+    epsilons = [x/100 for x in range(0, 105, 5)]
+    fgsm = FGSMAttack(test_dataset)
     
     accuracies = {}
     for model in models:
         evaluation_results = {}
         accuracies[model.model_name] = []
-        for attack in attacks:
-            adv_examples = attack.evaluate_attack(model, test_dataset)
-            evaluation_results[attack.epsilon] = adv_examples
+        for epsilon in epsilons:
+            adv_examples = fgsm.attack(model, epsilon)
+            evaluation_results[epsilon] = adv_examples
             # TODO Figure out how to use the datasets to do predictions now that I have them
             og_preds = model(test_dataset.data.unsqueeze(1).to(torch.float))
             og_acc = calculate_accuracy(og_preds, test_dataset.targets)
