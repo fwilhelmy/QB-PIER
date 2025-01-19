@@ -55,7 +55,6 @@ def visualize_attacks_results(model_name, adv_exemples, num_images=5):
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])  # Adjust layout to make room for the suptitle
     
-    plt.show()
     save_figure("adv_atcks", plt, model_name)
     plt.close()
 
@@ -73,7 +72,6 @@ def plot_attack_effect_on_accuracy(models, epsilons, accuracies):
     plt.legend(title='Models', fontsize=10)
     plt.tight_layout()
 
-    plt.show()
     save_figure("accs", plt)
     plt.close()
 
