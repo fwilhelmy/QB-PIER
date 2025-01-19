@@ -88,7 +88,7 @@ if __name__ == "__main__":
     # Load the dataset using DataManager
     data_manager = DatasetManagerFactory('MNIST')
     train_split, val_split = data_manager.calculate_split_sizes(0.7, 0.3)
-    train_dataset, val_dataset = data_manager.split_dataset(train_samples=1500, val_samples=300, batch_size=64)
+    train_dataset, val_dataset = data_manager.split_dataset(train_samples=train_split, val_samples=val_split, batch_size=64)
     
     # Configuration of models
     models = []
