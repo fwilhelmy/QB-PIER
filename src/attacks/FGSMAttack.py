@@ -16,7 +16,7 @@ class FGSMAttack(BaseAttack):
         
     def _calculate_gradient(self, model, data, target):
         # Send the data and label to the device
-        tr_image = torch.tensor(data, dtype=torch.float32, requires_grad=True)
+        tr_image = data.clone().detach().to(torch.float32).requires_grad_(True)
         model.requires_grad=True
 
         # Forward pass the data through the model
