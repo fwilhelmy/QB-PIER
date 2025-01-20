@@ -56,7 +56,6 @@ def visualize_attacks_results(model_name, adv_exemples, num_images=5):
     plt.tight_layout(rect=[0, 0, 1, 0.96])  # Adjust layout to make room for the suptitle
     
     save_figure("adv_atcks", plt, model_name)
-    plt.close()
 
 def plot_attack_effect_on_accuracy(models, epsilons, accuracies):
     plt.figure(figsize=(10, 6))
@@ -73,7 +72,6 @@ def plot_attack_effect_on_accuracy(models, epsilons, accuracies):
     plt.tight_layout()
 
     save_figure("accs", plt)
-    plt.close()
 
 if __name__ == "__main__":
     # Create services instance
@@ -86,7 +84,7 @@ if __name__ == "__main__":
     # Load the dataset using DataManager
     data_manager = DatasetManagerFactory('MNIST')
     train_split, val_split = data_manager.calculate_split_sizes(0.7, 0.3)
-    train_dataset, val_dataset = data_manager.split_dataset(train_samples=train_split, val_samples=val_split, batch_size=64)
+    train_dataset, val_dataset = data_manager.split_dataset(train_samples=1500, val_samples=700, batch_size=64)
     
     # Configuration of models
     models = []
