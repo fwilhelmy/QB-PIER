@@ -22,10 +22,11 @@ def main(hparams):
     evaluation_results = {}
 
     # Load the dataset using DataManager
+    print("workers : ", hparams.workers)
     data_manager = DatasetManagerFactory('MNIST', num_workers=hparams.workers)
     train_split, val_split = data_manager.calculate_split_sizes(0.7, 0.3)
     #train_dataset, val_dataset = data_manager.split_dataset(train_samples=train_split, val_samples=val_split)
-    train_dataset, val_dataset = data_manager.split_dataset(train_samples=150, val_samples=70)
+    train_dataset, val_dataset = data_manager.split_dataset(train_samples=1500, val_samples=700)
     
     # Configuration of models
     models = []
@@ -34,7 +35,7 @@ def main(hparams):
     models.append(HQNN_Quanv(model_name='HQNN_Quanv_8', max_epochs=8, in_channels=1, classes=10))
     models.append(HQNN_Parallel(model_name='HQNN_Parallel_8', max_epochs=8, in_channels=1, classes=10))
     #models.append(HQNN_Parallel(model_name='HQNN_Parallel_24', max_epochs=24, in_channels=1, classes=10))
-    #models.append(LeNet(model_name='LeNet_24', max_epochs=24, in_channels=1, classes=10))
+    models.append(LeNet(model_name='LeNet_24', max_epochs=24, in_channels=1, classes=10))
 
     for model in models:
         model.fit(train_dataset, val_dataset)
@@ -42,7 +43,6 @@ def main(hparams):
 
     # Performing attacks
     test_dataset = data_manager.load_dataset(train=False)
-    test_dataloader = data_manager.mount_dataloader(test_dataset)
     epsilons = [x/100 for x in range(0, 105, 5)]
     fgsm = FGSMAttack(test_dataset)
     
@@ -56,7 +56,7 @@ def main(hparams):
         for epsilon in epsilons:
             adv_examples = fgsm.attack(model, epsilon)
             evaluation_results[epsilon] = adv_examples
-            adv_pred = model(torch.stack(adv_examples).to(torch.float))
+            adv_pred = model(torch.stack(adv_examples))
             adv_acc = calculate_accuracy(adv_pred, test_dataset.targets[:len(adv_examples)])
             accuracies[model.model_name].append(adv_acc)
             print(f"Accuracy of model {model.model_name} with epsilon {epsilon} : {adv_acc}")
@@ -65,8 +65,9 @@ def main(hparams):
 
 # Implement the parser (Make my own parser)
 if __name__ == "__main__":
+    # TODO add helpers for the ArgumentParser
     parser = ArgumentParser()
-    parser.add_argument("-d", "--devices", default=1)
-    parser.add_argument("-w", "--workers", default=0)
+    parser.add_argument("-d", "--devices", type=int, default=1, help='TODO')
+    parser.add_argument("-w", "--workers", type=int, default=0, help='TODO')
     args = parser.parse_args()
     main(args)
