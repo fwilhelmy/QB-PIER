@@ -3,9 +3,10 @@ from torch.nn import Linear
 from torch.nn import ReLU
 from torch.nn import LogSoftmax
 from torch import flatten, float32
-from src.models.Quantum.QuanvolutionLayer import QuanvolutionLayer
+from models.BaseModel import BaseModel
+from models.Quantum.QuanvolutionLayer import QuanvolutionLayer
 
-class HQNN_Quanv(Module):
+class HQNN_Quanv(BaseModel):
 	def __init__(self, in_channels, classes, **kwargs):
 		# Call the parent constructor
 		super().__init__(**kwargs)
