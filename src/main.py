@@ -12,6 +12,7 @@ import torch
 from torch.utils.data import DataLoader
 import sys
 from argparse import ArgumentParser
+import time
 
 def main(hparams):
     # Create services instance
@@ -70,4 +71,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--devices", type=int, default=1, help='TODO')
     parser.add_argument("-w", "--workers", type=int, default=0, help='TODO')
     args = parser.parse_args()
+    start = time.time()
     main(args)
+    end = time.time()
+    print("Execution time: ", end - start)
