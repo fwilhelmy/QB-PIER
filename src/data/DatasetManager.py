@@ -26,6 +26,14 @@ class DatasetManager:
         self.mean = psum / count
         self.var = (psum_sq / count) - (self.mean ** 2)
         self.std = torch.sqrt(self.var)
+
+    def mount_dataloader(self, dataset, shuffle: bool = False):
+        return DataLoader(
+            dataset, 
+            batch_size=self.batch_size, 
+            shuffle=shuffle, 
+            num_workers=self.num_workers,
+            persistent_workers=(True if self.num_workers > 1 else False))
     
     def get_stats(self):
         if None in [self.mean, self.std]:
@@ -39,7 +47,7 @@ class DatasetManager:
         val_samples = int(dataset_length * val_split)
         return train_samples, val_samples
 
-    def split_dataset(self, train_samples: int, val_samples: int, batch_size: int = 32):
+    def split_dataset(self, train_samples: int, val_samples: int):
         dataset_length = len(self.dataset)
         remaining_samples = dataset_length - (train_samples + val_samples)
         if remaining_samples < 0:
@@ -50,7 +58,7 @@ class DatasetManager:
         train_dataset, val_dataset, _ = random_split(self.dataset, split_lengths)
 
         # Create data loaders for the sets
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+        train_loader = self.mount_dataloader(train_dataset, shuffle=True)
+        val_loader = self.mount_dataloader(val_dataset, shuffle=False)
 
         return train_loader, val_loader
