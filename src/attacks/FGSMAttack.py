@@ -46,7 +46,7 @@ class FGSMAttack(BaseAttack):
 
         adv_exemples = []
         n_element = 0
-        for idx, data in enumerate(tqdm(self.dataset)):
+        for idx, data in enumerate(tqdm(self.dataset, desc=f"Model {model.model_name} [Epsilon {epsilon}]")):
             image, label = data
             if not gradient_computed:
                 self.gradients[model.model_name].append(self._calculate_gradient(model, image, label))
