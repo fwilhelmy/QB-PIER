@@ -1,79 +1,19 @@
 from models.Classical.LeNet import LeNet
 from data.DatasetManagerFactory import DatasetManagerFactory
-from visualisation.AttacksVisualisation import plot_adversarial_examples
-import matplotlib.pyplot as plt
+from visualisation.AttacksVisualisation import plot_attack_effect_on_accuracy, visualize_attacks_results
 from LoggingService import LoggingService
 from attacks.FGSMAttack import FGSMAttack
 from utils import save_figure
 from models.Hybrid.HQNN_Parallel import HQNN_Parallel
+from models.Hybrid.HQNN_Quanv import HQNN_Quanv
 from utils import calculate_accuracy
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+import sys
+from argparse import ArgumentParser
 
-def visualize_attacks_results(model_name, adv_exemples, num_images=5):
-    # Sort the epsilon levels for consistent ordering
-    epsilons = sorted(adv_exemples.keys())
-    num_epsilons = len(epsilons)
-
-    # Set up the matplotlib figure
-    fig, axes = plt.subplots(num_epsilons, num_images, figsize=(num_images * 2, num_epsilons * 2))
-    fig.suptitle('Adversarial Attacks Visualization', fontsize=16)
-
-    # If there's only one epsilon level or one image, axes may not be a 2D array
-    if num_epsilons == 1:
-        axes = [axes]
-    else:
-        axes = axes
-
-    for row, eps in enumerate(epsilons):
-        perturbed_images = adv_exemples[eps]
-        for col in range(num_images):
-            ax = axes[row][col] if num_epsilons > 1 else axes[col]
-            
-            # Ensure the index does not exceed the available images
-            if col < len(perturbed_images):
-                img = perturbed_images[col]
-                # If the image has more than 2 dimensions, assume it's multi-channel and take the first channel
-                if img.ndim == 3 and img.shape[0] in [1, 3]:
-                    img = img.squeeze(0)
-                elif img.ndim == 2:
-                    img = img  # Grayscale image
-
-                ax.imshow(img, cmap='gray')
-            else:
-                ax.axis('off')  # Hide axes if no image is available
-
-            ax.axis('off')  # Hide axis ticks
-
-            # Set titles for the first row
-            if row == 0:
-                ax.set_title(f"Image {col+1}", fontsize=10)
-
-        # Set y-axis labels for each row
-        axes[row][0].set_ylabel(f"Epsilon: {eps}", rotation=0, labelpad=50, fontsize=12, va='center')
-
-    plt.tight_layout(rect=[0, 0, 1, 0.96])  # Adjust layout to make room for the suptitle
-    
-    save_figure("adv_atcks", plt, model_name)
-
-def plot_attack_effect_on_accuracy(models, epsilons, accuracies):
-    plt.figure(figsize=(10, 6))
-
-    for model in models:
-        plt.plot(epsilons, accuracies[model.model_name], label=model.model_name, marker='o')
-
-    plt.xlabel('Attack Strength (Epsilon)', fontsize=12)
-    plt.ylabel('Accuracy (%)', fontsize=12)
-    plt.title('Effect of Adversarial Attacks on Model Accuracy', fontsize=14)
-    plt.xticks(epsilons, [f"{e:.2f}" for e in epsilons], rotation=45)
-    plt.grid(True, linestyle='--', alpha=0.7)
-    plt.legend(title='Models', fontsize=10)
-    plt.tight_layout()
-
-    save_figure("accs", plt)
-
-if __name__ == "__main__":
+def main(hparams):
     # Create services instance
     logs_manager = LoggingService()
 
@@ -82,17 +22,19 @@ if __name__ == "__main__":
     evaluation_results = {}
 
     # Load the dataset using DataManager
-    data_manager = DatasetManagerFactory('MNIST')
+    data_manager = DatasetManagerFactory('MNIST', num_workers=hparams.workers)
     train_split, val_split = data_manager.calculate_split_sizes(0.7, 0.3)
-    train_dataset, val_dataset = data_manager.split_dataset(train_samples=train_split, val_samples=val_split, batch_size=64)
+    #train_dataset, val_dataset = data_manager.split_dataset(train_samples=train_split, val_samples=val_split)
+    train_dataset, val_dataset = data_manager.split_dataset(train_samples=150, val_samples=70)
     
     # Configuration of models
     models = []
 
-    models.append(HQNN_Parallel(model_name='HQNN_Parallel_8', max_epochs=8, in_channels=1, classes=10))
-    models.append(HQNN_Parallel(model_name='HQNN_Parallel_24', max_epochs=24, in_channels=1, classes=10))
     models.append(LeNet(model_name='LeNet_8', max_epochs=8, in_channels=1, classes=10))
-    models.append(LeNet(model_name='LeNet_24', max_epochs=24, in_channels=1, classes=10))
+    models.append(HQNN_Quanv(model_name='HQNN_Quanv_8', max_epochs=8, in_channels=1, classes=10))
+    models.append(HQNN_Parallel(model_name='HQNN_Parallel_8', max_epochs=8, in_channels=1, classes=10))
+    #models.append(HQNN_Parallel(model_name='HQNN_Parallel_24', max_epochs=24, in_channels=1, classes=10))
+    #models.append(LeNet(model_name='LeNet_24', max_epochs=24, in_channels=1, classes=10))
 
     for model in models:
         model.fit(train_dataset, val_dataset)
@@ -100,6 +42,7 @@ if __name__ == "__main__":
 
     # Performing attacks
     test_dataset = data_manager.load_dataset(train=False)
+    test_dataloader = data_manager.mount_dataloader(test_dataset)
     epsilons = [x/100 for x in range(0, 105, 5)]
     fgsm = FGSMAttack(test_dataset)
     
@@ -113,10 +56,17 @@ if __name__ == "__main__":
         for epsilon in epsilons:
             adv_examples = fgsm.attack(model, epsilon)
             evaluation_results[epsilon] = adv_examples
-            adv_pred = model(torch.stack(adv_examples))
-            adv_acc = calculate_accuracy(adv_pred, test_dataset.targets[0:len(adv_examples)])
+            adv_pred = model(torch.stack(adv_examples).to(torch.float))
+            adv_acc = calculate_accuracy(adv_pred, test_dataset.targets[:len(adv_examples)])
             accuracies[model.model_name].append(adv_acc)
             print(f"Accuracy of model {model.model_name} with epsilon {epsilon} : {adv_acc}")
         visualize_attacks_results(model.model_name, evaluation_results)
-
     plot_attack_effect_on_accuracy(models, epsilons, accuracies)
+
+# Implement the parser (Make my own parser)
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("-d", "--devices", default=1)
+    parser.add_argument("-w", "--workers", default=0)
+    args = parser.parse_args()
+    main(args)
