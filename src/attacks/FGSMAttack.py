@@ -3,10 +3,9 @@ import torch
 from tqdm import tqdm
 
 class FGSMAttack(BaseAttack):
-    def __init__(self, dataset, dataloader):
+    def __init__(self, dataset):
         super().__init__("FGSM")
         self.dataset = dataset
-        self.dataloader = dataloader
         self.gradients = {}
 
     def _fgsm(self, image, data_grad, epsilon):
@@ -47,10 +46,11 @@ class FGSMAttack(BaseAttack):
 
         adv_exemples = []
         n_element = 0
-        for image, label in tqdm(self.dataset):
+        for idx, data in enumerate(tqdm(self.dataset)):
+            image, label = data
             if not gradient_computed:
                 self.gradients[model.model_name].append(self._calculate_gradient(model, image, label))
-            gradient = self.gradients[model.model_name][n_element]
+            gradient = self.gradients[model.model_name][idx]
             adv_exemples.append(self._fgsm(image, gradient, epsilon))
             if n_element > 150:
                 break
