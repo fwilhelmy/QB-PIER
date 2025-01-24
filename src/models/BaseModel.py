@@ -118,10 +118,10 @@ class BaseModel(LightningModule):
             on_epoch=True,
             prog_bar=False)
         
-        if batch_idx % 20 == 0:
-            selected_x = x[:8]
-            grid = torchvision.utils.make_grid(selected_x.view(-1, 1, 28, 28))
-            self.logger.experiment.add_image("input_images", grid, 0)
+        # if batch_idx % 20 == 0:
+        #     selected_x = x[:8]
+        #     grid = torchvision.utils.make_grid(selected_x.view(-1, 1, 28, 28))
+        #     self.logger.experiment.add_image("input_images", grid, 0)
 
         return loss
 

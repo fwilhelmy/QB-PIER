@@ -22,7 +22,7 @@ def plot_training_result(model, train_len, val_len):
     fig.text(
         0.01,
         0.01,
-        "Model: {}, Devices: {}, Epochs: {}, Learning Rate: {}, Samples (T|V): ({}|{}), Accuracy (T|V): ({}|{})".format(
+        "Model: {}, Devices: {}, Epochs: {}, Learning Rate: {}\nSamples (T|V): ({}|{}), Accuracy (T|V): ({}|{})".format(
             type(model).__name__,
             model.devices,
             model.max_epochs,

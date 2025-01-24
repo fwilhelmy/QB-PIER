@@ -36,3 +36,7 @@ class LoggingService:
         file_dir = f"{self._root_dir}/" + (model.model_name if model else "")
         with open(f"{file_dir}/{file_name}", "w") as file:
             file.write(file_content)
+
+    # TODO Close the application and save the configuration
+    def close(self):
+        pass
