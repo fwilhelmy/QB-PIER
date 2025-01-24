@@ -26,7 +26,7 @@ def plot_class_distribution(dataset):
     plt.xticks(range(len(dataset.classes)), dataset.classes)
 
     # Saving the results
-    LoggingService().save_figure(plt)
+    LoggingService().save_figure(plt, "class_distribution")
 
 # Function to plot class visualizations: sample, mean, and standard deviation images
 def plot_class_visualizations(dataset):
@@ -64,7 +64,7 @@ def plot_class_visualizations(dataset):
     plt.tight_layout()
 
     # Saving the results
-    LoggingService().save_figure(plt)
+    LoggingService().save_figure(plt, "class_visualizations")
 
 # Function to perform t-SNE and plot the results
 def plot_tsne(dataset, subset_size=1000):
@@ -82,7 +82,7 @@ def plot_tsne(dataset, subset_size=1000):
     plt.title('t-SNE of Dataset')
 
     # Saving the results
-    LoggingService().save_figure(plt)
+    LoggingService().save_figure(plt, "tsne")
 
 # Function to plot sample images from the dataset
 def plot_sample_images(dataset, x=10, rows=2, cols=5):
@@ -98,4 +98,4 @@ def plot_sample_images(dataset, x=10, rows=2, cols=5):
     plt.tight_layout()
 
     # Saving the results
-    LoggingService().save_figure(plt)
+    LoggingService().save_figure(plt, "sample_images")

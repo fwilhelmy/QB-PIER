@@ -4,7 +4,7 @@ from LoggingService import LoggingService
 
 # Function to plot adversarial examples
 # TODO ADD TITLE WITH MODEL NAME
-def plot_adversarial_examples(model_name, epsilons, examples):
+def plot_adversarial_examples(model, epsilons, examples):
     cnt = 0
     plt.figure(figsize=(8, 10))
     for i in range(len(epsilons)):
@@ -21,22 +21,22 @@ def plot_adversarial_examples(model_name, epsilons, examples):
     plt.tight_layout()
 
     # Saving the results
-    LoggingService().save_figure(plt)
+    LoggingService().save_figure(plt, "adversarial_examples", model)
 
 # Function to plot accuracy vs epsilon
-def plot_accuracy_vs_epsilon(model_name, attack_name, epsilons, accuracies):
+def plot_accuracy_vs_epsilon(model, attack_name, epsilons, accuracies):
     plt.figure(figsize=(5, 5))
     plt.plot(epsilons, accuracies, "*-")
     plt.yticks(np.arange(0, 1.1, step=0.1))
     plt.xticks(np.arange(0, 0.35, step=0.05))
-    plt.title(f"{attack_name} attack on {model_name} model (Accuracy vs Epsilon)" )
+    plt.title(f"{attack_name} attack on {model.model_name} model (Accuracy vs Epsilon)" )
     plt.xlabel("Epsilon")
     plt.ylabel("Accuracy")
 
     # Saving the results
-    LoggingService().save_figure(plt)
+    LoggingService().save_figure(plt, "accuracy_vs_epsilon", model.model_name)
 
-def visualize_attacks_results(model_name, adv_exemples, num_images=5):
+def visualize_attacks_results(model, adv_exemples, num_images=5):
     # Sort the epsilon levels for consistent ordering
     epsilons = sorted(adv_exemples.keys())
     num_epsilons = len(epsilons)
@@ -80,7 +80,7 @@ def visualize_attacks_results(model_name, adv_exemples, num_images=5):
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])  # Adjust layout to make room for the suptitle
     
-    LoggingService().save_figure(plt)
+    LoggingService().save_figure(plt, "attacks_visualization", model)
 
 def plot_attack_effect_on_accuracy(models, epsilons, accuracies):
     plt.figure(figsize=(10, 6))
@@ -96,4 +96,4 @@ def plot_attack_effect_on_accuracy(models, epsilons, accuracies):
     plt.legend(title='Models', fontsize=10)
     plt.tight_layout()
 
-    LoggingService().save_figure(plt)
+    LoggingService().save_figure(plt, "attack_effect_on_accuracy")
