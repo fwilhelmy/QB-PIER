@@ -17,19 +17,19 @@ import time
 def main(hparams):
     # Load the dataset using DataManager
     print("workers : ", hparams.workers)
-    data_manager = DatasetManagerFactory('MNIST', num_workers=hparams.workers)
+    data_manager = DatasetManagerFactory('MNIST', num_workers=hparams.workers, batch_size=128)
     train_split, val_split = data_manager.calculate_split_sizes(0.7, 0.3)
     train_dataset, val_dataset = data_manager.split_dataset(train_samples=train_split, val_samples=val_split)
-    #train_dataset, val_dataset = data_manager.split_dataset(train_samples=500, val_samples=50)
+    #train_dataset, val_dataset = data_manager.split_dataset(train_samples=3000, val_samples=700)
     
     # Configuration of models
     models = []
 
     models.append(LeNet(model_name='LeNet_8', devices=hparams.devices, max_epochs=8, in_channels=1, classes=10))
-    #models.append(HQNN_Quanv(model_name='HQNN_Quanv_8', devices=hparams.devices, max_epochs=8, in_channels=1, classes=10))
+    models.append(LeNet(model_name='LeNet_24', devices=hparams.devices, max_epochs=16, in_channels=1, classes=10))
+    models.append(HQNN_Quanv(model_name='HQNN_Quanv_8', devices=hparams.devices, max_epochs=8, in_channels=1, classes=10))
     models.append(HQNN_Parallel(model_name='HQNN_Parallel_8', devices=hparams.devices, max_epochs=8, in_channels=1, classes=10))
-    models.append(HQNN_Parallel(model_name='HQNN_Parallel_24', devices=hparams.devices, max_epochs=24, in_channels=1, classes=10))
-    models.append(LeNet(model_name='LeNet_24', devices=hparams.devices, max_epochs=24, in_channels=1, classes=10))
+    models.append(HQNN_Parallel(model_name='HQNN_Parallel_24', devices=hparams.devices, max_epochs=16, in_channels=1, classes=10))
 
     for model in models:
         model.fit(train_dataset, val_dataset)
