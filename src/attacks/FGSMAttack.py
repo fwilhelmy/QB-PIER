@@ -11,7 +11,7 @@ class FGSMAttack(BaseAttack):
     def _fgsm(self, image, data_grad, epsilon):
         sign_data_grad = data_grad.sign()
         perturbed_image = image + epsilon * sign_data_grad
-        perturbed_image = torch.clamp(perturbed_image, 0, 1)
+        perturbed_image = torch.clamp(perturbed_image, 0, 1) * 255
         return perturbed_image
         
     # Need to put the model in evaluation mode before calling this function
@@ -38,18 +38,22 @@ class FGSMAttack(BaseAttack):
         return data_grad
 
     def attack(self, model, epsilon):
-        gradient_computed = model.model_name in self.gradients.keys()
-
-        if not gradient_computed:
+        if model.model_name not in self.gradients.keys():
             self.gradients[model.model_name] = []
             model.eval()  # Set the model in evaluation mode
 
+            n_element = 0
+            for data, target in tqdm(self.dataset, desc=f"Computing gradients for {model.model_name}"):
+                self.gradients[model.model_name].append(self._calculate_gradient(model, data, target))
+                if n_element > 150:
+                    break
+                n_element += 1
+                
+
         adv_exemples = []
         n_element = 0
-        for idx, data in enumerate(tqdm(self.dataset, desc=f"Model {model.model_name} [Epsilon {epsilon}]")):
-            image, label = data
-            if not gradient_computed:
-                self.gradients[model.model_name].append(self._calculate_gradient(model, image, label))
+        for idx, data in enumerate(self.dataset):
+            image, _ = data
             gradient = self.gradients[model.model_name][idx]
             adv_exemples.append(self._fgsm(image, gradient, epsilon))
             if n_element > 150:
