@@ -38,7 +38,7 @@ class BaseModel(LightningModule):
 
     # Hardware configurations
     seed: Optional[int]
-    gpus: Optional[int]
+    devices: Optional[int]
 
     def __init__(
             self,
@@ -49,7 +49,7 @@ class BaseModel(LightningModule):
             optimizer: str = "adam",
             loss_function: str = "cross_entropy",
             seed: Optional[int] = 42,
-            gpus: Optional[int] = None  # Set to None for CPU training
+            devices: Optional[int] = None
     ):
         super().__init__()
         self.model_name = model_name
@@ -69,7 +69,7 @@ class BaseModel(LightningModule):
 
         # Hardware configurations
         self.seed = seed
-        self.gpus = gpus
+        self.devices = devices if devices else CPU_NUMBER
         
         self._configure_logging()
         self._configure_trainer()
@@ -84,10 +84,9 @@ class BaseModel(LightningModule):
 
         # TODO What is save top_k?? Should it be 3??
         # TODO What is checkpoint_dir and checkpoint_callback=True??
-        # TODO How to use the GPUs
         self.trainer = Trainer(
             accelerator="cpu", 
-            devices=CPU_NUMBER,
+            devices=self.devices,
             strategy="auto",
             max_epochs=self.max_epochs,
             logger=logger,
