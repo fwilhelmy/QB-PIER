@@ -1,9 +1,9 @@
 from models.Classical.LeNet import LeNet
 from data.DatasetManagerFactory import DatasetManagerFactory
 from visualisation.AttacksVisualisation import plot_attack_effect_on_accuracy, visualize_attacks_results
+from visualisation.TrainingVisualisation import plot_training_result, plot_models_together
 from LoggingService import LoggingService
 from attacks.FGSMAttack import FGSMAttack
-from utils import save_figure
 from models.Hybrid.HQNN_Parallel import HQNN_Parallel
 from models.Hybrid.HQNN_Quanv import HQNN_Quanv
 from utils import calculate_accuracy
@@ -15,13 +15,6 @@ from argparse import ArgumentParser
 import time
 
 def main(hparams):
-    # Create services instance
-    logs_manager = LoggingService()
-
-    # Create results lists
-    training_results = {}
-    evaluation_results = {}
-
     # Load the dataset using DataManager
     print("workers : ", hparams.workers)
     data_manager = DatasetManagerFactory('MNIST', num_workers=hparams.workers)
@@ -32,15 +25,16 @@ def main(hparams):
     # Configuration of models
     models = []
 
-    models.append(LeNet(model_name='LeNet_8', max_epochs=8, in_channels=1, classes=10))
-    models.append(HQNN_Quanv(model_name='HQNN_Quanv_8', max_epochs=8, in_channels=1, classes=10))
-    models.append(HQNN_Parallel(model_name='HQNN_Parallel_8', max_epochs=8, in_channels=1, classes=10))
-    #models.append(HQNN_Parallel(model_name='HQNN_Parallel_24', max_epochs=24, in_channels=1, classes=10))
-    models.append(LeNet(model_name='LeNet_24', max_epochs=24, in_channels=1, classes=10))
+    models.append(LeNet(model_name='LeNet_8', devices=hparams.devices, max_epochs=8, in_channels=1, classes=10))
+    #models.append(HQNN_Quanv(model_name='HQNN_Quanv_8', devices=hparams.devices, max_epochs=8, in_channels=1, classes=10))
+    models.append(HQNN_Parallel(model_name='HQNN_Parallel_8', devices=hparams.devices, max_epochs=8, in_channels=1, classes=10))
+    #models.append(HQNN_Parallel(model_name='HQNN_Parallel_24', devices=hparams.devices, max_epochs=24, in_channels=1, classes=10))
+    models.append(LeNet(model_name='LeNet_24', devices=hparams.devices, max_epochs=24, in_channels=1, classes=10))
 
     for model in models:
         model.fit(train_dataset, val_dataset)
-        training_results[model.model_name] = model.trainer.logged_metrics
+        plot_training_result(model)
+    plot_models_together(models)
 
     # Performing attacks
     test_dataset = data_manager.load_dataset(train=False)
@@ -66,6 +60,7 @@ def main(hparams):
 
 # Implement the parser (Make my own parser)
 if __name__ == "__main__":
+    logs_manager = LoggingService()
     # TODO add helpers for the ArgumentParser
     parser = ArgumentParser()
     parser.add_argument("-d", "--devices", type=int, default=1, help='TODO')
@@ -74,4 +69,6 @@ if __name__ == "__main__":
     start = time.time()
     main(args)
     end = time.time()
-    print("Execution time: ", end - start)
+    print(f"Execution time: {end - start}")
+    logs_manager.save_file(f"Execution time: {end - start}", "stats.txt")
+
