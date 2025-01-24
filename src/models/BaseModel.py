@@ -77,10 +77,10 @@ class BaseModel(LightningModule):
     def _configure_logging(self):
         self.log_service = LoggingService()
         self.root_dir = self.log_service.get_root_dir()
-        os.makedirs(f"{self.root_dir}/{self.model_name}", exist_ok=True)
-        
+        os.makedirs(f"{self.root_dir}/{self.model_name}", exist_ok=False)
+
     def _configure_trainer(self):
-        logger = self.log_service.create_tb_logger(self.model_name)
+        logger = TensorBoardLogger(f"{self.root_dir}/tensorboard", name=self.model_name)
 
         # TODO What is save top_k?? Should it be 3??
         # TODO What is checkpoint_dir and checkpoint_callback=True??
@@ -157,15 +157,9 @@ class BaseModel(LightningModule):
     
     def fit(self, train_dataloaders, val_dataloaders):
         self.trainer.fit(self, train_dataloaders, val_dataloaders)
+        #self.log_service.save_model(self)
 
     # TODO Not sure is working at the moment
     def load_model(self, file_path):
         state_dict = load(file_path)
         self.load_state_dict(state_dict)
-
-    # TODO Still under construction
-    def save_model(self, model_name, model_instance):
-        """Save the model to the specified path."""
-        model_file = f"{self.model_dir}/model.pt"
-        save(model_instance.state_dict(), model_file)
-        print(f"Model '{model_name}' saved at '{model_file}'.")

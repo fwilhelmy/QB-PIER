@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from utils import save_figure
+from LoggingService import LoggingService
 
 # Function to plot adversarial examples
 # TODO ADD TITLE WITH MODEL NAME
@@ -21,8 +21,7 @@ def plot_adversarial_examples(model_name, epsilons, examples):
     plt.tight_layout()
 
     # Saving the results
-    save_figure(plt, model_name)
-    plt.close()
+    LoggingService().save_figure(plt)
 
 # Function to plot accuracy vs epsilon
 def plot_accuracy_vs_epsilon(model_name, attack_name, epsilons, accuracies):
@@ -35,8 +34,7 @@ def plot_accuracy_vs_epsilon(model_name, attack_name, epsilons, accuracies):
     plt.ylabel("Accuracy")
 
     # Saving the results
-    save_figure(plt, model_name)
-    plt.close()
+    LoggingService().save_figure(plt)
 
 def visualize_attacks_results(model_name, adv_exemples, num_images=5):
     # Sort the epsilon levels for consistent ordering
@@ -82,7 +80,7 @@ def visualize_attacks_results(model_name, adv_exemples, num_images=5):
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])  # Adjust layout to make room for the suptitle
     
-    save_figure("adv_atcks", plt, model_name)
+    LoggingService().save_figure(plt)
 
 def plot_attack_effect_on_accuracy(models, epsilons, accuracies):
     plt.figure(figsize=(10, 6))
@@ -98,4 +96,4 @@ def plot_attack_effect_on_accuracy(models, epsilons, accuracies):
     plt.legend(title='Models', fontsize=10)
     plt.tight_layout()
 
-    save_figure("accs", plt)
+    LoggingService().save_figure(plt)

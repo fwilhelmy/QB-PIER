@@ -1,13 +1,7 @@
 # import pennylane as qml
 import torch
 import Configuration as cfg
-from LoggingService import LoggingService
 import pennylane as qml
-
-def save_figure(plt_str, plt, model_name=None):
-    directory = LoggingService().get_root_dir() + (f"/{model_name}" if model_name else "")
-    print(f"Saving figure to {directory}/{plt_str}.png")
-    plt.savefig(f"{directory}/{plt_str}.png")
 
 # Helper functions for creating circuits
 def create_qnode(n_qubits, circuit, weight_shapes):

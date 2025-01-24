@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
-from utils import save_figure
+from LoggingService import LoggingService
 
-def plot_training_result(path, model, results):
+def plot_training_result(model):
+    results = model.trainer.logged_metrics
+
     # Plot the training loss and accuracy
     plt.style.use("ggplot")
     fig, (ax1, ax2) = plt.subplots(2, figsize=(8, 6))
@@ -32,10 +34,9 @@ def plot_training_result(path, model, results):
     # TODO Extract number of training and validation samples
 
     # Save the results
-    save_figure(plt, model['name'])
-    plt.close()
+    LoggingService().save_figure(plt)
 
-def plot_models_together(training_results):
+def plot_models_together(models):
     fig, ax = plt.subplots(2, 1, figsize=(10, 10))
     # Plotting training loss
     ax[0].set_title('Training Loss per Epoch')
@@ -47,7 +48,9 @@ def plot_models_together(training_results):
     ax[1].set_xlabel('Epoch')
     ax[1].set_ylabel('Accuracy (%)')
 
-    for model_name, history in training_results.items():
+    for model in models:
+        model_name = model.model_name
+        history = model.trainer.logged_metrics
         epochs = list(range(1, len(history['train_loss']) + 1))
         ax[0].plot(epochs, history['train_loss'], label=f'{model_name}')
         ax[1].plot(epochs, history['val_acc'], label=f'{model_name}')
@@ -56,5 +59,4 @@ def plot_models_together(training_results):
     ax[1].legend()
 
     # Saving the results
-    save_figure(plt)
-    plt.close()
+    LoggingService().save_figure(plt)
