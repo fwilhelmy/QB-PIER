@@ -45,9 +45,9 @@ class FGSMAttack(BaseAttack):
             n_element = 0
             for data, target in tqdm(self.dataset, desc=f"Computing gradients for {model.model_name}"):
                 self.gradients[model.model_name].append(self._calculate_gradient(model, data, target))
-                if n_element > 150:
-                    break
-                n_element += 1
+                # if n_element > 150:
+                #     break
+                # n_element += 1
                 
 
         adv_exemples = []
@@ -56,8 +56,8 @@ class FGSMAttack(BaseAttack):
             image, _ = data
             gradient = self.gradients[model.model_name][idx]
             adv_exemples.append(self._fgsm(image, gradient, epsilon))
-            if n_element > 150:
-                break
-            n_element += 1
+            # if n_element > 150:
+            #     break
+            # n_element += 1
         
         return adv_exemples
