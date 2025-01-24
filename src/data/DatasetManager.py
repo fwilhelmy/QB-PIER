@@ -33,8 +33,8 @@ class DatasetManager:
             batch_size=self.batch_size, 
             shuffle=shuffle, 
             num_workers=self.num_workers,
-            persistent_workers=(True if self.num_workers > 1 else False))
-    
+            persistent_workers=(True if self.num_workers > 1 else False)) 
+            # TODO Investigate if this is necessary to help in real long experiments
     def get_stats(self):
         if None in [self.mean, self.std]:
             self.__calculate_stats()

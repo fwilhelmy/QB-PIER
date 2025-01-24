@@ -30,7 +30,9 @@ class LoggingService:
         figure.savefig(f"{figure_dir}/{title}.png")
 
     def save_model(self, model):
-        save(model.state_dict(), f"{self._root_dir}/model_state.pt")
+        model_config = f"Model name:{model.model_name} \n{str(model)}"
+        self.save_file(model_config, "configuration.txt", model)
+        save(model.state_dict(), f"{self._root_dir}/{model.model_name}/model_state.pt")
 
     def save_file(self, file_content, file_name, model=None):
         file_dir = f"{self._root_dir}/" + (model.model_name if model else "")
