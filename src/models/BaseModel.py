@@ -27,10 +27,10 @@ SUPPORTED_LOSS_FUNCTIONS = {
 class BaseModel(LightningModule):
     # General configurations
     model_name: str
+    history = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
 
     # Training configurations
     trainer: Trainer
-    batch_size: int
     learning_rate: float
     max_epochs: int
     optimizer: Any
@@ -43,7 +43,6 @@ class BaseModel(LightningModule):
     def __init__(
             self,
             model_name: str,
-            batch_size: int = 32,
             learning_rate: float = 0.001,
             max_epochs: int = 10,
             optimizer: str = "adam",
@@ -55,7 +54,6 @@ class BaseModel(LightningModule):
         self.model_name = model_name
         
         # Training configurations
-        self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.max_epochs = max_epochs
 
@@ -98,6 +96,12 @@ class BaseModel(LightningModule):
 
     def forward(self, x):
         raise NotImplementedError("Forward method must be implemented")
+    
+    def on_train_epoch_end(self):
+        self.history["train_loss"].append(self.trainer.logged_metrics['train_loss'])
+        self.history["train_acc"].append(self.trainer.logged_metrics['train_acc'])
+        self.history['val_loss'].append(self.trainer.logged_metrics['val_loss'])
+        self.history['val_acc'].append(self.trainer.logged_metrics['val_acc'])
 
     # The training loop
     def training_step(self, batch, batch_idx):

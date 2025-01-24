@@ -1,13 +1,13 @@
 import matplotlib.pyplot as plt
 from LoggingService import LoggingService
 
-def plot_training_result(model):
-    results = model.trainer.logged_metrics
+def plot_training_result(model, train_len, val_len):
+    results = model.history
 
     # Plot the training loss and accuracy
     plt.style.use("ggplot")
     fig, (ax1, ax2) = plt.subplots(2, figsize=(8, 6))
-    fig.suptitle(f"Training Loss and Accuracy with {model['name']}")
+    fig.suptitle(f"Training Loss and Accuracy with {model.model_name}")
     fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.15, hspace=0.2)
     ax1.plot(results["train_acc"], label="Training")
     ax1.plot(results["val_acc"], label="Validation")
@@ -22,10 +22,13 @@ def plot_training_result(model):
     fig.text(
         0.01,
         0.01,
-        "Epochs: {}, Learning Rate: {}, Batch Size: {}".format(
-            model['configuration'].max_epochs,
-            model['configuration'].init_lr,
-            model['configuration'].batch_size,
+        "Model: {}, Devices: {}, Epochs: {}, Learning Rate: {}, Samples (T|V): ({}|{})".format(
+            type(model).__name__,
+            model.devices,
+            model.max_epochs,
+            model.learning_rate,
+            train_len,
+            val_len
         ),
         fontsize=10,
     )
@@ -34,7 +37,7 @@ def plot_training_result(model):
     # TODO Extract number of training and validation samples
 
     # Save the results
-    LoggingService().save_figure(plt)
+    LoggingService().save_figure(plt, "training_result", model)
 
 def plot_models_together(models):
     fig, ax = plt.subplots(2, 1, figsize=(10, 10))
@@ -50,13 +53,13 @@ def plot_models_together(models):
 
     for model in models:
         model_name = model.model_name
-        history = model.trainer.logged_metrics
+        history = model.history
         epochs = list(range(1, len(history['train_loss']) + 1))
         ax[0].plot(epochs, history['train_loss'], label=f'{model_name}')
-        ax[1].plot(epochs, history['val_acc'], label=f'{model_name}')
+        ax[1].plot(epochs, history['val_acc'], label=f'{model_name}', linestyle='--')
 
-    ax[0].legend()
-    ax[1].legend()
+        ax[0].legend()
+        ax[1].legend()
 
-    # Saving the results
-    LoggingService().save_figure(plt)
+        # Saving the results
+        LoggingService().save_figure(plt, "models_together")

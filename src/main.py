@@ -20,7 +20,7 @@ def main(hparams):
     data_manager = DatasetManagerFactory('MNIST', num_workers=hparams.workers)
     train_split, val_split = data_manager.calculate_split_sizes(0.7, 0.3)
     #train_dataset, val_dataset = data_manager.split_dataset(train_samples=train_split, val_samples=val_split)
-    train_dataset, val_dataset = data_manager.split_dataset(train_samples=1500, val_samples=700)
+    train_dataset, val_dataset = data_manager.split_dataset(train_samples=500, val_samples=50)
     
     # Configuration of models
     models = []
@@ -33,8 +33,9 @@ def main(hparams):
 
     for model in models:
         model.fit(train_dataset, val_dataset)
-        plot_training_result(model)
-    plot_models_together(models)
+        plot_training_result(model, len(train_dataset.dataset), len(val_dataset.dataset))
+    # TODO Not working at the moment
+    #plot_models_together(models)
 
     # Performing attacks
     test_dataset = data_manager.load_dataset(train=False)
@@ -55,7 +56,7 @@ def main(hparams):
             adv_acc = calculate_accuracy(adv_pred, test_dataset.targets[:len(adv_examples)])
             accuracies[model.model_name].append(adv_acc)
             print(f"Accuracy of model {model.model_name} with epsilon {epsilon} : {adv_acc}")
-        visualize_attacks_results(model.model_name, evaluation_results)
+        visualize_attacks_results(model, evaluation_results)
     plot_attack_effect_on_accuracy(models, epsilons, accuracies)
 
 # Implement the parser (Make my own parser)
