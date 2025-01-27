@@ -82,7 +82,7 @@ def visualize_attacks_results(model, adv_exemples, num_images=5):
     
     LoggingService().save_figure(plt, "attacks_visualization", model)
 
-def plot_attack_effect_on_accuracy(models, epsilons, accuracies):
+def plot_attack_effect_on_accuracy(figstr, models, epsilons, accuracies):
     plt.figure(figsize=(10, 6))
 
     for model in models:
@@ -96,4 +96,4 @@ def plot_attack_effect_on_accuracy(models, epsilons, accuracies):
     plt.legend(title='Models', fontsize=10)
     plt.tight_layout()
 
-    LoggingService().save_figure(plt, "attack_effect_on_accuracy")
+    LoggingService().save_figure(plt, figstr)
