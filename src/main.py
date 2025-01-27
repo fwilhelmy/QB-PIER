@@ -19,16 +19,16 @@ def main(hparams):
     print("workers : ", hparams.workers)
     data_manager = DatasetManagerFactory('MNIST', num_workers=hparams.workers, batch_size=128)
     train_split, val_split = data_manager.calculate_split_sizes(0.7, 0.3)
-    #train_dataset, val_dataset = data_manager.split_dataset(train_samples=train_split, val_samples=val_split)
-    train_dataset, val_dataset = data_manager.split_dataset(train_samples=1500, val_samples=500)
+    train_dataset, val_dataset = data_manager.split_dataset(train_samples=train_split, val_samples=val_split)
+    #train_dataset, val_dataset = data_manager.split_dataset(train_samples=1500, val_samples=500)
     
     # Configuration of models
     models = []
     
     models.append(LeNet(model_name='LeNet_8', devices=hparams.devices, max_epochs=8, in_channels=1, classes=10))
-    #models.append(LeNet(model_name='LeNet_24', devices=hparams.devices, max_epochs=24, in_channels=1, classes=10))
+    models.append(LeNet(model_name='LeNet_32', devices=hparams.devices, max_epochs=32, in_channels=1, classes=10))
     models.append(HQNN_Parallel(model_name='HQNN_Parallel_8', devices=hparams.devices, max_epochs=8, in_channels=1, classes=10))
-    #models.append(HQNN_Parallel(model_name='HQNN_Parallel_24', devices=hparams.devices, max_epochs=24, in_channels=1, classes=10))
+    models.append(HQNN_Parallel(model_name='HQNN_Parallel_32', devices=hparams.devices, max_epochs=32, in_channels=1, classes=10))
     #models.append(HQNN_Quanv(model_name='HQNN_Quanv_8', devices=hparams.devices, max_epochs=8, in_channels=1, classes=10))
 
     for model in models:
@@ -44,21 +44,26 @@ def main(hparams):
     fgsm = FGSMAttack(test_dataset)
     
     accuracies = {}
-    for model in models:
+    for source_model in models:
         evaluation_results = {}
-        accuracies[model.model_name] = []
-        og_preds = model(test_dataset.data.unsqueeze(1).to(torch.float))
+        accuracies[source_model.model_name] = {model.model_name: [] for model in models}
+
+        og_preds = source_model(test_dataset.data.unsqueeze(1).to(torch.float))
         og_acc = calculate_accuracy(og_preds, test_dataset.targets)
         print("Accuracy of model : ", og_acc)
         for epsilon in epsilons:
-            adv_examples = fgsm.attack(model, epsilon)
+            adv_examples = fgsm.attack(source_model, epsilon)
             evaluation_results[epsilon] = adv_examples
-            adv_pred = model(torch.stack(adv_examples))
-            adv_acc = calculate_accuracy(adv_pred, test_dataset.targets[:len(adv_examples)])
-            accuracies[model.model_name].append(adv_acc)
-            print(f"Accuracy of model {model.model_name} with epsilon {epsilon} : {adv_acc}")
-        visualize_attacks_results(model, evaluation_results)
-    plot_attack_effect_on_accuracy(models, epsilons, accuracies)
+        
+            for target_model in models:
+                adv_pred = target_model(torch.stack(adv_examples))
+                adv_acc = calculate_accuracy(adv_pred, test_dataset.targets[:len(adv_examples)])
+                accuracies[source_model.model_name][target_model.model_name].append(adv_acc)
+                if source_model.model_name == target_model.model_name:
+                     print(f"Accuracy of model {source_model.model_name} with epsilon {epsilon} : {adv_acc}")
+        visualize_attacks_results(source_model, evaluation_results)
+        plot_attack_effect_on_accuracy(f"attacks_{source_model.model_name}", models, epsilons, accuracies[source_model.model_name])
+    plot_attack_effect_on_accuracy("attacks_ALL", models, epsilons, {model.model_name: accuracies[model.model_name][model.model_name] for model in models})
 
 # Implement the parser (Make my own parser)
 if __name__ == "__main__":
