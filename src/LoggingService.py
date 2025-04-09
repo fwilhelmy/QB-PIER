@@ -29,7 +29,16 @@ class LoggingService:
         figure_dir = f"{self._root_dir}/" + (model.model_name if model else "")
         figure.savefig(f"{figure_dir}/{title}.png")
 
+    # TODO should not be in the LOGS, instead create a new folder called models and we save there
+    # during initilisation you check if this model has already been saved and load it if it's the case
+    # hierarchy : saves -> Dataset -> ModelClass -> 
+    # HighSpecs (Overview specs : Epochs, Learning Rate, etc..) ->
+    # LowSpecs (All specs that are configurable) -> model_state.pt
+
+    # Also should save the training figure and a log of the training in json to see how the training went
+    # In a dataset when it's loaded for the first time, should save dataset figures and store into
     def save_model(self, model):
+        # TODO instead use torch.save
         model_config = f"Model name:{model.model_name} \n{str(model)}"
         self.save_file(model_config, "configuration.txt", model)
         save(model.state_dict(), f"{self._root_dir}/{model.model_name}/model_state.pt")
