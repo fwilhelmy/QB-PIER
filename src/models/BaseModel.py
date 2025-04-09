@@ -118,6 +118,8 @@ class BaseModel(LightningModule):
             on_epoch=True,
             prog_bar=False)
         
+        self.log_dict({"learning_rate":self.learning_rate}, on_step=False, on_epoch=True, prog_bar=True)
+        
         # if batch_idx % 20 == 0:
         #     selected_x = x[:8]
         #     grid = torchvision.utils.make_grid(selected_x.view(-1, 1, 28, 28))
@@ -161,7 +163,7 @@ class BaseModel(LightningModule):
     
     def fit(self, train_dataloaders, val_dataloaders):
         self.trainer.fit(self, train_dataloaders, val_dataloaders)
-        #self.log_service.save_model(self)
+        self.log_service.save_model(self)
 
     # TODO Not sure is working at the moment
     def load_model(self, file_path):
