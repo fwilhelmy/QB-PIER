@@ -13,15 +13,9 @@ from torch.optim import Adam
 from torch import nn
 import time
 
-NUM_QFEATURES = 20  # number of input features for all the quantum layers
-NUM_QUBITS = 5  # number of qubits for one quantum subcircuit
-NUM_ITER_ENGTANLING_LAYERS = (
-    3  # number of entangling layers in the quantum circuit (depth)
-)
-
 
 class HQNN_Parallel(BaseModel):
-    def __init__(self, in_channels, classes, **kwargs):
+    def __init__(self, in_channels, classes, in_qlayer = 20, n_qubits = 5, n_qdepth = (3), qcircuit = "strongly_entangling", **kwargs):
         # Call the parent constructor
         super().__init__(**kwargs)
 
@@ -42,18 +36,19 @@ class HQNN_Parallel(BaseModel):
         self.maxpool2 = MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
 
         # Initialize first (and only) set of FC => RELU layers
-        self.fc1 = Linear(in_features=1568, out_features=NUM_QFEATURES)
+        self.fc1 = Linear(in_features=1568, out_features=in_qlayer)
         self.relu3 = ReLU()
 
         # Initialize the quantum layer
         self.qlayer1 = ParallelVQC(
-            size_in=NUM_QFEATURES,
-            n_qubits=NUM_QUBITS,
-            n_qdepth=NUM_ITER_ENGTANLING_LAYERS,
+            size_in=in_qlayer,
+            n_qubits=n_qubits,
+            n_qdepth=n_qdepth,
+            circuit_type=qcircuit,
         )
 
         # Initialize our softmax classifier
-        self.fc2 = Linear(in_features=NUM_QFEATURES, out_features=classes)
+        self.fc2 = Linear(in_features=in_qlayer, out_features=classes)
         self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, x):
