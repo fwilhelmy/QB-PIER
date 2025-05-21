@@ -5,8 +5,8 @@ import pennylane as qml
 
 # Helper functions for creating circuits
 def create_qnode(n_qubits, circuit, weight_shapes, init_vals=None):
-    dev = qml.device(cfg.DEVICE, wires=n_qubits)
-    qnode_obj = qml.QNode(circuit, dev, interface=cfg.INTERFACE, diff_method=cfg.DIFF_METHOD)
+    dev = qml.device(cfg.QDEVICE, wires=n_qubits)
+    qnode_obj = qml.QNode(circuit, dev, interface=cfg.INTERFACE, diff_method=cfg.QDIFF)
     return qml.qnn.TorchLayer(qnode=qnode_obj, weight_shapes=weight_shapes, init_method=init_vals)
 
 def get_device():
