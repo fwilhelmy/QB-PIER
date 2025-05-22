@@ -7,6 +7,7 @@ from utils import get_loss_and_accuracy
 from logzy import save_model, save_metrics
 import numpy as np
 import json
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 @torch.no_grad()
 def evaluate(model, loader, device):

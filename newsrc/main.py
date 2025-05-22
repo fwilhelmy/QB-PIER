@@ -4,7 +4,8 @@ from torch.utils.data import DataLoader
 import os
 import random
 import math
-
+from visualisation.AttacksVisualisation import plot_attack_effect_on_accuracy, visualize_attacks_results
+from visualisation.TrainingVisualisation import plot_training_result, plot_models_together
 
 from train import train
 from utils import seed_experiment
@@ -22,9 +23,17 @@ def train_model(model, args):
 
     # Data
     dataset_manager = DatasetManagerFactory(args.dataset)
-    train_loader, eval_loader = dataset_manager.split_dataset(args)
+    train_split, eval_split = dataset_manager.calculate_split_sizes(args.train_ratio, args.eval_ratio)
+    train_loader, eval_loader = dataset_manager.split_and_load(
+        train_samples_size=train_split,
+        eval_samples_size=eval_split,
+        train_batch_size=args.train_batch_size,
+        eval_batch_size=args.eval_batch_size,
+        num_workers=args.num_workers
+    )
 
     # Optimizer
+    # TODO doing nothing right now....
     if args.optimizer == "adamw": optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     elif args.optimizer == "adam": optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     elif args.optimizer == "sgd": optimizer = optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -32,7 +41,7 @@ def train_model(model, args):
     else: raise ValueError("Unknown optimizer {0}".format(args.optimizer))
 
     # Model
-    # TODO RESET the MODEL PARAMS WONT WORK WITH MULTI SEEDS RIGHT NOW
+    model = args.model(args.model_config)
     model = model.to(args.device)
 
     # Print parameters
@@ -44,9 +53,10 @@ def train_model(model, args):
         print("=="*20)
 
     # Train    
-    all_metrics = train(model, args, checkpoint_path, optimizer, train_loader, eval_loader)
+    model.fit(train_loader, eval_loader)
+    plot_training_result(model, len(train_loader.dataset), len(eval_loader.dataset))
     
-    return all_metrics, checkpoint_path
+    return model.all_metrics, checkpoint_path
 
 def train_models(args, seeds:list=[0, 42]):
     """Train a model with different seeds and plot the loss and accuracies of each separately."""

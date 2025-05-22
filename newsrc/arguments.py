@@ -8,10 +8,12 @@ class Arguments:
 
     # Model
     model: BaseModel
+    model_config: dict
 
     # Data
-    train_samples: int = 10**4
-    eval_samples: int = 10**4
+    dataset: str = "MNIST"  # [MNIST, FMNIST] only for now..
+    train_ratio: float = 0.8
+    eval_ratio: float = 0.2
 
     train_batch_size: int = 512
     eval_batch_size: int = 2**12
