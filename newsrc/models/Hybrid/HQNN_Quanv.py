@@ -4,7 +4,7 @@ from torch.nn import ReLU
 from torch.nn import LogSoftmax
 from torch import flatten, float32
 from models.BaseModel import BaseModel
-from models.Quantum.QuanvolutionLayer import QuanvolutionLayer
+from newsrc.layers.TODOQuanvolutionLayer import QuanvolutionLayer
 
 class HQNN_Quanv(BaseModel):
 	def __init__(self, in_channels, classes, **kwargs):
