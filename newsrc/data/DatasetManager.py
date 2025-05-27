@@ -4,10 +4,8 @@ from tqdm import tqdm
 import numpy as np
 
 class DatasetManager:
-    def __init__(self, root: str, batch_size: int, num_workers: int):
+    def __init__(self, root: str):
         self.root = root
-        self.batch_size = batch_size
-        self.num_workers = num_workers
         self.dataset = self.load_dataset(train=True)
 
     def load_dataset(self, train: bool):
@@ -53,10 +51,12 @@ class DatasetManager:
         train_loader = DataLoader(
             train_dataset, 
             batch_size=min(train_batch_size, len(train_dataset)),
+            num_workers=num_workers,
             shuffle=True)
         eval_loader = DataLoader(
             eval_dataset, 
             batch_size=min(eval_batch_size, len(eval_dataset)),
+            num_workers=num_workers,
             shuffle=False)
 
         return train_loader, eval_loader

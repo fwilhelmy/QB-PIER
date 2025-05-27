@@ -88,36 +88,6 @@ if __name__ == "__main__":
     print(f"Execution time: {end - start}")
     logs_manager.save_file(f"Execution time: {end - start}", "stats.txt")
 
-    # TODO so basically how I see things, we should have a function you call to setup the
-    # models, in it you should pass :
-    # - the dataset and dataset configuration (batch size, num_workers, etc..)
-    # - the model class
-    # - the model configuration
-    # - the training/optimization configuration
 
-    # TODO load experiments (experiments > exp_name.json)
-    # TODO in experiments you have a list of model configurations each placed in 
-    # TODO models > model_name > configuration.json
 
-    # TODO add a smoke_test arg that run the experiment on a reduced dataset to check if everything is working
-
-    # TODO add seeding for the experiments!!
-
-    # TODO Should implement some sanity checks, so usefull when testing everything...
-
-    # TODO Quantum MLPMixer
-
-    # TODO add my resnet16, MLP and MLPMixer to my models
-
-    # TODO Gradient flow visualisation
-
-    # TODO Graph flow of model visualisation
-
-    # TODO add checkpoints
-
-    # TODO UNDER EACH EXPERIMENT FOLDER THERE IS A SUB FOLDER WITH A NUMBER SAYING A SEED OF THAT RUN
-
-    # TODO What would really be interesting beyond just looking at curves if it resist or not
-    # Would be to visualise how the point are placed in the hillbert space where are the frontiers
-    # and how attacking a certain VQC is going to change the position of the data points in the hilbert space
 

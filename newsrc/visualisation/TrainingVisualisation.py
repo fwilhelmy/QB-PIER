@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from LoggingService import LoggingService
 
 def plot_training_result(model, train_len, val_len):
-    results = model.history
+    results = model.all_metrics
 
     # Plot the training loss and accuracy
     plt.style.use("ggplot")
@@ -22,10 +22,10 @@ def plot_training_result(model, train_len, val_len):
     fig.text(
         0.01,
         0.01,
-        "Model: {}, Devices: {}, Epochs: {}, Learning Rate: {}\nSamples (T|V): ({}|{}), Accuracy (T|V): ({}|{})".format(
+        "Model: {}, Devices: {}, max_steps: {}, Learning Rate: {}\nSamples (T|V): ({}|{}), Accuracy (T|V): ({}|{})".format(
             type(model).__name__,
             model.devices,
-            model.max_epochs,
+            model.max_steps,
             model.learning_rate,
             train_len,
             val_len,

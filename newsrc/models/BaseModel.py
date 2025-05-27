@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional, Union
 
 import torch
 from torch import nn
-from torch.optim import Adam, SGD
+import torch.optim as optim
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from torch.nn import CrossEntropyLoss, MSELoss
@@ -13,16 +13,19 @@ from Configuration import CPU_NUMBER
 from LoggingService import LoggingService
 import os
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger
+from torch import load, save
+import json
 
-SUPPORTED_OPTIMIZERS = {
-    "adam": Adam,
-    "sgd": SGD,
-}
+
+SUPPORTED_OPTIMIZERS = ['adamw', 'adam', 'sgd', 'momentum']
 
 SUPPORTED_LOSS_FUNCTIONS = {
     "cross_entropy": CrossEntropyLoss, # For classification tasks
     "mse": MSELoss # For regression tasks
 }
+
+DEFAULT_ROOTDIR = "saves"
 
 class BaseModel(LightningModule):
     """
@@ -36,42 +39,69 @@ class BaseModel(LightningModule):
     def __init__(
         self,
         model_name: str,
-        devices: Optional[int] = None,
+        rootdir: Optional[str] = DEFAULT_ROOTDIR,
+        seed: Optional[int] = None,
     ):
         super().__init__()
         self.model_name = model_name
-        self.devices = devices or CPU_NUMBER
-        
+        self.seed = seed
+    
         self.all_metrics: Dict[str, list] = {
             "train_loss": [],
             "train_acc": [],
             "val_loss": [],
             "val_acc": [],
-            "weight_l2_norm": [],
+            #"weight_l2_norm": [],
             "learning_rate": [],
         }
-
+        self.rootdir = rootdir
         self._configure_logging()
 
     def _configure_logging(self) -> None:
         """Set up external LoggingService and model directory."""
         self.log_service = LoggingService()
+        # different than self.rootdir, this is the root directory for the logs, need to change names
         self.root_dir = Path(self.log_service.get_root_dir())
         self.model_dir = self.root_dir / self.model_name
         self.model_dir.mkdir(parents=True, exist_ok=True)
 
+        self.logdir = os.path.join(self.rootdir, type(self).__name__, str(self.model_name), str(self.seed))
+        
+        model_sate = os.path.join(self.logdir, "model_state.pt")
+        # Todo: need to fix this, not everything is loaded now...
+        # if os.path.exists(model_sate):
+        #     print(f"Model {self.model_name} already exists in {self.logdir}, loading existing model.")
+        #     # load existing model directory
+        #     self.load_model()
+        #     return
+        
+        os.makedirs(self.logdir, exist_ok=True)
+
+        filepath = os.path.join(self.logdir, "configuration.txt")
+        model_config = f"Model name:{self.model_name} \n{str(self)}"
+        with open(filepath, "w") as file:
+            file.write(model_config)
+
     def configure_training(self,
-                           loss_fn = CrossEntropyLoss,
+                           loss_fn = 'cross_entropy',
                            learning_rate: float = 1e-3,
-                           max_epochs: int = 10,
-                           optimizer: str = "adam",) -> None:
+                           max_steps: int = 1000,
+                           optimizer: str = "adam",
+                           weight_decay: float = 1e-0,
+                           momentum: float = 0.9,
+                           devices: Optional[int] = None,) -> None:
         """Initialize the PyTorch Lightning Trainer."""
+        self.devices = devices or CPU_NUMBER
+        optimizer = optimizer.lower()
+        if optimizer == "adamw": self.optimizer = optim.AdamW(self.parameters(), lr=learning_rate, weight_decay=weight_decay)
+        elif optimizer == "adam": self.optimizer = optim.Adam(self.parameters(), lr=learning_rate, weight_decay=weight_decay)
+        elif optimizer == "sgd": self.optimizer = optim.SGD(self.parameters(), lr=learning_rate, weight_decay=weight_decay)
+        elif optimizer == "momentum": self.optimizer = optim.SGD(self.parameters(), lr=learning_rate, momentum=momentum, weight_decay=weight_decay)
+        else: raise ValueError("Unknown optimizer {0}".format(optimizer))
 
-        assert optimizer.lower() not in SUPPORTED_OPTIMIZERS, f"Unsupported optimizer: {optimizer}"
-        self.optimizer_class = SUPPORTED_OPTIMIZERS[optimizer.lower()]
-
-        assert loss_fn.lower() not in SUPPORTED_LOSS_FUNCTIONS, f"Unsupported loss function: {loss_fn}"
-        self.loss_function = SUPPORTED_LOSS_FUNCTIONS[loss_fn.lower()]()
+        loss_fn = loss_fn.lower()
+        assert loss_fn in SUPPORTED_LOSS_FUNCTIONS, f"Unsupported loss function: {loss_fn}"
+        self.loss_fn = SUPPORTED_LOSS_FUNCTIONS[loss_fn.lower()]()
 
         self.learning_rate = learning_rate
 
@@ -87,18 +117,18 @@ class BaseModel(LightningModule):
             monitor="val_loss",
             mode="min",
         )
-
+        self.max_steps = max_steps
         self.trainer: Trainer = Trainer(
-            accelerator="auto",
-            devices=self.devices,
-            max_epochs=max_epochs,
+            #accelerator="auto",
+            #devices=self.devices,
+            max_steps=max_steps,
             logger=tb_logger,
             default_root_dir=str(self.root_dir),
             callbacks=[checkpoint_cb],
         )
 
     def configure_optimizers(self) -> Any:
-        return self.optimizer_class(self.parameters(), lr=self.learning_rate)
+        return self.optimizer
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
@@ -110,21 +140,24 @@ class BaseModel(LightningModule):
         acc = calculate_accuracy(y_hat, y)
 
         # compute L2 norm of all weights
-        l2_norm = torch.sqrt(
-            sum(torch.sum(param ** 2) for param in self.parameters())
-        )
+        #l2_norm = torch.sqrt(torch.stack([torch.sum(param ** 2) for param in self.parameters()]))
 
         self.log_dict(
             {
                 "train_loss": loss,
                 "train_acc": acc,
-                "weight_l2_norm": l2_norm,
+                #"weight_l2_norm": l2_norm,
                 "learning_rate": self.learning_rate,
             },
-            on_step=False,
+            on_step=True,
             on_epoch=True,
-            prog_bar=True,
+            prog_bar=False,
         )
+
+        self.all_metrics["train_loss"].append(loss.item())
+        self.all_metrics["train_acc"].append(acc.item())
+        self.all_metrics["learning_rate"].append(self.learning_rate)
+
         return loss
 
     def validation_step(self, batch: Any, batch_idx: int) -> torch.Tensor:
@@ -135,10 +168,14 @@ class BaseModel(LightningModule):
 
         self.log_dict(
             {"val_loss": loss, "val_acc": acc},
-            on_step=False,
+            on_step=True,
             on_epoch=True,
             prog_bar=False,
         )
+
+        self.all_metrics["val_loss"].append(loss.item())
+        self.all_metrics["val_acc"].append(acc.item())
+
         return loss
 
     def test_step(self, batch: Any, batch_idx: int) -> torch.Tensor:
@@ -153,15 +190,33 @@ class BaseModel(LightningModule):
             on_epoch=True,
             prog_bar=False,
         )
+
+
+        self.all_metrics["test_loss"].append(loss.item())
+        self.all_metrics["test_acc"].append(acc.item())
         return loss
 
-    def on_train_epoch_end(self) -> None:
-        """Append logged metrics to metrics after each epoch."""
-        epoch_metrics = self.trainer.callback_metrics
-        for key in self.all_metrics.keys():
-            if key in epoch_metrics:
-                self.all_metrics[key].append(epoch_metrics[key].item())
+    # def on_train_epoch_end(self) -> None:
+    #     """Append logged metrics to metrics after each epoch."""
+    #     epoch_metrics = self.trainer.callback_metrics
+    #     for key in self.all_metrics.keys():
+    #         if key in epoch_metrics:
+    #             self.all_metrics[key].append(epoch_metrics[key].item())
 
+    def save_model(self):
+        filepath = os.path.join(self.logdir, "model_state.pt")
+        save(self, filepath)
+
+    def save_metrics(self):
+        with open(f"{self.logdir}/metrics.json", "w") as f:
+            json.dump(self.all_metrics, f, indent=4)
+
+    def load_model(self, map_location=None):
+        """ Load the model's state dictionary """
+        filepath = os.path.join(self.logdir, "model_state.pt")
+        self = load(filepath, map_location=map_location)
+        if map_location is not None: self.devices = map_location
+ 
     def fit(
         self,
         train_dataloaders: Union[Any, list],
@@ -170,12 +225,7 @@ class BaseModel(LightningModule):
         """Kick off training and save model at the end."""
         assert self.trainer is not None, "Trainer not configured. Call configure_training() first."
         self.trainer.fit(self, train_dataloaders, val_dataloaders)
-        self.log_service.save_model(self)
-        self.log_service.save_metrics(self)
-
-    def load_model(logdir, model_name, map_location=None) -> nn.Module:
-        """ Load the model's state dictionary """
-        load_path = os.path.join(logdir, f"{model_name}.pth")
-        # LOAD with pyTorch Lightning
-        model = BaseModel.load_from_checkpoint(load_path, map_location=map_location)
- 
+        self.save_model()
+        self.save_metrics()
+        # Also should save the training figure and a log of the training in json to see how the training went
+        # In a dataset when it's loaded for the first time, should save dataset figures and store into

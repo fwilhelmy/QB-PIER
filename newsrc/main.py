@@ -6,14 +6,20 @@ import random
 import math
 from visualisation.AttacksVisualisation import plot_attack_effect_on_accuracy, visualize_attacks_results
 from visualisation.TrainingVisualisation import plot_training_result, plot_models_together
+from arguments import Arguments
+from models.Classical.LeNet import LeNet
+from models.Classical.mlp import MLP
+from models.Classical.resnet18 import ResNet18
+from models.Classical.mlpmixer import MLPMixer
+from models.Hybrid.HQNN_Quanv import HQNN_Quanv
+from models.Hybrid.HQNN_Parallel import HQNN_Parallel
 
-from train import train
 from utils import seed_experiment
 from data.DatasetManagerFactory import DatasetManagerFactory
 
 import torch
 
-def train_model(model, args):
+def train_model(args):
     # Seed the experiment, for repeatability
     seed_experiment(args.seed)
     
@@ -32,16 +38,20 @@ def train_model(model, args):
         num_workers=args.num_workers
     )
 
-    # Optimizer
-    # TODO doing nothing right now....
-    if args.optimizer == "adamw": optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    elif args.optimizer == "adam": optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    elif args.optimizer == "sgd": optimizer = optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    elif args.optimizer == "momentum": optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
-    else: raise ValueError("Unknown optimizer {0}".format(args.optimizer))
+    # I THINK LOGDIR AND LOADING IN MAIN, WOULD MAKE MORE SENSE!!
 
     # Model
-    model = args.model(args.model_config)
+    model = args.model(**args.model_config)
+    # TODO add the other training hyperparameters
+    model.configure_training(
+        optimizer=args.optimizer,
+        loss_fn=args.loss_fn,
+        learning_rate=args.lr,
+        max_steps=args.n_steps,
+        weight_decay=args.weight_decay,
+        momentum=args.momentum,
+        devices=args.device,
+    )
     model = model.to(args.device)
 
     # Print parameters
@@ -52,13 +62,13 @@ def train_model(model, args):
         print("dataset_size:", len(dataset_manager.dataset))
         print("=="*20)
 
-    # Train    
+    # Train
     model.fit(train_loader, eval_loader)
     plot_training_result(model, len(train_loader.dataset), len(eval_loader.dataset))
     
     return model.all_metrics, checkpoint_path
 
-def train_models(args, seeds:list=[0, 42]):
+def run_experiment(args, seeds:list=[0, 42]):
     """Train a model with different seeds and plot the loss and accuracies of each separately."""
     assert seeds is not None, "Either M or seeds should be provided."
 
@@ -72,3 +82,51 @@ def train_models(args, seeds:list=[0, 42]):
         run_paths.append(run_path)
 
     return run_paths
+
+if 'main' in __name__:
+    seeds = [0, 42]
+    experiment1 = Arguments()
+    experiment1.log_dir = "logs/experiment1"
+    experiment1.verbose = False
+    experiment1.n_steps = 100
+    experiment1.num_workers = 0
+
+    models = [
+        # [
+        #     HQNN_Parallel, 
+        #     {'model_name': 'HQNN_Parallel_8', 'in_channels': 1, 'classes': 10}
+        # ],
+        [
+            LeNet,
+            {'model_name': 'LeNet_8', 'in_channels': 1, 'classes': 10}
+        ],
+    ]
+
+    for model, config in models:
+        experiment1.exp_name = config['model_name']
+        experiment1.model = model
+        experiment1.model_config = config
+        run_experiment(experiment1, seeds)   
+
+    # TODO add a smoke_test arg that run the experiment on a reduced dataset to check if everything is working
+
+    # TODO Should implement some sanity checks, so usefull when testing everything...
+
+        # TODO Quantum MLPMixer
+
+    # TODO Gradient flow visualisation
+
+    # TODO Graph flow of model visualisation
+
+    # TODO add checkpoints
+
+        # TODO What would really be interesting beyond just looking at curves if it resist or not
+    # Would be to visualise how the point are placed in the hillbert space where are the frontiers
+    # and how attacking a certain VQC is going to change the position of the data points in the hilbert space
+
+        # TODO so basically how I see things, we should have a function you call to setup the
+    # models, in it you should pass :
+    # - the dataset and dataset configuration (batch size, num_workers, etc..)
+    # - the model class
+    # - the model configuration
+    # - the training/optimization configuration
