@@ -1,6 +1,6 @@
 import pennylane as qml
 import numpy as np
-from utils import get_qnode
+from utils import get_qnode, create_qtorchlayer
 
 class BaseAnsatz:
     """
@@ -11,7 +11,7 @@ class BaseAnsatz:
         self,
         n_qubits: int,
         n_layers: int,
-        embedding: str = "angle",
+        embedding: str = "angle", # 'angle' or 'amplitude' or 'none'
         rotation: str = "X",
     ):
         self.n_qubits = n_qubits
@@ -29,7 +29,7 @@ class BaseAnsatz:
             qml.AngleEmbedding(inputs, wires=range(self.n_qubits), rotation=self.rotation)
         elif self.embedding == "amplitude":
             qml.AmplitudeEmbedding(inputs, wires=range(self.n_qubits), normalize=True)
-        else:
+        elif self.embedding != "none":
             raise ValueError(f"Unknown embedding method: {self.embedding}")
 
     def ansatz(self, weights):
@@ -45,17 +45,17 @@ class BaseAnsatz:
         self._embed(inputs)
         self.ansatz(weights)
         return [qml.expval(qml.PauliZ(wires=i)) for i in range(self.n_qubits)]
+
+    def build_qlayer(self):
+        self.qlayer = create_qtorchlayer(self.n_qubits, self.circuit, self.weight_shapes)
+        return self.qlayer
     
-    def visualize(self, device):
+    def visualize(self):
         """
         Visualize the circuit diagram using matplotlib.
-        No need to supply inputs or weights; zeros are used by default.
-
-        Args:
-            device: PennyLane device (e.g., qml.device(...)).
 
         Returns:
-            A matplotlib.Figure containing the circuit diagram.
+            fig: A matplotlib.Figure containing the circuit diagram.
         """
         # Default zero inputs and weights
         default_inputs = np.zeros(self.n_qubits)
