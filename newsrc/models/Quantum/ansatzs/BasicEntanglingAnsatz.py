@@ -14,6 +14,7 @@ class BasicEntanglingAnsatz(BaseAnsatz):
         # PennyLane BasicEntanglerLayers expects weights of shape (n_layers, n_qubits)
         # self.weight_shapes = {"weights": (n_layers, n_qubits)}
         self.weight_shapes = qml.BasicEntanglerLayers.shape(n_layers=n_layers, n_wires=n_qubits)
+        print(f"BasicEntanglingAnsatz: weight_shapes = {self.weight_shapes}")
 
     def ansatz(self, weights):
         qml.BasicEntanglerLayers(weights, wires=range(self.n_qubits))

@@ -7,6 +7,8 @@ class BaseAnsatz:
     Base class for all quantum Ansatz circuits.
     Handles embedding; subclasses must override `ansatz()` to define gate structure.
     """
+    weight_shapes: dict
+    # TODO pass to constructor the weight shapes
     def __init__(
         self,
         n_qubits: int,
@@ -18,7 +20,6 @@ class BaseAnsatz:
         self.n_layers = n_layers
         self.embedding = embedding.lower()
         self.rotation = rotation
-        self.weight_shapes = None
 
     def _embed(self, inputs):
         """
@@ -57,6 +58,8 @@ class BaseAnsatz:
         Returns:
             fig: A matplotlib.Figure containing the circuit diagram.
         """
+        assert self.weight_shapes is not None, "Weight shapes must be defined before visualization."
+
         # Default zero inputs and weights
         default_inputs = np.zeros(self.n_qubits)
         weight_shape = self.weight_shapes.get("weights", ())

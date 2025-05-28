@@ -1,1 +1,2 @@
-# TODO
+# TODO Will need much more work and to manually define my ansatzs to be able to do something like this...
+# This is more an epic than anything else, but I want to keep it here for now.

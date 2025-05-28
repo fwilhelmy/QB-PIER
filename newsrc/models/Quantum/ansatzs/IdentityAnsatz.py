@@ -11,9 +11,7 @@ class IdentityAnsatz(BaseAnsatz):
         rotation: str = "X",
     ):
         super().__init__(n_qubits, n_layers, embedding, rotation)
-        # No trainable parameters
-        self.weight_shapes = {"weights": (0,)}
+        self.weight_shapes = {"weights": (0,)} # No trainable parameters
 
     def ansatz(self, weights):
-        # Intentionally no entangling layers
-        pass
+        pass # Intentionally no entangling layers
