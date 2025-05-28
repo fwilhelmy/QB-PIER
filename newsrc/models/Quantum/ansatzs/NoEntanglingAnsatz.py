@@ -1,5 +1,5 @@
 import pennylane as qml
-from layers.ansatzs.BaseAnsatz import BaseAnsatz
+from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
 import numpy as np
 
 class NoEntanglingAnsatz(BaseAnsatz):

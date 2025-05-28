@@ -1,5 +1,5 @@
 import pennylane as qml
-from layers.ansatzs.BaseAnsatz import BaseAnsatz
+from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
 import numpy as np
 
 class BasicEntanglingAnsatz(BaseAnsatz):
@@ -12,7 +12,8 @@ class BasicEntanglingAnsatz(BaseAnsatz):
     ):
         super().__init__(n_qubits, n_layers, embedding, rotation)
         # PennyLane BasicEntanglerLayers expects weights of shape (n_layers, n_qubits)
-        self.weight_shapes = {"weights": (n_layers, n_qubits)}
+        # self.weight_shapes = {"weights": (n_layers, n_qubits)}
+        self.weight_shapes = qml.BasicEntanglerLayers.shape(n_layers=n_layers, n_wires=n_qubits)
 
     def ansatz(self, weights):
         qml.BasicEntanglerLayers(weights, wires=range(self.n_qubits))
