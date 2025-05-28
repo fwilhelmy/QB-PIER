@@ -1,8 +1,10 @@
-from layers.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
 import pennylane as qml
 import torch
 import torch.nn as nn
 from utils import create_qtorchlayer
+from typing import Type
 
 class VQC(nn.Module):
     """
@@ -13,7 +15,7 @@ class VQC(nn.Module):
         self,
         n_qubits: int,
         n_layers: int,
-        ansatz_cls=BasicEntanglingAnsatz,
+        ansatz_cls: Type[BaseAnsatz] = BasicEntanglingAnsatz,
         embedding: str = "angle",
         rotation: str = "X"
     ):
@@ -23,7 +25,7 @@ class VQC(nn.Module):
 
         # Instantiate ansatz and create QNode layer
         self.ansatz = ansatz_cls(n_qubits, n_layers, embedding, rotation)
-        self.qlayer = create_qtorchlayer(self.ansatz.n_qubits, self.ansatz.circuit, self.ansatz.weight_shapes)
+        self.qlayer = self.ansatz.build_qlayer()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

@@ -1,10 +1,11 @@
 import pennylane as qml
-from newsrc.layers.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
 import torch
 import torch.nn as nn
 from typing import Type
 import numpy as np
-from newsrc.layers.VQC import VQC
+from models.quantum.VQC import VQC
 
 class ParallelVQC(nn.Module):
     """
@@ -15,7 +16,7 @@ class ParallelVQC(nn.Module):
         size_in: int,
         n_qubits: int,
         n_layers: int,
-        ansatz_cls=BasicEntanglingAnsatz,
+        ansatz_cls: Type[BaseAnsatz] = BasicEntanglingAnsatz,
         embedding: str = "angle",
         rotation: str = "X"
     ):
