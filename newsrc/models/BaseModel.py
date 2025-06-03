@@ -25,8 +25,6 @@ SUPPORTED_LOSS_FUNCTIONS = {
     "mse": MSELoss # For regression tasks
 }
 
-DEFAULT_ROOTDIR = "saves"
-
 class BaseModel(LightningModule):
     """
     Base LightningModule providing:
@@ -39,13 +37,10 @@ class BaseModel(LightningModule):
     def __init__(
         self,
         model_name: str,
-        rootdir: Optional[str] = DEFAULT_ROOTDIR,
-        seed: Optional[int] = None,
+        rootdir: str
     ):
         super().__init__()
-        self.model_name = model_name
-        self.seed = seed
-    
+
         self.all_metrics: Dict[str, list] = {
             "train_loss": [],
             "train_acc": [],
@@ -54,6 +49,8 @@ class BaseModel(LightningModule):
             #"weight_l2_norm": [],
             "learning_rate": [],
         }
+
+        self.model_name = model_name
         self.rootdir = rootdir
         self._configure_logging()
 
@@ -61,23 +58,21 @@ class BaseModel(LightningModule):
         """Set up external LoggingService and model directory."""
         self.log_service = LoggingService()
         # different than self.rootdir, this is the root directory for the logs, need to change names
-        self.root_dir = Path(self.log_service.get_root_dir())
-        self.model_dir = self.root_dir / self.model_name
+        self.logdir = Path(self.log_service.get_root_dir())
+        self.model_dir = self.logdir / self.model_name
         self.model_dir.mkdir(parents=True, exist_ok=True)
 
-        self.logdir = os.path.join(self.rootdir, type(self).__name__, str(self.model_name), str(self.seed))
-        
-        model_sate = os.path.join(self.logdir, "model_state.pt")
         # Todo: need to fix this, not everything is loaded now...
+        # model_sate = os.path.join(self.rootdir, "model_state.pt")
         # if os.path.exists(model_sate):
-        #     print(f"Model {self.model_name} already exists in {self.logdir}, loading existing model.")
+        #     print(f"Model {self.model_name} already exists in {self.rootdir}, loading existing model.")
         #     # load existing model directory
         #     self.load_model()
         #     return
         
-        os.makedirs(self.logdir, exist_ok=True)
+        os.makedirs(self.rootdir, exist_ok=True)
 
-        filepath = os.path.join(self.logdir, "configuration.txt")
+        filepath = os.path.join(self.rootdir, "configuration.txt")
         model_config = f"Model name:{self.model_name} \n{str(self)}"
         with open(filepath, "w") as file:
             file.write(model_config)
@@ -106,12 +101,12 @@ class BaseModel(LightningModule):
         self.learning_rate = learning_rate
 
         tb_logger = TensorBoardLogger(
-            save_dir=str(self.root_dir / "tensorboard"),
+            save_dir=str(self.logdir / "tensorboard"),
             name=self.model_name,
         )
 
         checkpoint_cb = ModelCheckpoint(
-            dirpath=str(self.model_dir / "checkpoints"),
+            dirpath=str(Path(self.rootdir) / "checkpoints"),
             filename="{epoch:02d}-{val_loss:.4f}",
             save_top_k=3,
             monitor="val_loss",
@@ -123,7 +118,7 @@ class BaseModel(LightningModule):
             #devices=self.devices,
             max_steps=max_steps,
             logger=tb_logger,
-            default_root_dir=str(self.root_dir),
+            default_root_dir=self.rootdir,
             callbacks=[checkpoint_cb],
         )
 
@@ -204,16 +199,16 @@ class BaseModel(LightningModule):
     #             self.all_metrics[key].append(epoch_metrics[key].item())
 
     def save_model(self):
-        filepath = os.path.join(self.logdir, "model_state.pt")
+        filepath = os.path.join(self.rootdir, "model_state.pt")
         save(self, filepath)
 
     def save_metrics(self):
-        with open(f"{self.logdir}/metrics.json", "w") as f:
+        with open(f"{self.rootdir}/metrics.json", "w") as f:
             json.dump(self.all_metrics, f, indent=4)
 
     def load_model(self, map_location=None):
         """ Load the model's state dictionary """
-        filepath = os.path.join(self.logdir, "model_state.pt")
+        filepath = os.path.join(self.rootdir, "model_state.pt")
         self = load(filepath, map_location=map_location)
         if map_location is not None: self.devices = map_location
  
