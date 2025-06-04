@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from Configuration import LOGS_DIR
 
 class LoggingService:
     _instance = None
@@ -15,7 +16,7 @@ class LoggingService:
             
             # Create a directory to store the results
             timestring = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
-            root_dir = root_dir or "results"
+            root_dir = root_dir or LOGS_DIR
             self._root_dir = f"{root_dir}/{timestring}"
             os.makedirs(self._root_dir, exist_ok=True)
             print(f"Tensorboard path: {self._root_dir}/tensorboard")
