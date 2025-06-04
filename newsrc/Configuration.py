@@ -12,6 +12,9 @@ QDIFF = "backprop"
 
 DATA_DIR = "data/processed"
 
+SAVES_DIR = "saves"
+LOGS_DIR = "logs"
+
 CPU_NUMBER = 1
 
 device: str = "cuda" if torch.cuda.is_available() else "cpu"

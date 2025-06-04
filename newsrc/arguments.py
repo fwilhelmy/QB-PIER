@@ -4,10 +4,8 @@ from models.BaseModel import BaseModel
 class Arguments:
     # Experiment
     exp_name: str = "default"
-    exp_id: int = 0
-    log_dir: str = 'logs'
     seed: int = 42 
-    verbose: bool = True
+    verbose: bool = False
 
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     num_workers: int = 0
