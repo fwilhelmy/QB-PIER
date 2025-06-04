@@ -114,15 +114,6 @@ if 'main' in __name__:
 
     # TODO Graph flow of model visualisation
 
-    # TODO add checkpoints
-
         # TODO What would really be interesting beyond just looking at curves if it resist or not
     # Would be to visualise how the point are placed in the hillbert space where are the frontiers
     # and how attacking a certain VQC is going to change the position of the data points in the hilbert space
-
-        # TODO so basically how I see things, we should have a function you call to setup the
-    # models, in it you should pass :
-    # - the dataset and dataset configuration (batch size, num_workers, etc..)
-    # - the model class
-    # - the model configuration
-    # - the training/optimization configuration

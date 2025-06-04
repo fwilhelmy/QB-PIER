@@ -30,18 +30,14 @@ class BaseModel(LightningModule):
         self,
         model_name: str,
         seed: int,
-        save_dir: Optional[str] = None,
+        save_dir: str = SAVES_DIR,
     ):
         super().__init__()
         self.save_hyperparameters("model_name", "seed", "save_dir")
-        self.log_service = LoggingService()
+        self.model_name = model_name
+        self.seed = seed
 
-        # Build folder paths using class name, model_name, seed
-        relative_path = os.path.join(self.__class__.__name__, str(model_name), str(seed))
-        self.root_dir = os.path.join(save_dir or SAVES_DIR, relative_path)
-        os.makedirs(self.root_dir, exist_ok=True)
-        self.log_dir = os.path.join(self.log_service.get_root_dir(), relative_path)
-        os.makedirs(self.log_dir, exist_ok=True)
+        self.configure_directories()
 
         # Initialize in-memory metrics (Lightning does not checkpoint these)
         self.all_metrics: Dict[str, list] = {
@@ -51,6 +47,18 @@ class BaseModel(LightningModule):
             "val_acc": [],
             "learning_rate": [],
         }
+    
+    def configure_directories(self) -> None:
+        """
+        Configure directories for saving model checkpoints and logs.\n
+        This method creates a structured directory layout based on the model name and seed.
+        """
+        # Build folder paths using class name, model_name, seed
+        relative_path = os.path.join(self.__class__.__name__, str(self.model_name), str(self.seed))
+        self.root_dir = os.path.join(self.hparams['save_dir'], relative_path)
+        os.makedirs(self.root_dir, exist_ok=True)
+        self.log_dir = os.path.join(LoggingService().get_root_dir(), relative_path)
+        os.makedirs(self.log_dir, exist_ok=True)
 
     def configure_training(
         self,
@@ -66,7 +74,6 @@ class BaseModel(LightningModule):
         Record each hyperparameter into self.hparams so that Lightning
         serializes them into the checkpoint.
         """
-        # Lowercase strings for consistency:
         self.hparams["loss_fn"]       = loss_fn.lower()
         self.hparams["learning_rate"] = learning_rate
         self.hparams["max_steps"]     = max_steps
@@ -76,7 +83,6 @@ class BaseModel(LightningModule):
         self.hparams["devices"]       = devices or CPU_NUMBER
 
         self._instantiate_from_hparams()
-
 
     def _instantiate_from_hparams(self) -> None:
         """
@@ -125,13 +131,16 @@ class BaseModel(LightningModule):
           • Populated self.hparams from the checkpoint
 
         Now we:
-          1) Reattach the singleton LoggingService()
-          2) TODO Reload training metrics from disk (optional)
+          1) Configure directories based on the restored hparams
+          2) Reload training metrics from disk (optional)
           3) Initialise our training instance
         """
-        self.log_service = LoggingService()
+        self.model_name = self.hparams["model_name"]
+        self.seed = self.hparams["seed"]
 
-        # Reload previously saved metrics into memory:
+        self.configure_directories()
+
+        # Reload previously saved metrics into memory
         metrics_file = os.path.join(self.root_dir, "metrics.json")
         if os.path.exists(metrics_file):
             with open(metrics_file, "r") as f:
@@ -145,7 +154,6 @@ class BaseModel(LightningModule):
                 "learning_rate": [],
             }
 
-        # Rebuild training instances from hparams
         self._instantiate_from_hparams()
 
     def configure_optimizers(self) -> Any:
@@ -190,7 +198,7 @@ class BaseModel(LightningModule):
             {
                 "train_loss": loss,
                 "train_acc": acc,
-                "learning_rate": self.learning_rate
+                "learning_rate": self.hparams["learning_rate"]
             },
             on_step=True,
             on_epoch=True,
