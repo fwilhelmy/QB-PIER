@@ -5,7 +5,8 @@ from torch.nn import ReLU
 from torch.nn import LogSoftmax
 from torch.nn import BatchNorm2d
 from torch import flatten
-from layers.old.ParallelVQC import ParallelVQC
+from models.quantum.ParallelVQC import ParallelVQC
+from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 from models.BaseModel import BaseModel
 import torch
 
@@ -42,9 +43,9 @@ class HQNN_Parallel(BaseModel):
         # Initialize the quantum layer
         self.qlayer1 = ParallelVQC(
             size_in=in_qlayer,
+            n_layers=n_qdepth,
             n_qubits=n_qubits,
-            n_qdepth=n_qdepth,
-            circuit_type=qcircuit,
+            ansatz_cls=BasicEntanglingAnsatz,
         )
 
         # Initialize our softmax classifier

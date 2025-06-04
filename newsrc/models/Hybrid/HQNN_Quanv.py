@@ -4,14 +4,14 @@ from torch.nn import ReLU
 from torch.nn import LogSoftmax
 from torch import flatten, float32
 from models.BaseModel import BaseModel
-from newsrc.layers.TODOQuanvolutionLayer import QuanvolutionLayer
+from models.quantum.Quanvolution import Quanvolution
 
 class HQNN_Quanv(BaseModel):
 	def __init__(self, in_channels, classes, **kwargs):
 		# Call the parent constructor
 		super().__init__(**kwargs)
 
-		self.quanv = QuanvolutionLayer()
+		self.quanv = Quanvolution(2)
 		
 		# Initialize first (and only) set of FC => RELU layers
 		self.fc1 = Linear(in_features=784, out_features=784)
