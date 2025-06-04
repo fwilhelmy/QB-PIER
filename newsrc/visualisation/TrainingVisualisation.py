@@ -24,9 +24,9 @@ def plot_training_result(model, train_len, val_len):
         0.01,
         "Model: {}, Devices: {}, max_steps: {}, Learning Rate: {}\nSamples (T|V): ({}|{}), Accuracy (T|V): ({}|{})".format(
             type(model).__name__,
-            model.devices,
-            model.max_steps,
-            model.learning_rate,
+            model.hparams["devices"],
+            model.hparams["max_steps"],
+            model.hparams["learning_rate"],
             train_len,
             val_len,
             results["train_acc"][-1],

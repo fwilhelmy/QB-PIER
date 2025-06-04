@@ -101,7 +101,7 @@ class BaseModel(LightningModule):
 
         # Create TensorBoardLogger
         tb_logger = TensorBoardLogger(
-            save_dir=str(self.log_dir),
+            save_dir=self.log_dir,
             name=""
         )
 
@@ -109,7 +109,7 @@ class BaseModel(LightningModule):
         ckpt_dir = os.path.join(self.root_dir, "checkpoints")
         os.makedirs(ckpt_dir, exist_ok=True)
         checkpoint_cb = ModelCheckpoint(
-            dirpath=str(ckpt_dir),
+            dirpath=ckpt_dir,
             filename="{epoch:02d}-{val_loss:.4f}",
             save_top_k=3,
             monitor="val_loss",

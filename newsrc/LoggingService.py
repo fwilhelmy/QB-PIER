@@ -26,11 +26,13 @@ class LoggingService:
         return self._root_dir
     
     def save_figure(self, figure, title, model=None):
-        figure_dir = f"{self._root_dir}/" + (model.model_name if model else "")
+        figure_dir = model.log_dir if model else f"{self._root_dir}/"
+        os.makedirs(figure_dir, exist_ok=True)
         figure.savefig(f"{figure_dir}/{title}.png")
 
     def save_file(self, file_content, file_name, model=None):
-        file_dir = f"{self._root_dir}/" + (model.model_name if model else "")
+        file_dir = model.log_dir if model else f"{self._root_dir}/"
+        os.makedirs(file_dir, exist_ok=True)
         with open(f"{file_dir}/{file_name}", "w") as file:
             file.write(file_content)
 
