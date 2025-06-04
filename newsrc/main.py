@@ -7,13 +7,12 @@ import math
 from visualisation.AttacksVisualisation import plot_attack_effect_on_accuracy, visualize_attacks_results
 from visualisation.TrainingVisualisation import plot_training_result, plot_models_together
 from arguments import Arguments
-from models.Classical.LeNet import LeNet
-from models.Classical.mlp import MLP
-from models.Classical.resnet18 import ResNet18
-from models.Classical.mlpmixer import MLPMixer
-from models.Hybrid.HQNN_Quanv import HQNN_Quanv
-from models.Hybrid.HQNN_Parallel import HQNN_Parallel
-
+from models.classical.LeNet import LeNet
+from models.classical.mlp import MLP
+from models.classical.resnet18 import ResNet18
+from models.classical.mlpmixer import MLPMixer
+from models.hybrid.HQNN_Quanv import HQNN_Quanv
+from models.hybrid.HQNN_Parallel import HQNN_Parallel
 from utils import seed_experiment
 from data.DatasetManagerFactory import DatasetManagerFactory
 
@@ -22,10 +21,6 @@ import torch
 def train_model(args):
     # Seed the experiment, for repeatability
     seed_experiment(args.seed)
-    
-    # Create a directory to save the experiment results
-    checkpoint_path = os.path.join(args.log_dir, str(args.exp_name), str(args.exp_id))
-    os.makedirs(checkpoint_path, exist_ok=True)
 
     # Data
     dataset_manager = DatasetManagerFactory(args.dataset)
@@ -38,10 +33,11 @@ def train_model(args):
         num_workers=args.num_workers
     )
 
-    # I THINK LOGDIR AND LOADING IN MAIN, WOULD MAKE MORE SENSE!!
-
     # Model
-    model = args.model(**args.model_config)
+    model = args.model(
+        model_name=args.exp_name,
+        seed=args.seed,
+        **args.model_config)
     # TODO add the other training hyperparameters
     model.configure_training(
         optimizer=args.optimizer,
@@ -58,15 +54,15 @@ def train_model(args):
     if args.verbose :
         print("=="*20)
         for k, v in vars(args).items(): print(k, ":", v)
-        print("checkpoint_path:", checkpoint_path)
+        print("rootdir:", model.root_dir)
         print("dataset_size:", len(dataset_manager.dataset))
         print("=="*20)
 
     # Train
     model.fit(train_loader, eval_loader)
-    plot_training_result(model, len(train_loader.dataset), len(eval_loader.dataset))
+    plot_training_result(model, train_split, eval_split)
     
-    return model.all_metrics, checkpoint_path
+    return model.all_metrics, model.root_dir
 
 def run_experiment(args, seeds:list=[0, 42]):
     """Train a model with different seeds and plot the loss and accuracies of each separately."""
@@ -76,7 +72,6 @@ def run_experiment(args, seeds:list=[0, 42]):
     run_paths = []
     for m, seed in enumerate(seeds):
         print(f"({m+1}/{len(seeds)}) Running training for seed {seed}")
-        args.exp_id = m # Set the experiment id
         args.seed = seed # Set the seed
         _, run_path = train_model(args)
         run_paths.append(run_path)
@@ -86,29 +81,30 @@ def run_experiment(args, seeds:list=[0, 42]):
 if 'main' in __name__:
     seeds = [0, 42]
     experiment1 = Arguments()
-    experiment1.log_dir = "logs/experiment1"
     experiment1.verbose = False
     experiment1.n_steps = 100
     experiment1.num_workers = 0
+    experiment1.train_batch_size = 512
+    experiment1.eval_batch_size = 512
 
     models = [
-        # [
-        #     HQNN_Parallel, 
-        #     {'model_name': 'HQNN_Parallel_8', 'in_channels': 1, 'classes': 10}
-        # ],
         [
+            "HQNN_Parallel_1",
+            HQNN_Parallel, 
+            {'in_channels': 1, 'classes': 10}
+        ],
+        [
+            "LeNet_1",
             LeNet,
-            {'model_name': 'LeNet_8', 'in_channels': 1, 'classes': 10}
+            {'in_channels': 1, 'classes': 10}
         ],
     ]
 
-    for model, config in models:
-        experiment1.exp_name = config['model_name']
+    for model_name, model, config in models:
+        experiment1.exp_name = model_name
         experiment1.model = model
         experiment1.model_config = config
         run_experiment(experiment1, seeds)   
-
-    # TODO add a smoke_test arg that run the experiment on a reduced dataset to check if everything is working
 
     # TODO Should implement some sanity checks, so usefull when testing everything...
 
