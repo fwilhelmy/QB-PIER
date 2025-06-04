@@ -13,8 +13,10 @@ from models.classical.resnet18 import ResNet18
 from models.classical.mlpmixer import MLPMixer
 from models.hybrid.HQNN_Quanv import HQNN_Quanv
 from models.hybrid.HQNN_Parallel import HQNN_Parallel
-from utils import seed_experiment
+from utils import seed_experiment, calculate_accuracy
 from data.DatasetManagerFactory import DatasetManagerFactory
+from attacks.FGSMAttack import FGSMAttack
+from attacks.PGDAttack import PGDAttack
 
 import torch
 
@@ -106,6 +108,33 @@ if 'main' in __name__:
         experiment1.model_config = config
         run_experiment(experiment1, seeds)   
 
+    test_dataset = data_manager.load_dataset(train=False)
+    epsilons = [x/100 for x in range(0, 105, 5)]
+    fgsm = FGSMAttack(test_dataset)
+    pgd = PGDAttack(test_dataset)
+    
+    accuracies = {}
+    for source_model in models:
+        evaluation_results = {}
+        accuracies[source_model.model_name] = {model.model_name: [] for model in models}
+
+        og_preds = source_model(test_dataset.data.unsqueeze(1).to(torch.float))
+        og_acc = calculate_accuracy(og_preds, test_dataset.targets)
+        print("Accuracy of model : ", og_acc)
+        for epsilon in epsilons:
+            adv_examples = fgsm.attack(source_model, epsilon)
+            evaluation_results[epsilon] = adv_examples
+        
+            for target_model in models:
+                adv_pred = target_model(adv_examples)
+                adv_acc = calculate_accuracy(adv_pred, test_dataset.targets[:len(adv_examples)])
+                accuracies[source_model.model_name][target_model.model_name].append(adv_acc)
+                if source_model.model_name == target_model.model_name:
+                    print(f"Accuracy of model {source_model.model_name} with epsilon {epsilon} : {adv_acc}")
+        visualize_attacks_results(source_model, evaluation_results)
+        plot_attack_effect_on_accuracy(f"attacks_{source_model.model_name}", models, epsilons, accuracies[source_model.model_name])
+    plot_attack_effect_on_accuracy("attacks_ALL", models, epsilons, {model.model_name: accuracies[model.model_name][model.model_name] for model in models})
+
     # TODO Should implement some sanity checks, so usefull when testing everything...
 
         # TODO Quantum MLPMixer
@@ -113,6 +142,8 @@ if 'main' in __name__:
     # TODO Gradient flow visualisation
 
     # TODO Graph flow of model visualisation
+
+    # TODO should have uncertainty from range with the different seeds in the figures
 
         # TODO What would really be interesting beyond just looking at curves if it resist or not
     # Would be to visualise how the point are placed in the hillbert space where are the frontiers
