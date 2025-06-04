@@ -1,6 +1,7 @@
 from attacks.BaseAttack import BaseAttack
 import torch
 from tqdm import tqdm
+import copy
 
 class FGSMAttack(BaseAttack):
     def __init__(self, dataset):
@@ -47,30 +48,32 @@ class FGSMAttack(BaseAttack):
 
         return data_grad
 
-    def attack(self, model, epsilon):
-        # if model.model_name not in self.gradients.keys():
-        #     self.gradients[model.model_name] = []
-        #     model.eval()  # Set the model in evaluation mode
+    def attack(self, epsilon, model):
+        if model.model_name not in self.gradients.keys():
+            self.gradients[model.model_name] = []
+            model.eval()  # Set the model in evaluation mode
 
-        #     n_element = 0
-        #     for data, target in tqdm(self.dataset, desc=f"Computing gradients for {model.model_name}"):
-        #         self.gradients[model.model_name].append(self._calculate_gradient(model, data, target))
-        #         if n_element > 150:
-        #             break
-        #         n_element += 1
+            n_element = 0
+            tmp_state = copy.deepcopy(model.state_dict())
+            for data, target in tqdm(self.dataset, desc=f"Computing gradients for {model.model_name}"):
+                self.gradients[model.model_name].append(self._calculate_gradient(model, data, target))
+                model.load_state_dict(tmp_state)
+                if n_element > 150:
+                    break
+                n_element += 1
                 
 
-        # adv_exemples = []
-        # n_element = 0
-        # for idx, data in enumerate(self.dataset):
-        #     image, _ = data
-        #     gradient = self.gradients[model.model_name][idx]
-        #     adv_exemples.append(self._fgsm(image, gradient, epsilon))
-        #     if n_element > 150:
-        #         break
-        #     n_element += 1
+        adv_exemples = []
+        n_element = 0
+        for idx, data in enumerate(self.dataset):
+            image, _ = data
+            gradient = self.gradients[model.model_name][idx]
+            adv_exemples.append(self._fgsm(image, gradient, epsilon))
+            if n_element > 150:
+                break
+            n_element += 1
 
-        # return torch.stack(adv_exemples)
+        return torch.stack(adv_exemples)
 
         #adv_exemples = self.fgsm2(model, self.dataset.data[:150].unsqueeze(1), self.dataset.targets[:150], epsilon)
         # TODO Check autograd
