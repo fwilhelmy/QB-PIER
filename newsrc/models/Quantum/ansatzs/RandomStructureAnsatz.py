@@ -12,8 +12,8 @@ class RandomStructureAnsatz(BaseAnsatz):
         ratio: float = 0.75, # Ratio of rotation 1 qubit gates to cnots
     ):
         super().__init__(n_qubits, n_layers, embedding, rotation)
-        # self.weight_shapes = {"weights": (n_layers, n_qubits)}
-        self.weight_shapes = qml.RandomLayers.shape(n_layers=n_layers, n_rotations=3)
+
+        self.weight_shapes = {"weights": qml.RandomLayers.shape(n_layers=n_layers, n_rotations=3)}
         self.ratio = ratio
 
     def ansatz(self, weights):
