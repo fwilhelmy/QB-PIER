@@ -35,7 +35,7 @@ class FGSMAttack(BaseAttack):
         output = model(tr_image.unsqueeze(0))
 
         # Calculate the loss
-        loss = model.loss_function(output, torch.tensor([target], dtype=torch.long))
+        loss = model.loss_fn(output, torch.tensor([target], dtype=torch.long))
 
         # Zero all existing gradients
         model.zero_grad()
@@ -48,7 +48,7 @@ class FGSMAttack(BaseAttack):
 
         return data_grad
 
-    def attack(self, epsilon, model):
+    def attack(self, model, epsilon):
         if model.model_name not in self.gradients.keys():
             self.gradients[model.model_name] = []
             model.eval()  # Set the model in evaluation mode
