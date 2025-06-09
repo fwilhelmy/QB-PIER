@@ -1,4 +1,4 @@
-.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3
+.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3 test
 
 #################################################################################
 # GLOBALS                                                                       #
@@ -37,6 +37,10 @@ clean:
 ## Lint using flake8
 lint:
 	flake8 src
+
+## Run unit tests
+test:
+	pytest -v
 
 ## Set up python interpreter environment
 create_environment:
