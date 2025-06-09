@@ -38,9 +38,10 @@ class LoggingService:
     # Also should save the training figure and a log of the training in json to see how the training went
     # In a dataset when it's loaded for the first time, should save dataset figures and store into
     def save_model(self, model):
-        # TODO instead use torch.save
+        """Persist the model configuration and weights."""
         model_config = f"Model name:{model.model_name} \n{str(model)}"
         self.save_file(model_config, "configuration.txt", model)
+        # Persist the model's state dictionary using torch.save
         save(model.state_dict(), f"{self._root_dir}/{model.model_name}/model_state.pt")
 
     def save_file(self, file_content, file_name, model=None):
