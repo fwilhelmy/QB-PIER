@@ -95,8 +95,8 @@ class MixerBlock(nn.Module):
 
 class MLPMixer(BaseModel):
     def __init__(self, num_classes, img_size, patch_size, embed_dim, num_blocks, 
-                 drop_rate=0., activation='gelu', mlp_ratio=(0.5, 4.0)):
-        super(MLPMixer, self).__init__()
+                 drop_rate=0., activation='gelu', mlp_ratio=(0.5, 4.0), **kwargs):
+        super().__init__(**kwargs)
         self.patchemb = PatchEmbed(img_size=img_size, 
                                    patch_size=patch_size, 
                                    in_chans=3,
@@ -122,13 +122,13 @@ class MLPMixer(BaseModel):
             nn.init.ones_(module.weight)
             nn.init.zeros_(module.bias)
 
-    def forward(self, images):
+    def forward(self, inputs):
         """ MLPMixer forward
         :param images: [batch, 3, img_size, img_size]
         """
 
         # Step 1 : Convert images to a sequence of patch embeddings
-        output = self.patchemb(images) # [batch, num_patches, embed_dim]
+        output = self.patchemb(inputs) # [batch, num_patches, embed_dim]
         # Step 2 : Go through the mixer blocks
         output = self.blocks(output) # [batch, num_patches, embed_dim]
         # Step 3 : Layer norm

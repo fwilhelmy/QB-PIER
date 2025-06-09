@@ -58,7 +58,7 @@ class FGSMAttack(BaseAttack):
             for data, target in tqdm(self.dataset, desc=f"Computing gradients for {model.model_name}"):
                 self.gradients[model.model_name].append(self._calculate_gradient(model, data, target))
                 model.load_state_dict(tmp_state)
-                if n_element > 150:
+                if n_element > 1750:
                     break
                 n_element += 1
                 
@@ -78,5 +78,4 @@ class FGSMAttack(BaseAttack):
         #adv_exemples = self.fgsm2(model, self.dataset.data[:150].unsqueeze(1), self.dataset.targets[:150], epsilon)
         # TODO Check autograd
         # TODO Learning Rate Scheduling
-            # gamma 
-        return adv_exemples
+            # gamma

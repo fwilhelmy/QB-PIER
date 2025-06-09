@@ -36,8 +36,8 @@ class MLP(BaseModel):
     SUPPORTED_ACTIVATION_FN = {'relu': torch.relu, 'tanh': torch.tanh, 'sigmoid': torch.sigmoid}
 
     # 20 points
-    def __init__(self, input_size: int, hidden_sizes: List[int], num_classes: int, activation: str = "relu"):
-        super(MLP, self).__init__() 
+    def __init__(self, input_size: int, hidden_sizes: List[int], num_classes: int, activation: str = "relu", **kwargs) -> None:
+        super().__init__(**kwargs)
         self.input_size = input_size
         assert input_size > 0, "The size of the input should be positive"
         self.hidden_sizes = hidden_sizes
@@ -82,7 +82,7 @@ class MLP(BaseModel):
         torch.nn.init.zeros_(module.bias)
         torch.nn.init.xavier_normal_(module.weight)
       
-    def forward(self, images: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """ Forward images and compute logits.
         1. The images are first fattened to vectors. 
         2. Forward the result to each layer in the self.hidden_layer with activation_fn
@@ -92,7 +92,7 @@ class MLP(BaseModel):
         :return logits: [batch, num_classes]
         """
         
-        x = images.view(images.size(0), -1)
+        x = x.view(x.size(0), -1)
         for layer in self.hidden_layers:
             x = self.activation_fn(self.activation, layer(x))
         return self.output_layer(x)

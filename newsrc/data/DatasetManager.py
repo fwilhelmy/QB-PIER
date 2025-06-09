@@ -31,10 +31,10 @@ class DatasetManager:
         
         return self.mean.item(), self.std.item()
 
-    def calculate_split_sizes(self, train_split: float, eval_split: float):
+    def calculate_split_sizes(self, train_ratio: float, eval_ratio: float):
         dataset_length = len(self.dataset)
-        train_samples = int(dataset_length * train_split)
-        eval_samples = int(dataset_length * eval_split)
+        train_samples = int(dataset_length * train_ratio)
+        eval_samples = int(dataset_length * eval_ratio)
         return train_samples, eval_samples
 
     def split_and_load(self, train_samples_size, eval_samples_size, train_batch_size, eval_batch_size, num_workers=0):

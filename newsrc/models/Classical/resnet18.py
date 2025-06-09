@@ -129,8 +129,8 @@ class BasicBlock(nn.Module):
 
 
 class ResNet18(BaseModel):
-    def __init__(self, num_classes=10):
-        super(ResNet18, self).__init__()
+    def __init__(self, num_classes=10, **kwargs):
+        super().__init__(**kwargs)
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.layer1 = self._make_layer(64, 64, stride=1)
@@ -147,8 +147,8 @@ class ResNet18(BaseModel):
         layers.append(BasicBlock(planes, planes, 1))
         return nn.Sequential(*layers)
 
-    def forward(self, images):
-        output = self.conv1(images)
+    def forward(self, inputs):
+        output = self.conv1(inputs)
         output = self.bn1(output)
         output = self.relu(output)
         output = self.layer1(output)
