@@ -1,3 +1,7 @@
+# Data libraries
+pandas
+fastparquet
+
 # Optimization libraries
 numpy
 cvxpy
