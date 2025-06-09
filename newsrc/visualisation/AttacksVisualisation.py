@@ -13,9 +13,166 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import torch
-
 from LoggingService import LoggingService
 
+
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+
+def plot_training_curves(trained_models, title_prefix="training"):
+    """
+    Plot averaged training & validation loss and accuracy curves for each model.
+    
+    Args:
+        trained_models (dict):
+            Mapping from model_name to { seed: BaseModel_instance }.
+        title_prefix (str): 
+            Prefix for figure titles and filenames.
+        save_dir (str or None):
+            Directory in which to save PNG files. If None, figures are shown interactively.
+    """
+    for model_name, seed_dict in trained_models.items():
+        seeds = sorted(seed_dict.keys())
+
+        # Gather per-seed metric lists
+        train_loss_seeds = []
+        val_loss_seeds   = []
+        train_acc_seeds  = []
+        val_acc_seeds    = []
+        for seed in seeds:
+            metrics = seed_dict[seed].all_metrics
+            train_loss_seeds.append(metrics["train_loss"])
+            val_loss_seeds.append(metrics["val_loss"])
+            train_acc_seeds.append(metrics["train_acc"])
+            val_acc_seeds.append(metrics["val_acc"])
+
+        # Truncate to shortest length to align curves
+        min_len = min(
+            *(len(lst) for lst in train_loss_seeds + val_loss_seeds
+                  + train_acc_seeds + val_acc_seeds)
+        )
+        steps = np.arange(min_len)
+
+        # Stack into arrays of shape (n_seeds, min_len)
+        tl = np.vstack([lst[:min_len] for lst in train_loss_seeds])
+        vl = np.vstack([lst[:min_len] for lst in val_loss_seeds])
+        ta = np.vstack([lst[:min_len] for lst in train_acc_seeds])
+        va = np.vstack([lst[:min_len] for lst in val_acc_seeds])
+
+        # Compute mean and std along axis=0 (across seeds)
+        tl_mean, tl_std = tl.mean(0), tl.std(0)
+        vl_mean, vl_std = vl.mean(0), vl.std(0)
+        ta_mean, ta_std = ta.mean(0), ta.std(0)
+        va_mean, va_std = va.mean(0), va.std(0)
+
+        # Build figure with two subplots: loss & accuracy
+        fig, (ax_loss, ax_acc) = plt.subplots(2, 1, figsize=(8, 10))
+
+        # --- Loss subplot ---
+        ax_loss.plot(steps, tl_mean, label="Train Loss")
+        ax_loss.fill_between(steps,
+                             tl_mean - tl_std,
+                             tl_mean + tl_std,
+                             alpha=0.2)
+        ax_loss.plot(steps, vl_mean, label="Val Loss")
+        ax_loss.fill_between(steps,
+                             vl_mean - vl_std,
+                             vl_mean + vl_std,
+                             alpha=0.2)
+        ax_loss.set_title(f"{model_name} Loss")
+        ax_loss.set_xlabel("Step")
+        ax_loss.set_ylabel("Loss")
+        ax_loss.grid(True, linestyle="--", linewidth=0.5)
+        ax_loss.legend()
+
+        # --- Accuracy subplot ---
+        ax_acc.plot(steps, ta_mean, label="Train Acc")
+        ax_acc.fill_between(steps,
+                             ta_mean - ta_std,
+                             ta_mean + ta_std,
+                             alpha=0.2)
+        ax_acc.plot(steps, va_mean, label="Val Acc")
+        ax_acc.fill_between(steps,
+                             va_mean - va_std,
+                             va_mean + va_std,
+                             alpha=0.2)
+        ax_acc.set_title(f"{model_name} Accuracy")
+        ax_acc.set_xlabel("Step")
+        ax_acc.set_ylabel("Accuracy")
+        ax_acc.set_ylim(0, 1.0)
+        ax_acc.grid(True, linestyle="--", linewidth=0.5)
+        ax_acc.legend()
+
+        fig.suptitle(f"{title_prefix.capitalize()} Curves — {model_name}")
+        fig.tight_layout(rect=[0, 0, 1, 0.96])
+        
+        LoggingService().save_figure(plt, f"{title_prefix}_{model_name}")
+
+def plot_transfer_attack_effects(attacks_metrics, title_prefix="transfer"):
+    """
+    For each attacker model, plot one figure showing transfer‐attack accuracy
+    curves on all victim models—averaged over seeds, with ±1 std shaded.
+
+    Args:
+        attacks_metrics (dict):
+            Mapping: seed → attacker_name → victim_name → {epsilon: accuracy}
+        title_prefix (str): prefix for titles and filenames
+        save_dir (str or None): if set, directory to save PNGs; else displays plots
+    """
+    seeds = sorted(attacks_metrics.keys())
+    attacker_names = sorted(attacks_metrics[seeds[0]].keys())
+
+    for attacker in attacker_names:
+        # get victim list and epsilons from first seed
+        victim_names = sorted(attacks_metrics[seeds[0]][attacker].keys())
+        epsilons = sorted(next(iter(attacks_metrics[seeds[0]][attacker].values())).keys())
+
+        plt.figure(figsize=(8, 5))
+        for victim in victim_names:
+            # build accuracy matrix [n_seeds x n_epsilons]
+            acc_matrix = np.array([
+                [attacks_metrics[seed][attacker][victim][eps] for eps in epsilons]
+                for seed in seeds
+            ], dtype=float)
+
+            mean_curve = acc_matrix.mean(axis=0)
+            std_curve  = acc_matrix.std(axis=0)
+
+            plt.plot(epsilons, mean_curve, label=victim)
+            plt.fill_between(epsilons,
+                             mean_curve - std_curve,
+                             mean_curve + std_curve,
+                             alpha=0.2)
+
+        plt.title(f"{title_prefix.capitalize()} attack by {attacker}")
+        plt.xlabel("ε (attack strength)")
+        plt.ylabel("Accuracy on adversarial examples")
+        plt.ylim(0, 1.0)
+        plt.grid(True, linestyle="--", linewidth=0.5)
+        plt.legend(title="Victim model", loc="best")
+
+        LoggingService().save_figure(plt, f"{title_prefix}_{attacker}")
+
+def plot_attack_effect_on_accuracy(figstr, models, epsilons, accuracies):
+    plt.figure(figsize=(10, 6))
+
+    for model in models:
+        plt.plot(epsilons, accuracies[model.model_name], label=model.model_name, marker='o')
+
+    plt.xlabel('Attack Strength (Epsilon)', fontsize=12)
+    plt.ylabel('Accuracy (%)', fontsize=12)
+    plt.title('Effect of Adversarial Attacks on Model Accuracy', fontsize=14)
+    plt.xticks(epsilons, [f"{e:.2f}" for e in epsilons], rotation=45)
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.legend(title='Models', fontsize=10)
+    plt.tight_layout()
+
+    LoggingService().save_figure(plt, figstr)
 
 def store_attack_results(records: list, root_dir: str) -> pd.DataFrame:
     """
