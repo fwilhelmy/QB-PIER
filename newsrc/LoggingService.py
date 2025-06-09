@@ -5,21 +5,22 @@ from Configuration import LOGS_DIR
 class LoggingService:
     _instance = None
 
-    def __new__(cls):
+    def __new__(cls, *args, **kwargs):
         if not cls._instance:
             cls._instance = super().__new__(cls)
         return cls._instance
     
-    def __init__(self, root_dir=None):
+    def __init__(self, exp_dir=None):
         if not hasattr(self, 'initialized'):  # Ensure the initialization code runs only once
             self.initialized = True
             
             # Create a directory to store the results
             timestring = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
-            root_dir = root_dir or LOGS_DIR
-            self._root_dir = f"{root_dir}/{timestring}"
+            self._root_dir = os.path.join(LOGS_DIR, exp_dir, timestring) if exp_dir else os.path.join(LOGS_DIR, timestring)
             os.makedirs(self._root_dir, exist_ok=True)
             print(f"Tensorboard path: {self._root_dir}/tensorboard")
+        if exp_dir is not None:
+            print(f"[Warning] Cannot change the experiment directory after initialization. Current root directory: {self._root_dir}")
 
     def get_root_dir(self):
         """Return the root directory of the logs."""
