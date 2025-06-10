@@ -19,8 +19,9 @@ class LoggingService:
             self._root_dir = os.path.join(LOGS_DIR, exp_dir, timestring) if exp_dir else os.path.join(LOGS_DIR, timestring)
             os.makedirs(self._root_dir, exist_ok=True)
             print(f"Tensorboard path: {self._root_dir}/tensorboard")
-        if exp_dir is not None:
+        elif exp_dir is not None:
             print(f"[Warning] Cannot change the experiment directory after initialization. Current root directory: {self._root_dir}")
+        
 
     def get_root_dir(self):
         """Return the root directory of the logs."""

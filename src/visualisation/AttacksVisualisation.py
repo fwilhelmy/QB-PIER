@@ -46,10 +46,11 @@ def plot_training_curves(trained_models, title_prefix="training"):
         val_acc_seeds    = []
         for seed in seeds:
             metrics = seed_dict[seed].all_metrics
-            train_loss_seeds.append(metrics["train_loss"])
-            val_loss_seeds.append(metrics["val_loss"])
-            train_acc_seeds.append(metrics["train_acc"])
-            val_acc_seeds.append(metrics["val_acc"])
+            # BaseModel now stores metrics in a nested dict keyed by phase
+            train_loss_seeds.append(metrics["train"]["loss"])
+            val_loss_seeds.append(metrics["val"]["loss"])
+            train_acc_seeds.append(metrics["train"]["acc"])
+            val_acc_seeds.append(metrics["val"]["acc"])
 
         # Truncate to shortest length to align curves
         min_len = min(

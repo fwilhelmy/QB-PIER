@@ -143,7 +143,7 @@ def run_attacks(trained_models, args):
 
             # For each ε, generate FGSM examples on attacker_model
             for ε in epsilons:
-                adv_examples = fgsm.attack(attacker_model, ε).to(args.device)
+                adv_examples = fgsm.attack(attacker_model, ε, 150).to(args.device)
 
                 # Evaluate every victim on those adversarial examples
                 with torch.no_grad():
@@ -224,7 +224,6 @@ def main():
     
     plot_transfer_attack_effects(attacks_metrics,
                                 title_prefix="transfer")
-
 
 if __name__ == "__main__":
     main()

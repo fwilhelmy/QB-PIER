@@ -10,10 +10,8 @@ QDEVICE = "default.qubit"
 INTERFACE = "torch"
 QDIFF = "backprop"
 
-DATA_DIR = "data/processed"
-
-SAVES_DIR = "saves"
-LOGS_DIR = "logs"
+DATA_DIR = "../data/processed"
+LOGS_DIR = "../logs"
 
 CPU_NUMBER = 1
 

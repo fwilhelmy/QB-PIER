@@ -13,7 +13,7 @@ from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 from utils import calculate_accuracy
-from Configuration import CPU_NUMBER, SAVES_DIR
+from Configuration import CPU_NUMBER
 from LoggingService import LoggingService
 
 SUPPORTED_LOSS_FUNCTIONS = {
