@@ -1,53 +1,93 @@
-QMLBenchmark
-==============================
+# QMLBenchmark
 
-Benchmarking adversarial robustness for classical and quantum classifier
+QMLBenchmark provides a set of tools to evaluate how robust classical and quantum neural networks are against adversarial attacks. The repository contains implementations of convolutional networks, hybrid quantum-classical models, and utilities to generate and test adversarial examples.
 
-Project Organization
-------------
+## Table of Contents
+- [Overview](#overview)
+- [Installation](#installation)
+- [Project Structure](#project-structure)
+- [Running Experiments](#running-experiments)
+- [Documentation](#documentation)
+- [Helper Commands & HPC Usage](#helper-commands--hpc-usage)
+- [Credits](#credits)
 
-    ├── LICENSE
-    ├── Makefile           <- Makefile with commands like `make data` or `make train`
-    ├── README.md          <- The top-level README for developers using this project.
-    ├── data
-    │   ├── external       <- Data from third party sources.
-    │   ├── interim        <- Intermediate data that has been transformed.
-    │   ├── processed      <- The final, canonical data sets for modeling.
-    │   └── raw            <- The original, immutable data dump.
-    │
-    ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
-    │
-    ├── models             <- Trained and serialized models, model predictions, or model summaries
-    │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-    │                         the creator's initials, and a short `-` delimited description, e.g.
-    │                         `1.0-jqp-initial-data-exploration`.
-    │
-    ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-    │
-    ├── results            <- Logs & results dump to keep track of all our experimentations
-    │
-    ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-    │                         generated with `pip freeze > requirements.txt`
-    │
-    ├── src                <- Source code for use in this project.
-    │
-    └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
+## Overview
+The codebase focuses on benchmarking the adversarial robustness of different classifiers. The main training and attack pipelines live under `src/` while an alternative implementation can be found in `newsrc/`. Models are written with PyTorch and PyTorch Lightning. Quantum layers rely on PennyLane. The project also includes Jupyter notebooks demonstrating training, attacks, and data exploration.
 
+Supported components include:
+- **Classical models** like LeNet.
+- **Hybrid models** combining convolutional layers with variational quantum circuits.
+- **Adversarial attacks** such as FGSM and PGD.
+- **Dataset managers** for MNIST and Fashion-MNIST.
+- **Visualization utilities** for training curves, circuit layouts, and attack results.
 
---------
+Results (checkpoints, figures and TensorBoard logs) are saved under a timestamped folder in `results/` via `LoggingService`.
 
-Credits to Samuel Richard for helping write the initial version of the code in this repository.
-Especially the QuanvolutionLayer and the VQCLayer.
+## Installation
+1. Create a Python 3 environment.
+2. Install the dependencies listed in `requirements.txt`:
+   ```bash
+   pip install -r requirements.txt
+   ```
+   Alternatively, run `make requirements` to verify the interpreter and install everything.
+3. For a quick virtual environment setup you can run `make create_environment`.
+   Use `make help` to list all available Makefile commands.
+4. Run `python test_environment.py` to confirm the Python interpreter meets the
+   requirements.
 
-Credits to ChatGPT for helping structure the code and some bowlerplate functions.
+## Project Structure
+```
+├── src/                  # Main source code
+│   ├── attacks/          # FGSM, PGD and attack base classes
+│   ├── data/             # Dataset download and loaders
+│   ├── layers/           # Quantum layers and helpers
+│   ├── models/           # Classical, quantum and hybrid models
+│   ├── visualisation/    # Matplotlib utilities
+│   ├── LoggingService.py # Handles results directory & TensorBoard
+│   └── main.py           # Example training and evaluation script
+├── newsrc/               # Alternative implementation with similar layout
+├── notebooks/            # Jupyter notebooks demonstrating experiments
+├── docs/                 # Sphinx documentation
+├── results/              # Created at runtime to store logs and checkpoints
+└── HELPER                # Convenience commands for remote runs
+```
 
-Credits For LeNet  https://pyimagesearch.com/2021/07/19/pytorch-training-your-first-convolutional-neural-network-cnn/
-- For helping work and setup the first original model from which everything started
+The `newsrc/` package mirrors the structure of `src/` and contains experimental versions of the models and training helpers.
 
-Credits for initial code of the FGSM attacks:
-**Author:** [Nathan Inkawhich](https://github.com/inkawhich)
+## Running Experiments
+Use `src/main.py` to train models and evaluate attacks from the command line. Basic usage:
+```bash
+python src/main.py -d 1 -w 4
+```
+This trains a set of models on MNIST using one device and four worker threads, then performs FGSM and PGD attacks. Figures and model checkpoints will be written inside `results/`.
 
-Computations were made on the supercomputer name-of-the-server, managed by Calcul Québec and the Digital Research Alliance of Canada. The operation of this supercomputer is funded by the Canada Foundation for Innovation (CFI), Ministère de l’Économie et de l’Innovation du Québec (MEI) and le Fonds de recherche du Québec (FRQ).
+For interactive experimentation, browse the notebooks under `notebooks/`. They include demonstrations of adversarial training, PGD experiments and visualization utilities.
 
-<p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>.</small></p>
+## Documentation
+Sphinx documentation lives in `docs/`. After installing `Sphinx`, you can build the HTML pages with:
+```bash
+cd docs
+make html
+```
+Open `_build/html/index.html` in a browser to read the generated documentation.
+
+## Helper Commands & HPC Usage
+The `HELPER` file at the project root lists useful snippets for working on a
+remote cluster. A typical workflow is:
+
+```bash
+ssh -l <user> replica.logti.etsmtl.ca
+source miniconda3/bin/activate && conda activate QAML && cd QMLBenchmark
+nohup python QMLBenchmark/src/main.py > funsies.out 2> oopsies.err < /dev/null &
+tail -f funsies.out
+```
+
+The file also shows how to copy results back using `scp` once the job
+completes.
+
+## Credits
+- Initial code for the quantum layers and FGSM implementation was adapted from work by Samuel Richard and [Nathan Inkawhich](https://github.com/inkawhich).
+- Parts of the project were structured with the help of ChatGPT.
+- The repository is based on the [cookiecutter data science](https://drivendata.github.io/cookiecutter-data-science/) template.
+
+Computations were performed on the **name-of-the-server** supercomputer, managed by Calcul Québec and the Digital Research Alliance of Canada.
