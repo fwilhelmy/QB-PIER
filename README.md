@@ -12,16 +12,9 @@ QMLBenchmark provides a set of tools to evaluate how robust classical and quantu
 - [Credits](#credits)
 
 ## Overview
-The codebase focuses on benchmarking the adversarial robustness of different classifiers. The main training and attack pipelines live under `src/` while an alternative implementation can be found in `newsrc/`. Models are written with PyTorch and PyTorch Lightning. Quantum layers rely on PennyLane. The project also includes Jupyter notebooks demonstrating training, attacks, and data exploration.
+The codebase focuses on benchmarking the adversarial robustness of different classifiers. The main training and attack pipelines live under `src/`. Models are written with PyTorch and PyTorch Lightning. Quantum layers rely on PennyLane. The project also includes Jupyter notebooks demonstrating training, attacks, and data exploration.
 
-Supported components include:
-- **Classical models** like LeNet.
-- **Hybrid models** combining convolutional layers with variational quantum circuits.
-- **Adversarial attacks** such as FGSM and PGD.
-- **Dataset managers** for MNIST and Fashion-MNIST.
-- **Visualization utilities** for training curves, circuit layouts, and attack results.
-
-Results (checkpoints, figures and TensorBoard logs) are saved under a timestamped folder in `results/` via `LoggingService`.
+Results (checkpoints, figures and TensorBoard logs) are saved under a timestamped folder in `logs/` via `LoggingService`.
 
 ## Installation
 1. Create a Python 3 environment.
@@ -45,23 +38,11 @@ Results (checkpoints, figures and TensorBoard logs) are saved under a timestampe
 │   ├── visualisation/    # Matplotlib utilities
 │   ├── LoggingService.py # Handles results directory & TensorBoard
 │   └── main.py           # Example training and evaluation script
-├── newsrc/               # Alternative implementation with similar layout
-├── notebooks/            # Jupyter notebooks demonstrating experiments
 ├── docs/                 # Sphinx documentation
-├── results/              # Created at runtime to store logs and checkpoints
+├── logs/                 # Created at runtime to store logs and checkpoints
+├── tests/                # Pytest unit tests
 └── HELPER                # Convenience commands for remote runs
 ```
-
-The `newsrc/` package mirrors the structure of `src/` and contains experimental versions of the models and training helpers.
-
-## Running Experiments
-Use `src/main.py` to train models and evaluate attacks from the command line. Basic usage:
-```bash
-python src/main.py -d 1 -w 4
-```
-This trains a set of models on MNIST using one device and four worker threads, then performs FGSM and PGD attacks. Figures and model checkpoints will be written inside `results/`.
-
-For interactive experimentation, browse the notebooks under `notebooks/`. They include demonstrations of adversarial training, PGD experiments and visualization utilities.
 
 ## Documentation
 Sphinx documentation lives in `docs/`. After installing `Sphinx`, you can build the HTML pages with:
@@ -89,5 +70,3 @@ completes.
 - Initial code for the quantum layers and FGSM implementation was adapted from work by Samuel Richard and [Nathan Inkawhich](https://github.com/inkawhich).
 - Parts of the project were structured with the help of ChatGPT.
 - The repository is based on the [cookiecutter data science](https://drivendata.github.io/cookiecutter-data-science/) template.
-
-Computations were performed on the **name-of-the-server** supercomputer, managed by Calcul Québec and the Digital Research Alliance of Canada.
