@@ -114,41 +114,40 @@ def plot_training_curves(trained_models, title_prefix="training"):
         
         LoggingService().save_figure(plt, f"{title_prefix}_{model_name}")
 
-def plot_transfer_attack_effects(attacks_metrics, title_prefix="transfer"):
+def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix="transfer"):
     """
-    For each attacker model, plot one figure showing transfer‐attack accuracy
-    curves on all victim models—averaged over seeds, with ±1 std shaded.
+    Plot transfer attack accuracy curves from a DataFrame.
 
-    Args:
-        attacks_metrics (dict):
-            Mapping: seed → attacker_name → victim_name → {epsilon: accuracy}
-        title_prefix (str): prefix for titles and filenames
-        save_dir (str or None): if set, directory to save PNGs; else displays plots
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Columns: ``seed``, ``source_model``, ``target_model``, ``epsilon``,
+        ``accuracy``.
+    title_prefix : str, optional
+        Prefix for figure titles and filenames.
     """
-    seeds = sorted(attacks_metrics.keys())
-    attacker_names = sorted(attacks_metrics[seeds[0]].keys())
+    attacker_names = sorted(df["source_model"].unique())
 
     for attacker in attacker_names:
-        # get victim list and epsilons from first seed
-        victim_names = sorted(attacks_metrics[seeds[0]][attacker].keys())
-        epsilons = sorted(next(iter(attacks_metrics[seeds[0]][attacker].values())).keys())
+        subset = df[df["source_model"] == attacker]
+        victim_names = sorted(subset["target_model"].unique())
+        epsilons = sorted(subset["epsilon"].unique())
 
         plt.figure(figsize=(8, 5))
         for victim in victim_names:
-            # build accuracy matrix [n_seeds x n_epsilons]
-            acc_matrix = np.array([
-                [attacks_metrics[seed][attacker][victim][eps] for eps in epsilons]
-                for seed in seeds
-            ], dtype=float)
-
-            mean_curve = acc_matrix.mean(axis=0)
-            std_curve  = acc_matrix.std(axis=0)
-
-            plt.plot(epsilons, mean_curve, label=victim)
-            plt.fill_between(epsilons,
-                             mean_curve - std_curve,
-                             mean_curve + std_curve,
-                             alpha=0.2)
+            rec = subset[subset["target_model"] == victim]
+            stats = (
+                rec.groupby("epsilon")["accuracy"]
+                .agg(["mean", "std"])
+                .reindex(epsilons)
+            )
+            plt.plot(epsilons, stats["mean"], label=victim)
+            plt.fill_between(
+                epsilons,
+                stats["mean"] - stats["std"],
+                stats["mean"] + stats["std"],
+                alpha=0.2,
+            )
 
         plt.title(f"{title_prefix.capitalize()} attack by {attacker}")
         plt.xlabel("ε (attack strength)")
