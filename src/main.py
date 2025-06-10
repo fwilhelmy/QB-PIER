@@ -143,7 +143,7 @@ def run_attacks(trained_models, args):
 
             # For each ε, generate FGSM examples on attacker_model
             for ε in epsilons:
-                adv_examples = fgsm.attack(attacker_model, ε, 150).to(args.device)
+                adv_examples = fgsm.attack(attacker_model, ε).to(args.device)
 
                 # Evaluate every victim on those adversarial examples
                 with torch.no_grad():
@@ -167,8 +167,8 @@ def run_attacks(trained_models, args):
 
 def main():
     # Define a arguments and set global defaults
-    LoggingService("experiment1")
-    seeds = [0, 42]
+    LoggingService("tests")
+    seeds = [0]
     args = Arguments()
     args.verbose = False
     args.n_steps = 100
@@ -217,13 +217,28 @@ def main():
         trained_models[model_name] = train_model(args, seeds)
 
     # Run transfer attacks
-    attacks_metrics = run_attacks(trained_models, args)
+    # attacks_metrics = run_attacks(trained_models, args)
 
     plot_training_curves(trained_models,
                      title_prefix="training")
     
-    plot_transfer_attack_effects(attacks_metrics,
-                                title_prefix="transfer")
+    # plot_transfer_attack_effects(attacks_metrics,
+    #                             title_prefix="transfer")
+    from pprint import pprint
+    pprint(trained_models['HQNN_Parallel_1'][0].all_metrics, depth=2)
+    metrics = trained_models['HQNN_Parallel_1'][0].all_metrics
+
+    print("Training metrics sizes:")
+    print("loss:", len(metrics['train']['loss']))
+    print("acc:", len(metrics['train']['acc']))
+    print("step:", len(metrics['train']['step']))
+    print("epoch:", len(metrics['train']['epoch']))
+
+    print("\nValidation metrics sizes:")
+    print("loss:", len(metrics['val']['loss']))
+    print("acc:", len(metrics['val']['acc']))
+    print("step:", len(metrics['val']['step']))
+    print("epoch:", len(metrics['val']['epoch']))
 
 if __name__ == "__main__":
     main()
