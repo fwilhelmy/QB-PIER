@@ -37,11 +37,12 @@ class BaseModel(LightningModule):
         self.seed = seed
 
         self.configure_directories()
+        self._init_metrics()
 
-        # in‐memory nested metrics
+    def _init_metrics(self) -> None:
         self.all_metrics = {
-            "train": {"loss": [], "acc": [], "step": [], "epoch": []},
-            "val":   {"loss": [], "acc": [], "step": [], "epoch": []},
+            "train": {"step": [], "epoch": []},
+            "val":   {"step": [], "epoch": []},
         }
 
     def configure_directories(self) -> None:
@@ -49,6 +50,8 @@ class BaseModel(LightningModule):
         relative_path = os.path.join(self.__class__.__name__, str(self.model_name), str(self.seed))
         self.log_dir = os.path.join(LoggingService().get_root_dir(), relative_path)
         os.makedirs(self.log_dir, exist_ok=True)
+        metrics_dir = os.path.join(self.log_dir, "metrics")
+        os.makedirs(metrics_dir, exist_ok=True)
 
     def configure_training(
         self,
@@ -88,16 +91,17 @@ class BaseModel(LightningModule):
         self.loss_fn = SUPPORTED_LOSS_FUNCTIONS[lf]()
 
         # Create loggers
-        tb_logger  = TensorBoardLogger(save_dir=self.log_dir, name="", version="tensorboard")
-        csv_logger = CSVLogger(save_dir=self.log_dir, name="", version="metrics")
+        tb_logger = TensorBoardLogger(save_dir=self.log_dir, name=None, version="tensorboard")
 
         # Checkpoint callback
         ckpt_dir = os.path.join(self.log_dir, "checkpoints")
         os.makedirs(ckpt_dir, exist_ok=True)
         checkpoint_cb = ModelCheckpoint(
             dirpath=ckpt_dir,
-            filename="{epoch:02d}-{val_loss:.4f}",
+            filename="epoch={epoch:02d}-loss={val/loss:.4f}",
+            auto_insert_metric_name=False,
             save_top_k=3,
+            save_on_train_epoch_end=False,
             monitor="val/loss",
             mode="min"
         )
@@ -105,9 +109,10 @@ class BaseModel(LightningModule):
         # Build the Trainer
         self.trainer: Trainer = Trainer(
             max_steps=self.hparams["max_steps"],
-            logger=[tb_logger, csv_logger],
+            logger=[tb_logger],
             default_root_dir=self.log_dir,
             callbacks=[checkpoint_cb],
+            val_check_interval=0.5,
         )
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
@@ -117,21 +122,13 @@ class BaseModel(LightningModule):
         self.model_name = self.hparams["model_name"]
         self.seed = self.hparams["seed"]
 
-        # reload metrics.json if present
-        metrics_file = os.path.join(checkpoint['log_dir'], "metrics/full_metrics.parquet")
+        metrics_file = os.path.join(checkpoint['log_dir'], "metrics/metrics.parquet")
         if os.path.exists(metrics_file):
-            # load existing nested structure
             df = pd.read_parquet(metrics_file)
             self.all_metrics = df.to_dict(orient="list")
-        else:
-            # fresh nested structure
-            self.all_metrics = {
-                "train": {"loss": [], "acc": [], "step": [], "epoch": []},
-                "val":   {"loss": [], "acc": [], "step": [], "epoch": []},
-            }
+        else: self._init_metrics()
 
         self.configure_directories()
-
         self._instantiate_from_hparams()
 
     def configure_optimizers(self) -> Any:
@@ -166,17 +163,16 @@ class BaseModel(LightningModule):
         self,
         phase: str,
         metrics: Dict[str, float],
-        prog_bar: bool = False
         ) -> None:
         """
         Emits all metrics to Lightning (TensorBoard & CSV) with keys like "train/loss",
         """
         flat = {f"{phase}/{k}": v for k, v in metrics.items()} # Flattened keys
-        self.log_dict(flat, on_step=False, on_epoch=True, prog_bar=prog_bar)
+        self.log_dict(flat, on_step=False, on_epoch=True, prog_bar=False)
 
         for k, v in metrics.items():
             if k not in self.all_metrics[phase]:
-                raise KeyError(f"Unknown metric for {phase}: {k}")
+                self.all_metrics[phase][k] = []
             self.all_metrics[phase][k].append(v)
 
         self.all_metrics[phase]["step"].append(self.global_step)
@@ -226,7 +222,24 @@ class BaseModel(LightningModule):
         """
         Dump the in-memory `all_metrics` to parquet. Can be reloaded in on_load_checkpoint().
         """
-        metrics_path = os.path.join(self.log_dir, "metrics/full_metrics.parquet")
+        metrics_path = os.path.join(self.log_dir, "metrics/metrics.parquet")
         df = pd.DataFrame(self.all_metrics)
         df.to_parquet(metrics_path)
         return metrics_path
+
+    def get_metrics(self) -> pd.DataFrame:
+        df_t = (pd.DataFrame(self.all_metrics["train"])
+                .sort_values("step")
+                .reset_index(drop=True))
+        df_v = (pd.DataFrame(self.all_metrics["val"])
+            .sort_values("step")
+            .set_index("step")
+            .reindex(df_t["step"], method="ffill")
+            .reset_index())
+
+        train_cols = [c for c in df_t.columns if c not in ("step", "epoch")]
+        val_cols   = [c for c in df_v.columns if c not in ("step", "epoch")]
+        df_t.rename(columns={c: f"train_{c}" for c in train_cols}, inplace=True)
+        df_v.rename(columns={c: f"val_{c}"   for c in val_cols},   inplace=True)
+
+        return pd.merge(df_t, df_v.drop(columns="val_epoch"), on="step")
