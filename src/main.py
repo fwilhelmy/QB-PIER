@@ -4,6 +4,7 @@ import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from collections import defaultdict
+import pandas as pd
 
 from visualisation.AttacksVisualisation import (
     plot_attack_effect_on_accuracy,
@@ -104,7 +105,7 @@ def run_attacks(trained_models, args):
       - Print clean accuracy before and after generating adversarial examples
       - Plot & visualize results
     """
-    attacks_metrics = {}
+    records = []
 
     # Group models by seed
     models_by_seed = defaultdict(list)
@@ -127,9 +128,7 @@ def run_attacks(trained_models, args):
         fgsm = FGSMAttack(test_dataset)
         epsilons = [x / 100.0 for x in range(0, 105, 5)]
 
-        attacks_metrics[seed] = {attacker_model.model_name: {victim_model.model_name:{epsilon: None for epsilon in epsilons} for victim_model in models} for attacker_model in models}
-
-        # For every “attacker” model in this seed group
+        # For every "attacker" model in this seed group
         for attacker_model in models:
             attacker_name = attacker_model.model_name
             print(f"\n--- Attacking with model '{attacker_name}' (seed {seed}) ---")
@@ -155,7 +154,13 @@ def run_attacks(trained_models, args):
                             adv_logits,
                             test_targets[:adv_examples.size(0)]
                         )
-                        attacks_metrics[seed][attacker_name][victim_name][ε] = adv_acc
+                        records.append({
+                            "seed": seed,
+                            "source_model": attacker_name,
+                            "target_model": victim_name,
+                            "epsilon": ε,
+                            "accuracy": float(adv_acc)
+                        })
 
             # Compute clean accuracy AGAIN to verify weights unchanged
             with torch.no_grad():
@@ -163,7 +168,7 @@ def run_attacks(trained_models, args):
                 clean_acc_after = calculate_accuracy(logits_after, test_targets)
             print(f"Clean accuracy after generating adversarial examples: {clean_acc_after:.4f}")
 
-    return attacks_metrics
+    return pd.DataFrame(records)
 
 def main():
     # Define a arguments and set global defaults
