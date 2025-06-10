@@ -48,7 +48,7 @@ class FGSMAttack(BaseAttack):
 
         return data_grad
 
-    def attack(self, model, epsilon, limit=None):
+    def attack(self, model, epsilon):
         if model.model_name not in self.gradients.keys():
             self.gradients[model.model_name] = []
             model.eval()  # Set the model in evaluation mode
@@ -58,7 +58,7 @@ class FGSMAttack(BaseAttack):
             for data, target in tqdm(self.dataset, desc=f"Computing gradients for {model.model_name}"):
                 self.gradients[model.model_name].append(self._calculate_gradient(model, data, target))
                 model.load_state_dict(tmp_state)
-                if limit and n_element >= limit:
+                if n_element > 150:
                     break
                 n_element += 1
                 
