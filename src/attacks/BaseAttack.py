@@ -1,7 +1,4 @@
-"""Base class for all attacks."""
-
 from __future__ import annotations
-
 from abc import ABC, abstractmethod
 
 
