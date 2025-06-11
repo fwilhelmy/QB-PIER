@@ -58,18 +58,16 @@ def plot_training_curves(trained_models, title_prefix="training"):
             train_acc_seeds.append(df["train_acc"].to_numpy())
             val_acc_seeds.append(df["val_acc"].to_numpy())
 
-        # Truncate to shortest length to align curves
-        min_len = min(
-            *(len(lst) for lst in step_lists + train_loss_seeds
-                  + val_loss_seeds + train_acc_seeds + val_acc_seeds)
-        )
-        steps = step_lists[0][:min_len]
+        # All metric arrays share the same number of steps
+        steps = step_lists[0]
+        if not all(len(sl) == len(steps) for sl in step_lists):
+            raise ValueError("Inconsistent step counts across seeds")
 
-        # Stack into arrays of shape (n_seeds, min_len)
-        tl = np.vstack([lst[:min_len] for lst in train_loss_seeds])
-        vl = np.vstack([lst[:min_len] for lst in val_loss_seeds])
-        ta = np.vstack([lst[:min_len] for lst in train_acc_seeds])
-        va = np.vstack([lst[:min_len] for lst in val_acc_seeds])
+        # Stack into arrays of shape (n_seeds, n_steps)
+        tl = np.vstack(train_loss_seeds)
+        vl = np.vstack(val_loss_seeds)
+        ta = np.vstack(train_acc_seeds)
+        va = np.vstack(val_acc_seeds)
 
         # Compute mean and std along axis=0 (across seeds)
         tl_mean, tl_std = tl.mean(0), tl.std(0)
