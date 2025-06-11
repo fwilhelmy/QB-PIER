@@ -35,6 +35,11 @@ def plot_training_curves(trained_models, title_prefix="training"):
             Prefix for figure titles and filenames.
         save_dir (str or None):
             Directory in which to save PNG files. If None, figures are shown interactively.
+        
+    Notes
+    -----
+    Metrics are retrieved using :py:meth:`BaseModel.get_metrics` for each seed
+    so this function does not rely on the internal ``all_metrics`` structure.
     """
     for model_name, seed_dict in trained_models.items():
         seeds = sorted(seed_dict.keys())
@@ -44,20 +49,21 @@ def plot_training_curves(trained_models, title_prefix="training"):
         val_loss_seeds   = []
         train_acc_seeds  = []
         val_acc_seeds    = []
+        step_lists       = []
         for seed in seeds:
-            metrics = seed_dict[seed].all_metrics
-            # BaseModel now stores metrics in a nested dict keyed by phase
-            train_loss_seeds.append(metrics["train"]["loss"])
-            val_loss_seeds.append(metrics["val"]["loss"])
-            train_acc_seeds.append(metrics["train"]["acc"])
-            val_acc_seeds.append(metrics["val"]["acc"])
+            df = seed_dict[seed].get_metrics()
+            step_lists.append(df["step"].to_numpy())
+            train_loss_seeds.append(df["train_loss"].to_numpy())
+            val_loss_seeds.append(df["val_loss"].to_numpy())
+            train_acc_seeds.append(df["train_acc"].to_numpy())
+            val_acc_seeds.append(df["val_acc"].to_numpy())
 
         # Truncate to shortest length to align curves
         min_len = min(
-            *(len(lst) for lst in train_loss_seeds + val_loss_seeds
-                  + train_acc_seeds + val_acc_seeds)
+            *(len(lst) for lst in step_lists + train_loss_seeds
+                  + val_loss_seeds + train_acc_seeds + val_acc_seeds)
         )
-        steps = np.arange(min_len)
+        steps = step_lists[0][:min_len]
 
         # Stack into arrays of shape (n_seeds, min_len)
         tl = np.vstack([lst[:min_len] for lst in train_loss_seeds])
