@@ -82,7 +82,7 @@ class MLP(BaseModel):
         torch.nn.init.zeros_(module.bias)
         torch.nn.init.xavier_normal_(module.weight)
       
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """ Forward images and compute logits.
         1. The images are first fattened to vectors. 
         2. Forward the result to each layer in the self.hidden_layer with activation_fn
@@ -92,7 +92,7 @@ class MLP(BaseModel):
         :return logits: [batch, num_classes]
         """
         
-        x = x.view(x.size(0), -1)
+        logits = inputs.view(inputs.size(0), -1)
         for layer in self.hidden_layers:
-            x = self.activation_fn(self.activation, layer(x))
-        return self.output_layer(x)
+            logits = self.activation_fn(self.activation, layer(logits))
+        return self.output_layer(logits)
