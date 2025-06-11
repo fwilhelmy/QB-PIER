@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch
-from . import Configuration as cfg
+import Configuration as cfg
 import pennylane as qml
 
 
