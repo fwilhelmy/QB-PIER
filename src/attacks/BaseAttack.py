@@ -1,8 +1,18 @@
-class BaseAttack():
+"""Base class for all attacks."""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+
+
+class BaseAttack(ABC):
+    """Minimal base class used by all adversarial attacks."""
+
     attack_name: str
 
-    def __init__(self, attack_name: str):
+    def __init__(self, attack_name: str) -> None:
         self.attack_name = attack_name
 
-    def attack(self, model, data):
-        raise NotImplementedError("Attack method must be implemented...")
+    @abstractmethod
+    def attack(self, model, epsilon):
+        """Generate adversarial examples for ``model`` at ``epsilon`` level."""

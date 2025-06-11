@@ -1,81 +1,57 @@
-from attacks.BaseAttack import BaseAttack
-import torch
-from tqdm import tqdm
+from __future__ import annotations
+
+from typing import Dict, List
 import copy
 
+import torch
+from torch import Tensor
+from tqdm import tqdm
+
+from .BaseAttack import BaseAttack
+
+
 class FGSMAttack(BaseAttack):
-    def __init__(self, dataset):
+    """Fast Gradient Sign Method attack."""
+
+    def __init__(self, dataset) -> None:
         super().__init__("FGSM")
         self.dataset = dataset
-        self.gradients = {}
+        self.gradients: Dict[str, List[Tensor]] = {}
 
-    def _fgsm(self, image, data_grad, epsilon):
+    def _fgsm(self, image: Tensor, grad: Tensor, epsilon: float) -> Tensor:
         if epsilon == 0:
             return image
-        sign_data_grad = data_grad.sign()
-        perturbed_image = image + epsilon * sign_data_grad
-        perturbed_image = torch.clamp(perturbed_image, 0, 1)
-        return perturbed_image
-        
-    def fgsm2(self, model, X, y, epsilon):
-        """ Construct FGSM adversarial examples on the examples X"""
-        delta = torch.zeros_like(X.to(torch.float32), requires_grad=True)
-        preds = model(X + delta)
-        loss = model.loss_function(preds, y)
-        loss.backward()
-        return X + epsilon * delta.grad.detach().sign()
-    
-    # Need to put the model in evaluation mode before calling this function
-    def _calculate_gradient(self, model, data, target):
-        # Send the data and label to the device
-        tr_image = data.clone().detach().to(torch.float32).requires_grad_(True)
-        # model.requires_grad=True
+        perturbed = image + epsilon * grad.sign()
+        return torch.clamp(perturbed, 0, 1)
 
-        # Forward pass the data through the model
-        output = model(tr_image.unsqueeze(0))
-
-        # Calculate the loss
+    def _calculate_gradient(self, model, image: Tensor, target: int) -> Tensor:
+        img = image.clone().detach().to(torch.float32).requires_grad_(True)
+        output = model(img.unsqueeze(0))
         loss = model.loss_fn(output, torch.tensor([target], dtype=torch.long))
-
-        # Zero all existing gradients
         model.zero_grad()
-
-        # Calculate gradients of model in backward pass
         loss.backward()
+        return img.grad.detach()
 
-        # Collect ``datagrad``
-        data_grad = tr_image.grad
-
-        return data_grad
-
-    def attack(self, model, epsilon):
-        if model.model_name not in self.gradients.keys():
-            self.gradients[model.model_name] = []
-            model.eval()  # Set the model in evaluation mode
-
-            n_element = 0
-            tmp_state = copy.deepcopy(model.state_dict())
-            for data, target in tqdm(self.dataset, desc=f"Computing gradients for {model.model_name}"):
-                self.gradients[model.model_name].append(self._calculate_gradient(model, data, target))
-                model.load_state_dict(tmp_state)
-                if n_element > 150:
-                    break
-                n_element += 1
-                
-
-        adv_exemples = []
-        n_element = 0
-        for idx, data in enumerate(self.dataset):
-            image, _ = data
-            gradient = self.gradients[model.model_name][idx]
-            adv_exemples.append(self._fgsm(image, gradient, epsilon))
-            if n_element > 150:
+    def _precompute_gradients(self, model) -> None:
+        model.eval()
+        state = copy.deepcopy(model.state_dict())
+        grads: List[Tensor] = []
+        for idx, (img, target) in enumerate(tqdm(self.dataset, desc=f"Computing gradients for {model.model_name}")):
+            grads.append(self._calculate_gradient(model, img, target))
+            model.load_state_dict(state)
+            if idx >= 149:
                 break
-            n_element += 1
+        self.gradients[model.model_name] = grads
 
-        return torch.stack(adv_exemples)
+    def attack(self, model, epsilon: float) -> Tensor:
+        if model.model_name not in self.gradients:
+            self._precompute_gradients(model)
 
-        #adv_exemples = self.fgsm2(model, self.dataset.data[:150].unsqueeze(1), self.dataset.targets[:150], epsilon)
-        # TODO Check autograd
-        # TODO Learning Rate Scheduling
-            # gamma
+        adv_examples = []
+        for idx, (img, _) in enumerate(self.dataset):
+            grad = self.gradients[model.model_name][idx]
+            adv_examples.append(self._fgsm(img, grad, epsilon))
+            if idx >= 149:
+                break
+
+        return torch.stack(adv_examples)
