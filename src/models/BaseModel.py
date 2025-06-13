@@ -8,6 +8,7 @@ import torch
 import torch.optim as optim
 from torch.nn import CrossEntropyLoss, MSELoss
 
+from lightning.pytorch.loggers.logger import Logger
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -15,6 +16,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from utils import calculate_accuracy
 from Configuration import CPU_NUMBER
 from LoggingService import LoggingService
+from .MetricsLogger import MetricsLogger
 
 SUPPORTED_LOSS_FUNCTIONS = {
     "cross_entropy": CrossEntropyLoss,  # For classification tasks
@@ -37,13 +39,7 @@ class BaseModel(LightningModule):
         self.seed = seed
 
         self.configure_directories()
-        self._init_metrics()
-
-    def _init_metrics(self) -> None:
         self.all_metrics = {
-            "train": {"step": [], "epoch": []},
-            "val":   {"step": [], "epoch": []},
-        }
 
     def configure_directories(self) -> None:
         # Build folder paths using class name, model_name, seed
@@ -75,9 +71,9 @@ class BaseModel(LightningModule):
         self.hparams["momentum"]      = momentum
         self.hparams["devices"]       = devices or CPU_NUMBER
 
-        self._instantiate_from_hparams()
+        self._init_trainer()
 
-    def _instantiate_from_hparams(self) -> None:
+    def _init_trainer(self) -> None:
         """
         1) Build loss function
         2) Create loggers
@@ -92,7 +88,8 @@ class BaseModel(LightningModule):
 
         # Create loggers
         tb_logger = TensorBoardLogger(save_dir=self.log_dir, name=None, version="tensorboard")
-
+        self.metrics_logger = MetricsLogger(save_dir=self.log_dir)
+        
         # Checkpoint callback
         ckpt_dir = os.path.join(self.log_dir, "checkpoints")
         os.makedirs(ckpt_dir, exist_ok=True)
@@ -109,11 +106,15 @@ class BaseModel(LightningModule):
         # Build the Trainer
         self.trainer: Trainer = Trainer(
             max_steps=self.hparams["max_steps"],
-            logger=[tb_logger],
+            logger=[tb_logger, self.metrics_logger],
             default_root_dir=self.log_dir,
             callbacks=[checkpoint_cb],
             val_check_interval=0.5,
         )
+
+    @property
+    def metrics(self):
+        return self.metrics_logger
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         checkpoint['log_dir'] = self.log_dir
@@ -122,15 +123,10 @@ class BaseModel(LightningModule):
         self.model_name = self.hparams["model_name"]
         self.seed = self.hparams["seed"]
 
-        metrics_file = os.path.join(checkpoint['log_dir'], "metrics/metrics.parquet")
-        if os.path.exists(metrics_file):
-            df = pd.read_parquet(metrics_file)
-            self.all_metrics = df.to_dict(orient="list")
-        else: self._init_metrics()
-
         self.configure_directories()
-        self._instantiate_from_hparams()
-
+        self._init_trainer()
+        self.metrics.load(checkpoint['log_dir'])
+        
     def configure_optimizers(self) -> Any:
         if self.hparams["optimizer"] == "adamw":
             return optim.AdamW(
@@ -159,44 +155,31 @@ class BaseModel(LightningModule):
             )
         else: raise ValueError(f"Unknown optimizer: {self.hparams['optimizer']}")
 
-    def _log_metrics(
-        self,
-        phase: str,
-        metrics: Dict[str, float],
-        ) -> None:
-        """
-        Emits all metrics to Lightning (TensorBoard & CSV) with keys like "train/loss",
-        """
-        flat = {f"{phase}/{k}": v for k, v in metrics.items()} # Flattened keys
-        self.log_dict(flat, on_step=False, on_epoch=True, prog_bar=False)
-
-        for k, v in metrics.items():
-            if k not in self.all_metrics[phase]:
-                self.all_metrics[phase][k] = []
-            self.all_metrics[phase][k].append(v)
-
-        self.all_metrics[phase]["step"].append(self.global_step)
-        self.all_metrics[phase]["epoch"].append(self.current_epoch)
-
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError # must be implemented by each subclass
-
+    
     def training_step(self, batch: Any, batch_idx: int) -> torch.Tensor:
         x, y = batch
         y_hat = self(x)
         loss = self.loss_fn(y_hat, y)
         acc = calculate_accuracy(y_hat, y)
+        self.log("train/loss", loss, on_step=True, on_epoch=False, prog_bar=True)
+        self.log("train/acc", acc, on_step=True, on_epoch=False, prog_bar=False)
 
         self._log_metrics("train", {"loss": loss.item(), "acc": acc.item()})
         return loss
 
+    def on_train_epoch_end(self) -> None:
+        self.metrics.log_epoch(self.current_epoch, self.global_step)
     def validation_step(self, batch: Any, batch_idx: int) -> torch.Tensor:
         x, y = batch
         y_hat = self(x)
         loss = self.loss_fn(y_hat, y)
         acc = calculate_accuracy(y_hat, y)
 
-        self._log_metrics("val", {"loss": loss.item(), "acc": acc.item()})
+        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=False)
+        self.log("val/acc", acc, on_step=False, on_epoch=True, prog_bar=False)
+
         return loss
 
     def test_step(self, batch: Any, batch_idx: int) -> torch.Tensor:
@@ -216,30 +199,4 @@ class BaseModel(LightningModule):
         assert hasattr(self, "trainer"), "Trainer not configured. Call configure_training() first."
         self.trainer.fit(self, train_dataloaders, val_dataloaders)
         self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")
-        self.save_metrics()
-
-    def save_metrics(self) -> str:
-        """
-        Dump the in-memory `all_metrics` to parquet. Can be reloaded in on_load_checkpoint().
-        """
-        metrics_path = os.path.join(self.log_dir, "metrics/metrics.parquet")
-        df = pd.DataFrame(self.all_metrics)
-        df.to_parquet(metrics_path)
-        return metrics_path
-
-    def get_metrics(self) -> pd.DataFrame:
-        df_t = (pd.DataFrame(self.all_metrics["train"])
-                .sort_values("step")
-                .reset_index(drop=True))
-        df_v = (pd.DataFrame(self.all_metrics["val"])
-            .sort_values("step")
-            .set_index("step")
-            .reindex(df_t["step"], method="ffill")
-            .reset_index())
-
-        train_cols = [c for c in df_t.columns if c not in ("step", "epoch")]
-        val_cols   = [c for c in df_v.columns if c not in ("step", "epoch")]
-        df_t.rename(columns={c: f"train_{c}" for c in train_cols}, inplace=True)
-        df_v.rename(columns={c: f"val_{c}"   for c in val_cols},   inplace=True)
-
-        return pd.merge(df_t, df_v.drop(columns="val_epoch"), on="step")
+        self.metrics.save()
