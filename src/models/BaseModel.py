@@ -12,6 +12,7 @@ from lightning.pytorch.loggers.logger import Logger
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 from utils import calculate_accuracy
 from Configuration import CPU_NUMBER
@@ -39,12 +40,15 @@ class BaseModel(LightningModule):
         self.seed = seed
 
         self.configure_directories()
-        self.all_metrics = {
 
     def configure_directories(self) -> None:
         # Build folder paths using class name, model_name, seed
         relative_path = os.path.join(self.__class__.__name__, str(self.model_name), str(self.seed))
         self.log_dir = os.path.join(LoggingService().get_root_dir(), relative_path)
+        self._init_directories()
+
+    @rank_zero_only
+    def _init_directories(self) -> None:
         os.makedirs(self.log_dir, exist_ok=True)
         metrics_dir = os.path.join(self.log_dir, "metrics")
         os.makedirs(metrics_dir, exist_ok=True)
@@ -92,7 +96,6 @@ class BaseModel(LightningModule):
         
         # Checkpoint callback
         ckpt_dir = os.path.join(self.log_dir, "checkpoints")
-        os.makedirs(ckpt_dir, exist_ok=True)
         checkpoint_cb = ModelCheckpoint(
             dirpath=ckpt_dir,
             filename="epoch={epoch:02d}-loss={val/loss:.4f}",

@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from Configuration import LOGS_DIR
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only
 
 class LoggingService:
     _instance = None
@@ -18,16 +18,14 @@ class LoggingService:
             # Create a directory to store the results
             timestring = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
             self._root_dir = os.path.join(LOGS_DIR, exp_dir, timestring) if exp_dir else os.path.join(LOGS_DIR, timestring)
-            self._rank_zero_setup()
+            self._init_directory()
         elif exp_dir is not None:
             print(f"[Warning] Cannot change the experiment directory after initialization. Current root directory: {self._root_dir}")
 
     @rank_zero_only
-    def _rank_zero_setup(self):
+    def _init_directory(self):
         os.makedirs(self._root_dir, exist_ok=True)
-        print(f"Tensorboard path: {self._root_dir}/tensorboard")
         
-
     def get_root_dir(self):
         """Return the root directory of the logs."""
         return self._root_dir
