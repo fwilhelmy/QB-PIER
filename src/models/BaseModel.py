@@ -163,14 +163,26 @@ class BaseModel(LightningModule):
         y_hat = self(x)
         loss = self.loss_fn(y_hat, y)
         acc = calculate_accuracy(y_hat, y)
+        
+        params_l2 = sum((p.norm(2).item() ** 2) for p in self.parameters() if p.requires_grad)
+        params_l2 = params_l2 ** 0.5
+
         self.log("train/loss", loss, on_step=True, on_epoch=False, prog_bar=True)
         self.log("train/acc", acc, on_step=True, on_epoch=False, prog_bar=False)
+        self.log("train/weights_l2", params_l2, on_step=True, on_epoch=False, prog_bar=False)
 
-        self._log_metrics("train", {"loss": loss.item(), "acc": acc.item()})
         return loss
 
     def on_train_epoch_end(self) -> None:
         self.metrics.log_epoch(self.current_epoch, self.global_step)
+
+        with torch.no_grad():
+            grad_l2 = {
+                name: param.grad.data.norm(2).item() 
+                for name, param in self.named_parameters() 
+                if param.grad is not None}
+            self.log(f"epoch/grad_l2/{name}", grad_l2, on_step=False, on_epoch=True, prog_bar=False)
+
     def validation_step(self, batch: Any, batch_idx: int) -> torch.Tensor:
         x, y = batch
         y_hat = self(x)
