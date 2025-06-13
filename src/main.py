@@ -17,9 +17,9 @@ from visualisation.TrainingVisualisation import (
 )
 from arguments import Arguments
 from models.classical.LeNet import LeNet
-from models.classical.mlp import MLP
-from models.classical.resnet18 import ResNet18
-from models.classical.mlpmixer import MLPMixer
+from models.classical.MLP import MLP
+from models.classical.ResNet18 import ResNet18
+from models.classical.MLPMixer import MLPMixer
 from models.hybrid.HQNN_Quanv import HQNN_Quanv
 from models.hybrid.HQNN_Parallel import HQNN_Parallel
 from utils import seed_experiment, calculate_accuracy
@@ -172,7 +172,7 @@ def run_attacks(trained_models, args):
 
 def main():
     # Define a arguments and set global defaults
-    LoggingService("tests")
+    LoggingService("newtests")
     seeds = [0]
     args = Arguments()
     args.verbose = False
@@ -188,24 +188,25 @@ def main():
         # }),
         # ("MLPMixer_1", MLPMixer, {
         #     "num_classes": 10,
-        #     "img_size": 32,
+        #     "in_chans": 1,
+        #     "img_size": 28,
         #     "patch_size": 4,
         #     "embed_dim": 256,
         #     "num_blocks": 4,
         #     "drop_rate": 0.0,
         #     "activation": "gelu",
-        #     "mlp_ratio": [1, 1]
+        #     "mlp_ratio": [0.5, 4.0]
         # }),
         # ("MLP_1", MLP, {
-        #     "input_size": 3072,
+        #     "input_size": (1, 28),
         #     "hidden_sizes": [1024, 512, 64, 64],
         #     "num_classes": 10,
         #     "activation": "relu"
         # }),
-        ("HQNN_Parallel_1", HQNN_Parallel, {
-            "in_channels": 1,
-            "classes": 10
-        }),
+        # ("HQNN_Parallel_1", HQNN_Parallel, {
+        #     "in_channels": 1,
+        #     "classes": 10
+        # }),
         ("LeNet_1", LeNet, {
             "in_channels": 1,
             "classes": 10

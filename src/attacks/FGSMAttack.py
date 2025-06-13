@@ -8,7 +8,7 @@ from torch import Tensor
 from tqdm import tqdm
 
 from models.BaseModel import BaseModel
-from BaseAttack import BaseAttack
+from .BaseAttack import BaseAttack
 
 
 class FGSMAttack(BaseAttack):

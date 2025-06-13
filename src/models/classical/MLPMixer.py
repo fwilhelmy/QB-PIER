@@ -10,7 +10,7 @@ from models.BaseModel import BaseModel
 
 class PatchEmbed(nn.Module):
     """ 2D Image to Patch Embedding """
-    def __init__(self, img_size, patch_size, in_chans=3, embed_dim=768):
+    def __init__(self, img_size, patch_size, in_chans, embed_dim=768):
         super(PatchEmbed, self).__init__()
         self.img_size = img_size
         self.patch_size = patch_size
@@ -94,12 +94,12 @@ class MixerBlock(nn.Module):
     
 
 class MLPMixer(BaseModel):
-    def __init__(self, num_classes, img_size, patch_size, embed_dim, num_blocks, 
+    def __init__(self, num_classes, in_chans, img_size, patch_size, embed_dim, num_blocks, 
                  drop_rate=0., activation='gelu', mlp_ratio=(0.5, 4.0), **kwargs):
         super().__init__(**kwargs)
         self.patchemb = PatchEmbed(img_size=img_size, 
                                    patch_size=patch_size, 
-                                   in_chans=3,
+                                   in_chans=in_chans,
                                    embed_dim=embed_dim)
         self.blocks = nn.Sequential(*[
             MixerBlock(
@@ -124,7 +124,7 @@ class MLPMixer(BaseModel):
 
     def forward(self, inputs):
         """ MLPMixer forward
-        :param images: [batch, 3, img_size, img_size]
+        :param images: [batch, in_chans, img_size, img_size]
         """
 
         # Step 1 : Convert images to a sequence of patch embeddings
