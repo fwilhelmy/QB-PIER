@@ -77,6 +77,8 @@ def train_model(args, seeds=[0, 42]):
             weight_decay = args.weight_decay,
             momentum = args.momentum,
             devices = args.device,
+            train_log_interval = args.train_log_interval,
+            eval_log_interval = args.eval_log_interval
         )
         model = model.to(args.device)
 
@@ -176,10 +178,17 @@ def main():
     seeds = [0]
     args = Arguments()
     args.verbose = False
-    args.n_steps = 100
+    args.n_steps = 1000
     args.num_workers = 0
-    args.train_batch_size = 512
-    args.eval_batch_size = 512
+
+    args.eval_ratio = 0.40
+    args.train_ratio = 0.60
+
+    args.train_batch_size = 2**9
+    args.eval_batch_size = 2**11
+
+    args.train_log_interval = 0.25
+    args.eval_log_interval = 0.25
 
     # 2) Define your list of model‐configurations: (name, class, kwargs)
     model_specs = [
@@ -230,21 +239,9 @@ def main():
     
     # plot_transfer_attack_effects(attacks_metrics,
     #                             title_prefix="transfer")
-    from pprint import pprint
-    pprint(trained_models['HQNN_Parallel_1'][0].all_metrics, depth=2)
-    metrics = trained_models['HQNN_Parallel_1'][0].all_metrics
-
-    print("Training metrics sizes:")
-    print("loss:", len(metrics['train']['loss']))
-    print("acc:", len(metrics['train']['acc']))
-    print("step:", len(metrics['train']['step']))
-    print("epoch:", len(metrics['train']['epoch']))
-
-    print("\nValidation metrics sizes:")
-    print("loss:", len(metrics['val']['loss']))
-    print("acc:", len(metrics['val']['acc']))
-    print("step:", len(metrics['val']['step']))
-    print("epoch:", len(metrics['val']['epoch']))
+    # from pprint import pprint
+    # pprint(trained_models['HQNN_Parallel_1'][0].all_metrics, depth=2)
+    # metrics = trained_models['HQNN_Parallel_1'][0].all_metrics
 
 if __name__ == "__main__":
     main()
