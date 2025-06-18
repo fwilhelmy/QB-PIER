@@ -12,12 +12,12 @@ from lightning.pytorch.loggers.logger import Logger
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only
 
 from utils import calculate_accuracy
 from Configuration import CPU_NUMBER
 from LoggingService import LoggingService
-from .MetricsLogger import MetricsLogger
+from metrics import TrainingLogger, MetricsContainer
 
 SUPPORTED_LOSS_FUNCTIONS = {
     "cross_entropy": CrossEntropyLoss,  # For classification tasks
@@ -40,6 +40,7 @@ class BaseModel(LightningModule):
         self.seed = seed
 
         self.configure_directories()
+        self.metrics = MetricsContainer(self.log_dir)
 
     def configure_directories(self) -> None:
         # Build folder paths using class name, model_name, seed
@@ -62,6 +63,8 @@ class BaseModel(LightningModule):
         weight_decay: float = 1e-0,
         momentum: float = 0.9,
         devices: Optional[int] = None,
+        train_log_interval: float = 0.5,
+        eval_log_interval: float = 0.5
     ) -> None:
         """
         Record each hyperparameter into self.hparams so that Lightning
@@ -74,6 +77,8 @@ class BaseModel(LightningModule):
         self.hparams["weight_decay"]  = weight_decay
         self.hparams["momentum"]      = momentum
         self.hparams["devices"]       = devices or CPU_NUMBER
+        self.hparams["train_log_interval"]  = train_log_interval
+        self.hparams["eval_log_interval"]   = eval_log_interval
 
         self._init_trainer()
 
@@ -92,7 +97,7 @@ class BaseModel(LightningModule):
 
         # Create loggers
         tb_logger = TensorBoardLogger(save_dir=self.log_dir, name=None, version="tensorboard")
-        self.metrics_logger = MetricsLogger(save_dir=self.log_dir)
+        tr_logger = TrainingLogger(ratio=self.hparams["train_log_interval"])
         
         # Checkpoint callback
         ckpt_dir = os.path.join(self.log_dir, "checkpoints")
@@ -109,15 +114,11 @@ class BaseModel(LightningModule):
         # Build the Trainer
         self.trainer: Trainer = Trainer(
             max_steps=self.hparams["max_steps"],
-            logger=[tb_logger, self.metrics_logger],
+            logger=[tb_logger],
             default_root_dir=self.log_dir,
-            callbacks=[checkpoint_cb],
-            val_check_interval=0.5,
+            callbacks=[checkpoint_cb, tr_logger],
+            val_check_interval=self.hparams["eval_log_interval"],
         )
-
-    @property
-    def metrics(self):
-        return self.metrics_logger
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         checkpoint['log_dir'] = self.log_dir
@@ -161,7 +162,7 @@ class BaseModel(LightningModule):
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError # must be implemented by each subclass
     
-    def training_step(self, batch: Any, batch_idx: int) -> torch.Tensor:
+    def training_step(self, batch: Any, batch_idx: int):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_fn(y_hat, y)
@@ -170,38 +171,30 @@ class BaseModel(LightningModule):
         params_l2 = sum((p.norm(2).item() ** 2) for p in self.parameters() if p.requires_grad)
         params_l2 = params_l2 ** 0.5
 
-        self.log("train/loss", loss, on_step=True, on_epoch=False, prog_bar=True)
-        self.log("train/acc", acc, on_step=True, on_epoch=False, prog_bar=False)
-        self.log("train/weights_l2", params_l2, on_step=True, on_epoch=False, prog_bar=False)
+        return {"loss": loss, "acc": acc, "weights_l2": params_l2}
 
-        return loss
-
-    def on_train_epoch_end(self) -> None:
+    def on_train_epoch_end(self):
         self.metrics.log_epoch(self.current_epoch, self.global_step)
 
         with torch.no_grad():
-            grad_l2 = {
-                name: param.grad.data.norm(2).item() 
-                for name, param in self.named_parameters() 
-                if param.grad is not None}
-            self.log(f"epoch/grad_l2/{name}", grad_l2, on_step=False, on_epoch=True, prog_bar=False)
+            grad_l2 = {name: param.grad.data.norm(2).item()
+                     for name, param in self.named_parameters()
+                     if param.grad is not None}
+            self.metrics.log_dict("grad_l2", grad_l2)
 
-    def validation_step(self, batch: Any, batch_idx: int) -> torch.Tensor:
+    def validation_step(self, batch: Any, batch_idx: int):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_fn(y_hat, y)
         acc = calculate_accuracy(y_hat, y)
 
-        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=False)
-        self.log("val/acc", acc, on_step=False, on_epoch=True, prog_bar=False)
+        return {"loss": loss, "acc": acc}
 
-        return loss
-
-    def test_step(self, batch: Any, batch_idx: int) -> torch.Tensor:
+    def test_step(self, batch: Any, batch_idx: int):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_fn(y_hat, y)
-        return loss
+        return {"loss": loss}
 
     def fit(
         self,
@@ -211,7 +204,8 @@ class BaseModel(LightningModule):
         """
         Thin wrapper that calls Lightning’s Trainer.fit(), then saves a final checkpoint and metrics.
         """
-        assert hasattr(self, "trainer"), "Trainer not configured. Call configure_training() first."
-        self.trainer.fit(self, train_dataloaders, val_dataloaders)
-        self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")
-        self.metrics.save()
+        with self.metrics.timeit("training_time", step=self.global_step):
+            assert hasattr(self, "trainer"), "Trainer not configured. Call configure_training() first."
+            self.trainer.fit(self, train_dataloaders, val_dataloaders)
+            self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")
+            self.metrics.save()

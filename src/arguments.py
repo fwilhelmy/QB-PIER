@@ -16,11 +16,15 @@ class Arguments:
 
     # Data
     dataset: str = "MNIST"  # [MNIST, FMNIST] only for now..
-    train_ratio: float = 0.8
-    eval_ratio: float = 0.2
+
+    train_ratio: float = 0.6
+    eval_ratio: float = 0.4
 
     train_batch_size: int = 512
     eval_batch_size: int = 2**12
+
+    train_log_interval: float = 0.5
+    eval_log_interval: float = 0.5
     
     # Optimization
     n_steps : int = 10**4 + 1
@@ -30,9 +34,3 @@ class Arguments:
     lr: float = 1e-3
     momentum: float = 0.9
     weight_decay: float = 1e-0
-
-    # Logging
-    # TODO IMPLEMENT THE BETTER LOGGING
-    eval_start: int = 100
-    eval_step: int = 100
-    save_step: int = 1000
