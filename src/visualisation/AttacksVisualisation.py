@@ -51,7 +51,7 @@ def plot_training_curves(trained_models, title_prefix="training"):
         val_acc_seeds    = []
         step_lists       = []
         for seed in seeds:
-            df = seed_dict[seed].get_metrics()
+            df = seed_dict[seed].metrics.get_metrics()
             step_lists.append(df["step"].to_numpy())
             train_loss_seeds.append(df["train_loss"].to_numpy())
             val_loss_seeds.append(df["val_loss"].to_numpy())
@@ -253,11 +253,12 @@ def plot_confusion_matrix(
     plt.savefig(os.path.join(out_dir, "confusion_matrix.png"))
     plt.close()
 
+from attacks.BaseAttack import BaseAttack
+from attacks.FGSMAttack import FGSMAttack
 
 def plot_perturbation_and_saliency(
     model,
-    x_batch: torch.Tensor,
-    y_batch: torch.Tensor,
+    attack: FGSMAttack,
     device: torch.device,
     epsilon: float
 ):
@@ -266,18 +267,15 @@ def plot_perturbation_and_saliency(
     then save original, saliency heatmap, and perturbed images side by side.
     """
     model.eval()
-    x = x_batch.to(device)
-    x.requires_grad_()
-    logits = model(x)
-    loss = torch.nn.functional.cross_entropy(logits, y_batch.to(device))
-    loss.backward()
-    saliency = x.grad.data.abs().cpu()
-    perturb = epsilon * x.grad.sign().cpu()
+    x = attack.dataset.data.to(device)
+    grads = torch.stack(attack.gradients[model.model_name])
+    saliency = grads.abs().cpu()
+    perturb = attack.attack(x, epsilon).to(device)
 
     out_dir = os.path.join(model.root_dir, "saliency")
     os.makedirs(out_dir, exist_ok=True)
 
-    B = x.shape[0]
+    B = 10
     for i in range(B):
         fig, axes = plt.subplots(1, 3, figsize=(9, 3))
         axes[0].imshow(x[i].cpu().squeeze(), cmap='gray')
@@ -289,7 +287,6 @@ def plot_perturbation_and_saliency(
         plt.tight_layout()
         plt.savefig(os.path.join(out_dir, f"saliency_{i}.png"))
         plt.close()
-
 
 def plot_loss_landscape(
     model,
