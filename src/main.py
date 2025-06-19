@@ -15,6 +15,7 @@ from visualisation.TrainingVisualisation import (
     plot_training_result,
     plot_models_together,
 )
+from visualisation.Tempvis import generate_gradient_flow_plots
 from arguments import Arguments
 from models.classical.LeNet import LeNet
 from models.classical.MLP import MLP
@@ -178,13 +179,13 @@ def main():
     seeds = [0]
     args = Arguments()
     args.verbose = False
-    args.n_steps = 1000
+    args.n_steps = 100
     args.num_workers = 0
 
     args.eval_ratio = 0.40
     args.train_ratio = 0.60
 
-    args.train_batch_size = 2**9
+    args.train_batch_size = 2**8
     args.eval_batch_size = 2**11
 
     args.train_log_interval = 0.25
@@ -212,10 +213,10 @@ def main():
         #     "num_classes": 10,
         #     "activation": "relu"
         # }),
-        # ("HQNN_Parallel_1", HQNN_Parallel, {
-        #     "in_channels": 1,
-        #     "classes": 10
-        # }),
+        ("HQNN_Parallel_1", HQNN_Parallel, {
+            "in_channels": 1,
+            "classes": 10
+        }),
         ("LeNet_1", LeNet, {
             "in_channels": 1,
             "classes": 10
@@ -242,6 +243,8 @@ def main():
     # from pprint import pprint
     # pprint(trained_models['HQNN_Parallel_1'][0].all_metrics, depth=2)
     # metrics = trained_models['HQNN_Parallel_1'][0].all_metrics
+
+    generate_gradient_flow_plots(trained_models)
 
 if __name__ == "__main__":
     main()
