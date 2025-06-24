@@ -48,32 +48,32 @@ class MetricsContainer():
             self._raw[group].setdefault("step", []).append(step if step is not None else 0)
 
     @rank_zero_only
-    def log_epoch(self, epoch_idx: int, step: int) -> None:
+    def log_epoch(self, step: int) -> None:
         self.log_scalar("epoch", step)
 
     @contextmanager
-    def timeit(self, name: str, split: Optional[str] = None, step: Optional[int] = None):
+    def timeit(self, name: str, step: Optional[int] = None):
         start = time.time()
         yield
         elapsed = time.time() - start
-        tag = f"{split}/{name}" if split else name
-        self.log_scalar(tag, elapsed)
+        self.log_scalar("timer", elapsed, group=name)
+        self.log_scalar("step", step, group=name)
 
-    def log_resources(self, group: str, step: Optional[int] = None) -> None:
+    def log_resources(self, step: Optional[int] = None) -> None:
         cpu_pct = psutil.cpu_percent(interval=None)
         mem = psutil.virtual_memory()
         mem_used_gb = (mem.total - mem.available) / (1024 ** 3)
         metrics = {
-            f"{group}/cpu_percent": cpu_pct,
-            f"{group}/mem_used_gb": mem_used_gb
+            "cpu_percent": cpu_pct,
+            "mem_used_gb": mem_used_gb
         }
         if torch.cuda.is_available():
-            metrics[f"{group}/gpu_mem_allocated_gb"] = torch.cuda.memory_allocated() / (1024 ** 3)
-        self.log_metrics(metrics, step=step)
+            metrics["gpu_mem_allocated_gb"] = torch.cuda.memory_allocated() / (1024 ** 3)
+        self.log_dict("performance", metrics, step=step)
 
     def to_csv(self, path: Optional[str] = None) -> None:
         df = self.get_metrics()
-        if df.empty:
+        if df is None or df.empty:
             return
         out = path or os.path.join(self.log_dir, "metrics.csv")
         os.makedirs(os.path.dirname(out), exist_ok=True)
@@ -107,20 +107,20 @@ class MetricsContainer():
     @rank_zero_only
     def get_metrics(self) -> pd.DataFrame:
         train = pd.DataFrame(self._raw.get("train", {}))
-        if train.empty: return pd.DataFrame()
+        if train.empty:
+            return pd.DataFrame()
         train = train.sort_values("step").reset_index(drop=True)
         train = train.rename(columns={c: f"train_{c}" for c in train.columns if c != "step"})
         
         val = pd.DataFrame(self._raw.get("val", {}))
-        if val.empty: return train
+        if val.empty:
+            return train
         val = val.sort_values("step").reset_index(drop=True)
         val = val.rename(columns={c: f"val_{c}" for c in val.columns if c != "step"})
 
         # Sanity check first row
-        sanity_row = None
-        if val.loc[0, "step"] == 0:
-            sanity_row = val.iloc[[0]].copy()
-            val = val.iloc[1:].reset_index(drop=True)
+        sanity_row = val.iloc[[0]].copy()
+        val = val.iloc[1:].reset_index(drop=True)
 
         # Merging train and val dataframes
         merged = pd.merge_asof(
@@ -140,9 +140,8 @@ class MetricsContainer():
         merged.insert(0, "epoch", epochs)
 
         # Re-insert the sanity-check row at the top (epoch 0)
-        if sanity_row is not None:
-            sanity_row.insert(0, "epoch", 0)
-            merged = pd.concat([sanity_row, merged], ignore_index=True, sort=False)
+        sanity_row.insert(0, "epoch", 0)
+        merged = pd.concat([sanity_row, merged], ignore_index=True, sort=False)
 
         return merged.reset_index(drop=True)
 
