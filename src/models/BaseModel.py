@@ -17,7 +17,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from utils import calculate_accuracy
 from Configuration import CPU_NUMBER
 from LoggingService import LoggingService
-from MetricsLogger import MetricsLogger
+from .MetricsLogger import MetricsLogger
 
 SUPPORTED_LOSS_FUNCTIONS = {
     "cross_entropy": CrossEntropyLoss,  # For classification tasks
