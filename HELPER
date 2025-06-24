@@ -16,3 +16,6 @@ nohup python QMLBenchmark/src/main.py > funsies.out 2> oopsies.err < /dev/null &
 
 == Start tailing the output of my job ==
 tail -f funsies.out
+
+== Watch Training ==
+%tensorboard --logdir=lightning_logs/

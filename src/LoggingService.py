@@ -18,12 +18,12 @@ class LoggingService:
             # Create a directory to store the results
             timestring = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
             self._root_dir = os.path.join(LOGS_DIR, exp_dir, timestring) if exp_dir else os.path.join(LOGS_DIR, timestring)
-            self._init_directory()
+            self._init_root_dir()
         elif exp_dir is not None:
             print(f"[Warning] Cannot change the experiment directory after initialization. Current root directory: {self._root_dir}")
 
     @rank_zero_only
-    def _init_directory(self):
+    def _init_root_dir(self):
         os.makedirs(self._root_dir, exist_ok=True)
         
     def get_root_dir(self):
@@ -42,4 +42,3 @@ class LoggingService:
         os.makedirs(file_dir, exist_ok=True)
         with open(f"{file_dir}/{file_name}", "w") as file:
             file.write(file_content)
-
