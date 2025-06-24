@@ -1,5 +1,5 @@
-"""Top-level package for QMLBenchmark."""
+"""QMLBenchmark core package."""
 
 __version__ = "0.1.0"
 
-__all__ = []
+__all__ = ["__version__"]
