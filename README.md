@@ -1,6 +1,6 @@
-# QMLBenchmark
+# QB-PIER : Quantum Benchmarking Pipeline for Integrated Evaluation of Robustness
 
-QMLBenchmark provides a set of tools to evaluate how robust classical and quantum neural networks are against adversarial attacks. The repository contains implementations of convolutional networks, hybrid quantum-classical models, and utilities to generate and test adversarial examples.
+QB-PIER provides a set of tools to evaluate how robust classical and quantum neural networks are against adversarial attacks. The repository contains implementations of convolutional networks, hybrid quantum-classical models, and utilities to generate and test adversarial examples.
 
 ## Table of Contents
 - [Overview](#overview)
