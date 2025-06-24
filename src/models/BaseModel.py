@@ -14,9 +14,9 @@ from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
-from utils import calculate_accuracy
-from Configuration import CPU_NUMBER
-from LoggingService import LoggingService
+from ..utils import calculate_accuracy
+from ..Configuration import CPU_NUMBER
+from ..LoggingService import LoggingService
 from .MetricsLogger import MetricsLogger
 
 SUPPORTED_LOSS_FUNCTIONS = {

@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from Configuration import LOGS_DIR
+from .Configuration import LOGS_DIR
 from pytorch_lightning.utilities import rank_zero_only
 
 class LoggingService:

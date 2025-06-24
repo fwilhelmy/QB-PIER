@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import torch
-from LoggingService import LoggingService
+from ..LoggingService import LoggingService
 
 
 import os

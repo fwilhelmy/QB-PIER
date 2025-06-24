@@ -7,7 +7,7 @@ import pandas as pd
 from typing_extensions import override
 from pytorch_lightning.loggers.logger import Logger
 from lightning.pytorch.utilities import rank_zero_only
-from Configuration import LOGS_DIR
+from ..Configuration import LOGS_DIR
 
 
 class MetricsLogger(Logger):

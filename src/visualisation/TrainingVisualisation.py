@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from LoggingService import LoggingService
+from ..LoggingService import LoggingService
 
 def plot_training_result(model, train_len, val_len):
     results = model.all_metrics

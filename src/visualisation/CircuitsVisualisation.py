@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import torch
 import pennylane as qml
-from LoggingService import LoggingService
+from ..LoggingService import LoggingService
 
 # TODO NOT WORKING
 def printCircuit(model, circuit):

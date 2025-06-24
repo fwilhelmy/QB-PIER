@@ -1,11 +1,11 @@
 import pennylane as qml
-from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
-from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
+from .ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from .ansatzs.BaseAnsatz import BaseAnsatz
 import torch
 import torch.nn as nn
 from typing import Type
 import numpy as np
-from models.quantum.VQC import VQC
+from .VQC import VQC
 
 class ParallelVQC(nn.Module):
     """
