@@ -11,6 +11,7 @@ from torch.nn import CrossEntropyLoss, MSELoss
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 from utils import calculate_accuracy
 from Configuration import CPU_NUMBER
@@ -49,8 +50,12 @@ class BaseModel(LightningModule):
         # Build folder paths using class name, model_name, seed
         relative_path = os.path.join(self.__class__.__name__, str(self.model_name), str(self.seed))
         self.log_dir = os.path.join(LoggingService().get_root_dir(), relative_path)
-        os.makedirs(self.log_dir, exist_ok=True)
         metrics_dir = os.path.join(self.log_dir, "metrics")
+        self._create_directories(metrics_dir)
+
+    @rank_zero_only
+    def _create_directories(self, metrics_dir: str) -> None:
+        os.makedirs(self.log_dir, exist_ok=True)
         os.makedirs(metrics_dir, exist_ok=True)
 
     def configure_training(
@@ -215,9 +220,14 @@ class BaseModel(LightningModule):
         """
         assert hasattr(self, "trainer"), "Trainer not configured. Call configure_training() first."
         self.trainer.fit(self, train_dataloaders, val_dataloaders)
-        self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")
+        self._save_final_checkpoint()
         self.save_metrics()
 
+    @rank_zero_only
+    def _save_final_checkpoint(self) -> None:
+        self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")
+
+    @rank_zero_only
     def save_metrics(self) -> str:
         """
         Dump the in-memory `all_metrics` to parquet. Can be reloaded in on_load_checkpoint().
