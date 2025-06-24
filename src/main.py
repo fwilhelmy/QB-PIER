@@ -27,6 +27,7 @@ from utils import seed_experiment, calculate_accuracy
 from data.DatasetManagerFactory import DatasetManagerFactory
 from attacks.FGSMAttack import FGSMAttack
 from attacks.PGDAttack import PGDAttack
+from attacks.TransferAttack import run_transfer_attack
 from LoggingService import LoggingService
 
 
@@ -99,77 +100,37 @@ def train_model(args, seeds=[0, 42]):
     return trained
 
 def run_attacks(trained_models, args):
-    """
-    For each seed‐group in `trained_models`:
-      - Re‐seed once (for repeatability within that seed)
-      - Load test dataset
-      - Instantiate FGSM/PGD attacks
-      - Run transfer attacks only among models sharing the same seed
-      - Print clean accuracy before and after generating adversarial examples
-      - Plot & visualize results
-    """
+    """Run pairwise transfer attacks among the trained models."""
     records = []
 
-    # Group models by seed
     models_by_seed = defaultdict(list)
     for model_seeds in trained_models.values():
-        for seed in model_seeds.keys():
-            models_by_seed[seed].append(model_seeds[seed])
+        for seed, model in model_seeds.items():
+            models_by_seed[seed].append(model)
 
-    # For each seed group, run attacks among that seed’s models
     for seed, models in models_by_seed.items():
         print(f"\n>>> Running attacks for seed : {seed}")
         seed_experiment(seed)
 
-        # Load the test dataset
-        dataset_manager = DatasetManagerFactory(args.dataset)
-        test_dataset = dataset_manager.load_dataset(train=False)
-        test_data = test_dataset.data.unsqueeze(1).to(torch.float).to(args.device)
-        test_targets = test_dataset.targets
-
-        # Instantiate attack
-        fgsm = FGSMAttack(test_dataset)
-        epsilons = [x / 100.0 for x in range(0, 105, 5)]
-
-        # For every "attacker" model in this seed group
         for attacker_model in models:
-            attacker_name = attacker_model.model_name
-            print(f"\n--- Attacking with model '{attacker_name}' (seed {seed}) ---")
-            attacker_model.eval()
-
-            # Compute clean (white‐box) accuracy BEFORE generating adversarial examples
-            with torch.no_grad():
-                logits_before = attacker_model(test_data)
-                clean_acc_before = calculate_accuracy(logits_before, test_targets)
-            print(f"Clean accuracy before generating adversarial examples: {clean_acc_before:.4f}")
-
-            # For each ε, generate FGSM examples on attacker_model
-            for ε in epsilons:
-                adv_examples = fgsm.attack(attacker_model, ε).to(args.device)
-
-                # Evaluate every victim on those adversarial examples
-                with torch.no_grad():
-                    for victim_model in models:
-                        victim_name = victim_model.model_name
-                        victim_model.eval()
-                        adv_logits = victim_model(adv_examples)
-                        adv_acc = calculate_accuracy(
-                            adv_logits,
-                            test_targets[:adv_examples.size(0)]
-                        )
-                        records.append({
+            for victim_model in models:
+                df = run_transfer_attack(
+                    attacker_model,
+                    victim_model,
+                    dataset_name=args.dataset,
+                    device=args.device,
+                    epsilons=[x / 100.0 for x in range(0, 105, 5)],
+                )
+                for _, row in df.iterrows():
+                    records.append(
+                        {
                             "seed": seed,
-                            "source_model": attacker_name,
-                            "target_model": victim_name,
-                            "epsilon": ε,
-                            "accuracy": float(adv_acc)
-                        })
-
-            # Compute clean accuracy AGAIN to verify weights unchanged
-            with torch.no_grad():
-                logits_after = attacker_model(test_data)
-                clean_acc_after = calculate_accuracy(logits_after, test_targets)
-            print(f"Clean accuracy after generating adversarial examples: {clean_acc_after:.4f}")
+                            "source_model": attacker_model.model_name,
+                            "target_model": victim_model.model_name,
+                            "epsilon": row["epsilon"],
+                            "accuracy": row["accuracy"],
+                        }
+                    )
 
     return pd.DataFrame(records)
 
