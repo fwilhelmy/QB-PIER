@@ -1,7 +1,7 @@
-from ..Configuration import DATA_DIR
+from Configuration import DATA_DIR
 
-from .FMNISTManager import FMNISTManager
-from .MNISTManager import MNISTManager
+from FMNISTManager import FMNISTManager
+from MNISTManager import MNISTManager
 
 def DatasetManagerFactory(dataset_name: str, root: str = DATA_DIR):
     if dataset_name == 'MNIST': return MNISTManager(root=root)
