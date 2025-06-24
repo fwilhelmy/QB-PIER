@@ -2,13 +2,19 @@ from torch.utils.data import DataLoader, random_split
 import torch
 from tqdm import tqdm
 import numpy as np
+from typing import Dict, List, Optional
+import copy
+import torch
+from torch import Tensor
+from pytorch_lightning.utilities import rank_zero_only
+from tqdm import tqdm
 
 class DatasetManager:
-    def __init__(self, root: str):
+    def __init__(self, root: str, train: bool = True):
         self.root = root
-        self.dataset = self.load_dataset(train=True)
+        self.dataset = self.__load_dataset(train=train)
 
-    def load_dataset(self, train: bool):
+    def __load_dataset(self, train: bool):
         raise NotImplementedError("This method should be overridden in subclasses")
     
     def __calculate_stats(self):
@@ -60,3 +66,22 @@ class DatasetManager:
             shuffle=False)
 
         return train_loader, eval_loader
+    
+    @torch.no_grad()
+    def compute_gradients(self, model, max_x: Optional[int] = None, hot_reload: bool = False):
+        gradients: List[tuple[Tensor, Tensor]] = []
+        model.eval()
+        state = copy.deepcopy(model.state_dict())
+        max_x = max_x if max_x is not None else len(self.dataset)
+        pbar = tqdm(self.dataset, desc=f"Computing gradients for {model.model_name}")
+        for idx, (image, target) in enumerate(pbar):
+            img = image.clone().detach().to(torch.float32).requires_grad_(True)
+            output = model(img.unsqueeze(0))
+            loss = model.loss_fn(output, torch.tensor([target], dtype=torch.long))
+            model.zero_grad()
+            loss.backward()
+            gradients.append((image, img.grad.detach()))
+            model.load_state_dict(state)
+            if idx >= max_x - 1:
+                break
+        return gradients
