@@ -7,7 +7,6 @@ import torch
 from torch import Tensor
 from tqdm import tqdm
 
-from models.BaseModel import BaseModel
 from .BaseAttack import BaseAttack
 
 

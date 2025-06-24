@@ -107,6 +107,7 @@ def new_accuracy(labels, predictions):
     acc = acc / len(labels)
     return acc
 
+@torch.no_grad()
 def evaluate_attack(self, classifier, dataset, adv_examples):
     labels = dataset.targets.cpu().numpy()
     original_preds = classifier.predict(dataset.data.unsqueeze(1).numpy())

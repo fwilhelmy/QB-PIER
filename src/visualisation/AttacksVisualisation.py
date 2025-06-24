@@ -44,11 +44,12 @@ def plot_training_curves(trained_models, title_prefix="training"):
     for model_name, seed_dict in trained_models.items():
         seeds = sorted(seed_dict.keys())
 
-        # Gather per-seed metric lists
+        # Gather per-seed metric lists train_weights_l2
         train_loss_seeds = []
         val_loss_seeds   = []
         train_acc_seeds  = []
         val_acc_seeds    = []
+        train_weights_l2_seeds = []
         step_lists       = []
         for seed in seeds:
             df = seed_dict[seed].metrics.get_metrics()
@@ -57,6 +58,7 @@ def plot_training_curves(trained_models, title_prefix="training"):
             val_loss_seeds.append(df["val_loss"].to_numpy())
             train_acc_seeds.append(df["train_acc"].to_numpy())
             val_acc_seeds.append(df["val_acc"].to_numpy())
+            train_weights_l2_seeds.append(df["train_weights_l2"].to_numpy())
 
         # All metric arrays share the same number of steps
         steps = step_lists[0]
@@ -68,15 +70,17 @@ def plot_training_curves(trained_models, title_prefix="training"):
         vl = np.vstack(val_loss_seeds)
         ta = np.vstack(train_acc_seeds)
         va = np.vstack(val_acc_seeds)
+        tw = np.vstack(train_weights_l2_seeds)
 
         # Compute mean and std along axis=0 (across seeds)
         tl_mean, tl_std = tl.mean(0), tl.std(0)
         vl_mean, vl_std = vl.mean(0), vl.std(0)
         ta_mean, ta_std = ta.mean(0), ta.std(0)
         va_mean, va_std = va.mean(0), va.std(0)
+        tw_mean, tw_std = tw.mean(0), tw.std(0)
 
         # Build figure with two subplots: loss & accuracy
-        fig, (ax_loss, ax_acc) = plt.subplots(2, 1, figsize=(8, 10))
+        fig, (ax_loss, ax_acc, ax_weights) = plt.subplots(1, 3, figsize=(24, 6))
 
         # --- Loss subplot ---
         ax_loss.plot(steps, tl_mean, label="Train Loss")
@@ -112,6 +116,18 @@ def plot_training_curves(trained_models, title_prefix="training"):
         ax_acc.set_ylim(0, 1.0)
         ax_acc.grid(True, linestyle="--", linewidth=0.5)
         ax_acc.legend()
+
+        # --- Weights L2 subplot ---
+        ax_weights.plot(steps, tw_mean, label="Train Weights L2")
+        ax_weights.fill_between(steps,
+                                 tw_mean - tw_std,
+                                 tw_mean + tw_std,
+                                 alpha=0.2)
+        ax_weights.set_title(f"{model_name} Weights L2")
+        ax_weights.set_xlabel("Step")
+        ax_weights.set_ylabel("Weights L2 Norm")
+        ax_weights.grid(True, linestyle="--", linewidth=0.5)
+        ax_weights.legend()
 
         fig.suptitle(f"{title_prefix.capitalize()} Curves — {model_name}")
         fig.tight_layout(rect=[0, 0, 1, 0.96])
