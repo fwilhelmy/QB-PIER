@@ -1,6 +1,6 @@
 # QB-PIER : Quantum Benchmarking Pipeline for Integrated Evaluation of Robustness
 
-QB-PIER provides a set of tools to evaluate how robust classical and quantum neural networks are against adversarial attacks. The repository contains implementations of convolutional networks, hybrid quantum-classical models, and utilities to generate and test adversarial examples.
+QB-PIER provides a set of tools to evaluate how robust classical and quantum neural networks are against adversarial attacks.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -8,7 +8,6 @@ QB-PIER provides a set of tools to evaluate how robust classical and quantum neu
 - [Project Structure](#project-structure)
 - [Running Experiments](#running-experiments)
 - [Documentation](#documentation)
-- [Helper Commands & HPC Usage](#helper-commands--hpc-usage)
 - [Credits](#credits)
 
 ## Overview
@@ -31,13 +30,12 @@ Results (checkpoints, figures and TensorBoard logs) are saved under a timestampe
 ## Project Structure
 ```
 ├── src/                  # Main source code
-│   ├── attacks/          # FGSM, PGD and attack base classes
-│   ├── data/             # Dataset download and loaders
-│   ├── layers/           # Quantum layers and helpers
+│   ├── attacks/          # Adversarial attacks classes
+│   ├── data/             # Dataset management
+│   ├── logging           # Logging tools
 │   ├── models/           # Classical, quantum and hybrid models
-│   ├── visualisation/    # Matplotlib utilities
-│   ├── LoggingService.py # Handles results directory & TensorBoard
-│   └── main.py           # Example training and evaluation script
+│   ├── visualisation/    # Figures generation functions
+│   └── experiments/      # Configuration for running different experiments 
 ├── docs/                 # Sphinx documentation
 ├── logs/                 # Created at runtime to store logs and checkpoints
 ├── tests/                # Pytest unit tests
@@ -52,21 +50,7 @@ make html
 ```
 Open `_build/html/index.html` in a browser to read the generated documentation.
 
-## Helper Commands & HPC Usage
-The `HELPER` file at the project root lists useful snippets for working on a
-remote cluster. A typical workflow is:
-
-```bash
-ssh -l <user> replica.logti.etsmtl.ca
-source miniconda3/bin/activate && conda activate QAML && cd QMLBenchmark
-nohup python QMLBenchmark/src/main.py > funsies.out 2> oopsies.err < /dev/null &
-tail -f funsies.out
-```
-
-The file also shows how to copy results back using `scp` once the job
-completes.
-
 ## Credits
-- Initial code for the quantum layers and FGSM implementation was adapted from work by Samuel Richard and [Nathan Inkawhich](https://github.com/inkawhich).
+- Initial code was adapted by the work of Samuel Richard and I from the course GTI755.
+- I used some code from my assignements in the course IFT6135.
 - Parts of the project were structured with the help of ChatGPT.
-- The repository is based on the [cookiecutter data science](https://drivendata.github.io/cookiecutter-data-science/) template.
