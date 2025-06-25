@@ -194,7 +194,9 @@ class BaseModel(LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_fn(y_hat, y)
-        return {"loss": loss}
+        acc = calculate_accuracy(y_hat, y)
+
+        return {"loss": loss, "acc": acc}
 
     def fit(
         self,

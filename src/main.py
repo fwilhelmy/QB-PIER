@@ -21,8 +21,8 @@ from models.classical.LeNet import LeNet
 from models.classical.MLP import MLP
 from models.classical.ResNet18 import ResNet18
 from models.classical.MLPMixer import MLPMixer
-from models.hybrid.HQNN_Quanv import HQNN_Quanv
-from models.hybrid.HQNN_Parallel import HQNN_Parallel
+from src.models.hybrid.HQuanvolution import HQuanvolution
+from src.models.hybrid.HQPNN import HQPNN
 from utils import seed_experiment, calculate_accuracy
 from data.DatasetManagerFactory import DatasetManagerFactory
 from attacks.FGSMAttack import FGSMAttack
@@ -174,7 +174,7 @@ def main():
         #     "num_classes": 10,
         #     "activation": "relu"
         # }),
-        ("HQNN_Parallel_1", HQNN_Parallel, {
+        ("HQNN_Parallel_1", HQPNN, {
             "in_channels": 1,
             "classes": 10
         }),
