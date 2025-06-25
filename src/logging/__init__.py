@@ -13,10 +13,12 @@ __version__ = "0.1.0"
 from .MetricsContainer import MetricsContainer
 from .EpochTimingCallback import EpochTimingCallback
 from .TrainingLogger import TrainingLogger
+from .LoggingService import LoggingService
 
 # what gets imported with `from logging import *`
 __all__ = [
     "MetricsContainer",
     "EpochTimingCallback",
     "TrainingLogger",
+    "LoggingService",
 ]
