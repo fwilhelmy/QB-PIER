@@ -1,11 +1,4 @@
 import os
-import sys
-# ─── Make sure Python can find `LoggingService.py` in the parent directory ───
-# (i.e. <repo_root>/newsrc/LoggingService.py)
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
-# ─────────────────────────────────────────────────────────────────────────────
 import json
 import numpy as np
 import pandas as pd
@@ -13,126 +6,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import torch
-from LoggingService import LoggingService
-
-
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-
-def plot_training_curves(trained_models, title_prefix="training"):
-    """
-    Plot averaged training & validation loss and accuracy curves for each model.
-    
-    Args:
-        trained_models (dict):
-            Mapping from model_name to { seed: BaseModel_instance }.
-        title_prefix (str): 
-            Prefix for figure titles and filenames.
-        save_dir (str or None):
-            Directory in which to save PNG files. If None, figures are shown interactively.
-        
-    Notes
-    -----
-    Metrics are retrieved using :py:meth:`BaseModel.get_metrics` for each seed
-    so this function does not rely on the internal ``all_metrics`` structure.
-    """
-    for model_name, seed_dict in trained_models.items():
-        seeds = sorted(seed_dict.keys())
-
-        # Gather per-seed metric lists train_weights_l2
-        train_loss_seeds = []
-        val_loss_seeds   = []
-        train_acc_seeds  = []
-        val_acc_seeds    = []
-        train_weights_l2_seeds = []
-        step_lists       = []
-        for seed in seeds:
-            df = seed_dict[seed].metrics.get_metrics()
-            step_lists.append(df["step"].to_numpy())
-            train_loss_seeds.append(df["train_loss"].to_numpy())
-            val_loss_seeds.append(df["val_loss"].to_numpy())
-            train_acc_seeds.append(df["train_acc"].to_numpy())
-            val_acc_seeds.append(df["val_acc"].to_numpy())
-            train_weights_l2_seeds.append(df["train_weights_l2"].to_numpy())
-
-        # All metric arrays share the same number of steps
-        steps = step_lists[0]
-        if not all(len(sl) == len(steps) for sl in step_lists):
-            raise ValueError("Inconsistent step counts across seeds")
-
-        # Stack into arrays of shape (n_seeds, n_steps)
-        tl = np.vstack(train_loss_seeds)
-        vl = np.vstack(val_loss_seeds)
-        ta = np.vstack(train_acc_seeds)
-        va = np.vstack(val_acc_seeds)
-        tw = np.vstack(train_weights_l2_seeds)
-
-        # Compute mean and std along axis=0 (across seeds)
-        tl_mean, tl_std = tl.mean(0), tl.std(0)
-        vl_mean, vl_std = vl.mean(0), vl.std(0)
-        ta_mean, ta_std = ta.mean(0), ta.std(0)
-        va_mean, va_std = va.mean(0), va.std(0)
-        tw_mean, tw_std = tw.mean(0), tw.std(0)
-
-        # Build figure with two subplots: loss & accuracy
-        fig, (ax_loss, ax_acc, ax_weights) = plt.subplots(1, 3, figsize=(24, 6))
-
-        # --- Loss subplot ---
-        ax_loss.plot(steps, tl_mean, label="Train Loss")
-        ax_loss.fill_between(steps,
-                             tl_mean - tl_std,
-                             tl_mean + tl_std,
-                             alpha=0.2)
-        ax_loss.plot(steps, vl_mean, label="Val Loss")
-        ax_loss.fill_between(steps,
-                             vl_mean - vl_std,
-                             vl_mean + vl_std,
-                             alpha=0.2)
-        ax_loss.set_title(f"{model_name} Loss")
-        ax_loss.set_xlabel("Step")
-        ax_loss.set_ylabel("Loss")
-        ax_loss.grid(True, linestyle="--", linewidth=0.5)
-        ax_loss.legend()
-
-        # --- Accuracy subplot ---
-        ax_acc.plot(steps, ta_mean, label="Train Acc")
-        ax_acc.fill_between(steps,
-                             ta_mean - ta_std,
-                             ta_mean + ta_std,
-                             alpha=0.2)
-        ax_acc.plot(steps, va_mean, label="Val Acc")
-        ax_acc.fill_between(steps,
-                             va_mean - va_std,
-                             va_mean + va_std,
-                             alpha=0.2)
-        ax_acc.set_title(f"{model_name} Accuracy")
-        ax_acc.set_xlabel("Step")
-        ax_acc.set_ylabel("Accuracy")
-        ax_acc.set_ylim(0, 1.0)
-        ax_acc.grid(True, linestyle="--", linewidth=0.5)
-        ax_acc.legend()
-
-        # --- Weights L2 subplot ---
-        ax_weights.plot(steps, tw_mean, label="Train Weights L2")
-        ax_weights.fill_between(steps,
-                                 tw_mean - tw_std,
-                                 tw_mean + tw_std,
-                                 alpha=0.2)
-        ax_weights.set_title(f"{model_name} Weights L2")
-        ax_weights.set_xlabel("Step")
-        ax_weights.set_ylabel("Weights L2 Norm")
-        ax_weights.grid(True, linestyle="--", linewidth=0.5)
-        ax_weights.legend()
-
-        fig.suptitle(f"{title_prefix.capitalize()} Curves — {model_name}")
-        fig.tight_layout(rect=[0, 0, 1, 0.96])
-        
-        LoggingService().save_figure(plt, f"{title_prefix}_{model_name}")
+from ..LoggingService import LoggingService
+from .TrainingVisualisation import line_with_std
 
 def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix="transfer"):
     """
@@ -161,13 +36,7 @@ def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix="transfer"):
                 .agg(["mean", "std"])
                 .reindex(epsilons)
             )
-            plt.plot(epsilons, stats["mean"], label=victim)
-            plt.fill_between(
-                epsilons,
-                stats["mean"] - stats["std"],
-                stats["mean"] + stats["std"],
-                alpha=0.2,
-            )
+            line_with_std(plt.gca(), epsilons, stats["mean"], stats["std"], label=victim)
 
         plt.title(f"{title_prefix.capitalize()} attack by {attacker}")
         plt.xlabel("ε (attack strength)")
@@ -176,7 +45,7 @@ def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix="transfer"):
         plt.grid(True, linestyle="--", linewidth=0.5)
         plt.legend(title="Victim model", loc="best")
 
-        LoggingService().save_figure(plt, f"{title_prefix}_{attacker}")
+        LoggingService().save_figure(plt.gcf(), f"{title_prefix}_{attacker}")
 
 def plot_attack_effect_on_accuracy(figstr, models, epsilons, accuracies):
     plt.figure(figsize=(10, 6))
@@ -192,7 +61,7 @@ def plot_attack_effect_on_accuracy(figstr, models, epsilons, accuracies):
     plt.legend(title='Models', fontsize=10)
     plt.tight_layout()
 
-    LoggingService().save_figure(plt, figstr)
+    LoggingService().save_figure(plt.gcf(), figstr)
 
 def store_attack_results(records: list, root_dir: str) -> pd.DataFrame:
     """
@@ -346,37 +215,4 @@ def plot_loss_landscape(
     plt.close()
 
 
-def _plot_gradient_flow(grad_norms: dict, title: str, save_path: str):
-    layers, norms = zip(*sorted(grad_norms.items(), key=lambda kv: kv[0]))
-    plt.figure(figsize=(8, 4))
-    for name, vals in zip(layers, norms):
-        plt.plot(vals, label=name)
-    plt.xlabel("Iteration")
-    plt.ylabel("Gradient Norm")
-    plt.title(title)
-    plt.legend(fontsize=6, ncol=2, loc='upper right')
-    plt.tight_layout()
-    plt.savefig(save_path)
-    plt.close()
 
-
-def generate_gradient_flow_plots(list_of_dirs: list, legend_names: list):
-    """
-    For each log directory containing a results.json with 'train_grad_norms',
-    plot gradient‐flow for weights and biases.
-    """
-    for logdir, name in zip(list_of_dirs, legend_names):
-        json_path = os.path.join(logdir, 'results.json')
-        if not os.path.exists(json_path):
-            raise AssertionError(f"No results.json in {logdir}")
-        with open(json_path, 'r') as f:
-            data = json.load(f)
-        norms = data['train_grad_norms']
-
-        weights = {k: v for k, v in norms.items() if 'weight' in k and 'bias' not in k}
-        biases  = {k: v for k, v in norms.items() if 'bias' in k}
-
-        w_path = os.path.join(logdir, f"gradient_flow_{name}_weights.png")
-        b_path = os.path.join(logdir, f"gradient_flow_{name}_biases.png")
-        _plot_gradient_flow(weights, f"Gradient Flow—Weights ({name})", w_path)
-        _plot_gradient_flow(biases,  f"Gradient Flow—Biases ({name})",  b_path)

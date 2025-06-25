@@ -2,7 +2,7 @@ import torch
 import matplotlib.pyplot as plt
 import random
 from sklearn.manifold import TSNE
-from LoggingService import LoggingService
+from ..LoggingService import LoggingService
 
 # Function to print general information about the dataset
 def print_dataset_info(dataset):
@@ -26,7 +26,7 @@ def plot_class_distribution(dataset):
     plt.xticks(range(len(dataset.classes)), dataset.classes)
 
     # Saving the results
-    LoggingService().save_figure(plt, "class_distribution")
+    LoggingService().save_figure(plt.gcf(), "class_distribution")
 
 # Function to plot class visualizations: sample, mean, and standard deviation images
 def plot_class_visualizations(dataset):
@@ -64,7 +64,7 @@ def plot_class_visualizations(dataset):
     plt.tight_layout()
 
     # Saving the results
-    LoggingService().save_figure(plt, "class_visualizations")
+    LoggingService().save_figure(fig, "class_visualizations")
 
 # Function to perform t-SNE and plot the results
 def plot_tsne(dataset, subset_size=1000):
@@ -82,7 +82,7 @@ def plot_tsne(dataset, subset_size=1000):
     plt.title('t-SNE of Dataset')
 
     # Saving the results
-    LoggingService().save_figure(plt, "tsne")
+    LoggingService().save_figure(plt.gcf(), "tsne")
 
 # Function to plot sample images from the dataset
 def plot_sample_images(dataset, x=10, rows=2, cols=5):
@@ -98,4 +98,5 @@ def plot_sample_images(dataset, x=10, rows=2, cols=5):
     plt.tight_layout()
 
     # Saving the results
-    LoggingService().save_figure(plt, "sample_images")
+    LoggingService().save_figure(fig, "sample_images")
+
