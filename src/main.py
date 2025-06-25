@@ -16,19 +16,19 @@ from visualisation.TrainingVisualisation import (
     plot_training_curves,
     generate_gradient_flow_plots,
 )
-from arguments import Arguments
-from models.classical.LeNet import LeNet
-from models.classical.MLP import MLP
-from models.classical.ResNet18 import ResNet18
-from models.classical.MLPMixer import MLPMixer
+from src.arguments import Arguments
+from src.models.classical.LeNet import LeNet
+from src.models.classical.MLP import MLP
+from src.models.classical.ResNet18 import ResNet18
+from src.models.classical.MLPMixer import MLPMixer
 from src.models.hybrid.HQuanvolution import HQuanvolution
 from src.models.hybrid.HQPNN import HQPNN
-from utils import seed_experiment, calculate_accuracy
-from data.DatasetManagerFactory import DatasetManagerFactory
-from attacks.FGSMAttack import FGSMAttack
-from attacks.PGDAttack import PGDAttack
-from attacks.TransferAttack import run_transfer_attack
-from LoggingService import LoggingService
+from src.utils import seed_experiment, calculate_accuracy
+from src.data.DatasetManagerFactory import DatasetManagerFactory
+from src.attacks.FGSMAttack import FGSMAttack
+from src.attacks.PGDAttack import PGDAttack
+from src.attacks.TransferAttack import run_transfer_attack
+from src.logging.LoggingService import LoggingService
 
 
 def train_model(args, seeds=[0, 42]):

@@ -3,7 +3,7 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from ..LoggingService import LoggingService
+from src.logging.LoggingService import LoggingService
 
 def plot_training_result(model, train_len, val_len):
     results = model.all_metrics

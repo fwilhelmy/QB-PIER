@@ -1,9 +1,9 @@
 """Collection of classical, hybrid and quantum models."""
 
-from .BaseModel import BaseModel
-from .classical import LeNet, MLP, MLPMixer, ResNet18
-from .hybrid import HQPNN, HQuanvolution, HQE
-from .quantum import (
+from src.models.BaseModel import BaseModel
+from src.models.classical import LeNet, MLP, MLPMixer, ResNet18
+from src.models.hybrid import HQPNN, HQuanvolution, HQE
+from src.models.quantum import (
     VQC,
     ParallelVQC,
     Quanvolution,
