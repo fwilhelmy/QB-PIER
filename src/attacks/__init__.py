@@ -1,9 +1,9 @@
 """Adversarial attack implementations."""
 
-from .BaseAttack import BaseAttack
-from .FGSMAttack import FGSMAttack
-from .PGDAttack import PGDAttack
-from .TransferAttack import run_transfer_attack
+from src.attacks.BaseAttack import BaseAttack
+from src.attacks.FGSMAttack import FGSMAttack
+from src.attacks.PGDAttack import PGDAttack
+from src.attacks.TransferAttack import run_transfer_attack
 
 __all__ = [
     "BaseAttack",

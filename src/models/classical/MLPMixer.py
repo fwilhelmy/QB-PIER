@@ -6,7 +6,7 @@ import os
 import math
 import torch
 import matplotlib.pyplot as plt
-from models.BaseModel import BaseModel
+from src.models.BaseModel import BaseModel
 
 class PatchEmbed(nn.Module):
     """ 2D Image to Patch Embedding """

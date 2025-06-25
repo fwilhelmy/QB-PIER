@@ -5,9 +5,9 @@ from torch.nn import ReLU
 from torch.nn import LogSoftmax
 from torch.nn import BatchNorm2d
 from torch import flatten
-from models.quantum.ParallelVQC import ParallelVQC
-from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
-from models.BaseModel import BaseModel
+from src.models.quantum.ParallelVQC import ParallelVQC
+from src.models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from src.models.BaseModel import BaseModel
 import torch
 
 from torch.optim import Adam

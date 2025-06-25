@@ -1,10 +1,10 @@
 """Dataset management utilities."""
 
-from .DatasetManager import DatasetManager
-from .DatasetManagerFactory import DatasetManagerFactory
-from .MNISTManager import MNISTManager
-from .FMNISTManager import FMNISTManager
-from .dimensionality_reduction import (
+from src.data.DatasetManager import DatasetManager
+from src.data.DatasetManagerFactory import DatasetManagerFactory
+from src.data.MNISTManager import MNISTManager
+from src.data.FMNISTManager import FMNISTManager
+from src.data.dimensionality_reduction import (
     PCALayer,
     KernelPCALayer,
     RandomProjectionLayer,

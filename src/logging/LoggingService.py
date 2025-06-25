@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 import matplotlib.pyplot as plt
-from Configuration import LOGS_DIR
+from src.Configuration import LOGS_DIR
 from pytorch_lightning.utilities import rank_zero_only
 
 class LoggingService:

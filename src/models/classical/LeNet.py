@@ -8,7 +8,7 @@ from torch.nn import MaxPool2d
 from torch.nn import ReLU
 from torch.nn import LogSoftmax
 from torch import flatten
-from models.BaseModel import BaseModel
+from src.models.BaseModel import BaseModel
 
 class LeNet(BaseModel):
 	def __init__(self, in_channels, classes, **kwargs):

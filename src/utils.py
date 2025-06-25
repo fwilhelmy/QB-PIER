@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch
-from . import Configuration as cfg
+from src import Configuration as cfg
 import pennylane as qml
 
 def seed_experiment(seed):

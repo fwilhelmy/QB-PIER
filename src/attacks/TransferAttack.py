@@ -7,9 +7,9 @@ from typing import Iterable, List, Dict
 import pandas as pd
 import torch
 
-from .FGSMAttack import FGSMAttack
+from src.attacks.FGSMAttack import FGSMAttack
 from src.data.DatasetManagerFactory import DatasetManagerFactory
-from utils import calculate_accuracy
+from src.utils import calculate_accuracy
 
 
 def run_transfer_attack(

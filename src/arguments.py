@@ -1,5 +1,5 @@
 import torch
-from models.BaseModel import BaseModel
+from src.models.BaseModel import BaseModel
 
 class Arguments:
     # Experiment
