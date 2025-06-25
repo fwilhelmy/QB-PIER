@@ -19,6 +19,8 @@ dependencies = [
     "torch",
     "torchvision",
     "lightning",
+    "scikit-learn",
+    "umap-learn",
     "tensorboard",
     "matplotlib"
 ]

@@ -13,6 +13,8 @@ pennylane
 torch
 torchvision
 lightning
+scikit-learn
+umap-learn
 
 # Scientific visualization
 tensorboard
