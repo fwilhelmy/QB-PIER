@@ -6,7 +6,7 @@ import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
 
-from .BaseAttack import BaseAttack
+from src.attacks.BaseAttack import BaseAttack
 from src.data.DatasetManager import DatasetManager
 
 

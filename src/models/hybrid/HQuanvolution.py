@@ -3,8 +3,8 @@ from torch.nn import Linear
 from torch.nn import ReLU
 from torch.nn import LogSoftmax
 from torch import flatten, float32
-from models.BaseModel import BaseModel
-from models.quantum.Quanvolution import Quanvolution
+from src.models.BaseModel import BaseModel
+from src.models.quantum.Quanvolution import Quanvolution
 
 class HQuanvolution(BaseModel):
 	"""Hybrid Quanvolutional Neural Network (HQuanvolution) model."""

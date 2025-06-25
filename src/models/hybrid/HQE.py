@@ -1,9 +1,9 @@
 import torch
 from torch import nn
 from torch.nn import LogSoftmax
-from models.quantum.VQC import VQC
-from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
-from models.BaseModel import BaseModel
+from src.models.quantum.VQC import VQC
+from src.models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from src.models.BaseModel import BaseModel
 
 
 class HQENN(BaseModel):

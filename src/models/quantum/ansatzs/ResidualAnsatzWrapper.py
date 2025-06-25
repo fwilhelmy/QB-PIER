@@ -1,6 +1,6 @@
 import torch, pennylane as qml
-from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
-from utils import create_qtorchlayer
+from src.models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
+from src.utils import create_qtorchlayer
 
 def ResidualAnsatzWrapper(ansatz_cls):
     class ResidualAnsatz(ansatz_cls):

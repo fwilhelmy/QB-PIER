@@ -1,9 +1,9 @@
 """Dataset management utilities."""
 
-from .DatasetManager import DatasetManager
-from .DatasetManagerFactory import DatasetManagerFactory
-from .MNISTManager import MNISTManager
-from .FMNISTManager import FMNISTManager
+from src.data.DatasetManager import DatasetManager
+from src.data.DatasetManagerFactory import DatasetManagerFactory
+from src.data.MNISTManager import MNISTManager
+from src.data.FMNISTManager import FMNISTManager
 
 __all__ = [
     "DatasetManager",

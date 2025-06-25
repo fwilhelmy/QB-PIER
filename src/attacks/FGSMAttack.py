@@ -5,7 +5,7 @@ from typing import Optional
 import torch
 from torch import Tensor
 
-from .BaseAttack import BaseAttack
+from src.attacks.BaseAttack import BaseAttack
 from src.data.DatasetManager import DatasetManager
 
 class FGSMAttack(BaseAttack):

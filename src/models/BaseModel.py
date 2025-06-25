@@ -14,10 +14,10 @@ from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities import rank_zero_only
 
-from utils import calculate_accuracy
-from Configuration import CPU_NUMBER
+from src.utils import calculate_accuracy
+from src.Configuration import CPU_NUMBER
 from src.logging.LoggingService import LoggingService
-from logging import TrainingLogger, MetricsContainer
+from src.logging import TrainingLogger, MetricsContainer
 
 SUPPORTED_LOSS_FUNCTIONS = {
     "cross_entropy": CrossEntropyLoss,  # For classification tasks

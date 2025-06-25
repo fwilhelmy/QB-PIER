@@ -1,6 +1,6 @@
 import pennylane as qml
 import numpy as np
-from utils import get_qnode, create_qtorchlayer
+from src.utils import get_qnode, create_qtorchlayer
 
 class BaseAnsatz:
     """

@@ -4,9 +4,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Type
 
-from models.quantum.VQC import VQC
-from models.quantum.ansatzs.RandomStructureAnsatz import RandomStructureAnsatz
-from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
+from src.models.quantum.VQC import VQC
+from src.models.quantum.ansatzs.RandomStructureAnsatz import RandomStructureAnsatz
+from src.models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
 
 
 class Quanvolution(nn.Module):
