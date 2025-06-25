@@ -12,9 +12,10 @@ from tqdm import tqdm
 class DatasetManager:
     def __init__(self, root: str, train: bool = True):
         self.root = root
-        self.dataset = self.__load_dataset(train=train)
+        self.dataset = self.load_dataset(train=train)
+        self.gradients: Dict[str, List[tuple[Tensor, Tensor]]] = {}
 
-    def __load_dataset(self, train: bool):
+    def load_dataset(self, train: bool):
         raise NotImplementedError("This method should be overridden in subclasses")
     
     def __calculate_stats(self):
@@ -69,6 +70,15 @@ class DatasetManager:
     
     @torch.no_grad()
     def compute_gradients(self, model, max_x: Optional[int] = None, hot_reload: bool = False):
+        """Return gradients for ``model`` on this dataset.
+
+        Gradients are computed once and cached unless ``hot_reload`` is True.
+        ``max_x`` limits the number of samples used when computing them.
+        """
+
+        if not hot_reload and model.model_name in self.gradients:
+            return self.gradients[model.model_name]
+
         gradients: List[tuple[Tensor, Tensor]] = []
         model.eval()
         state = copy.deepcopy(model.state_dict())
@@ -84,4 +94,6 @@ class DatasetManager:
             model.load_state_dict(state)
             if idx >= max_x - 1:
                 break
+
+        self.gradients[model.model_name] = gradients
         return gradients

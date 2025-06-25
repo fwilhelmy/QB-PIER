@@ -46,8 +46,7 @@ def run_transfer_attack(
     data = dataset.data.unsqueeze(1).to(torch.float)
     targets = dataset.targets
 
-    gradients = dm.compute_gradients(attacker_model)
-    attack = FGSMAttack()
+    attack = FGSMAttack(dm)
     epsilons = list(epsilons) if epsilons is not None else [x / 100.0 for x in range(0, 105, 5)]
 
     attacker_model.eval()
@@ -59,7 +58,7 @@ def run_transfer_attack(
         attacker_model(data.to(device))  # warm-up forward pass
 
     for eps in epsilons:
-        adv_examples = attack.attack(gradients, eps).to(device)
+        adv_examples = attack.attack(attacker_model, eps).to(device)
         with torch.no_grad():
             adv_logits = victim_model(adv_examples)
             adv_acc = calculate_accuracy(
