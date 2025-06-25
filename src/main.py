@@ -28,7 +28,7 @@ from data.DatasetManagerFactory import DatasetManagerFactory
 from attacks.FGSMAttack import FGSMAttack
 from attacks.PGDAttack import PGDAttack
 from attacks.TransferAttack import run_transfer_attack
-from LoggingService import LoggingService
+from src.logging.LoggingService import LoggingService
 
 
 def train_model(args, seeds=[0, 42]):

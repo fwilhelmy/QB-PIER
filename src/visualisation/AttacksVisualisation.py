@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import torch
-from ..LoggingService import LoggingService
+from ..logging.LoggingService import LoggingService
 from .TrainingVisualisation import line_with_std
 
 def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix="transfer"):
