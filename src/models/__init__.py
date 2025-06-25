@@ -2,7 +2,7 @@
 
 from .BaseModel import BaseModel
 from .classical import LeNet, MLP, MLPMixer, ResNet18
-from .hybrid import HQNN_Parallel, HQNN_Quanv
+from .hybrid import HQPNN, HQuanvolution, HQE
 from .quantum import (
     VQC,
     ParallelVQC,
@@ -23,8 +23,8 @@ __all__ = [
     "MLP",
     "MLPMixer",
     "ResNet18",
-    "HQNN_Parallel",
-    "HQNN_Quanv",
+    "HQPNN",
+    "HQuanvolution",
     "VQC",
     "ParallelVQC",
     "Quanvolution",

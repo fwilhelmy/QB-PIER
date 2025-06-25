@@ -6,8 +6,8 @@ from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 from models.BaseModel import BaseModel
 
 
-class HQEN(BaseModel):
-    """Hybrid Quantum Encoder Network.
+class HQENN(BaseModel):
+    """Hybrid Quantum Encoder (HQE) model
 
     Consists of classical encoder layers followed by a variational quantum
     circuit acting as the bottleneck. The number of qubits equals the number

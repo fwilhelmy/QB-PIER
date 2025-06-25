@@ -6,7 +6,8 @@ from torch import flatten, float32
 from models.BaseModel import BaseModel
 from models.quantum.Quanvolution import Quanvolution
 
-class HQNN_Quanv(BaseModel):
+class HQuanvolution(BaseModel):
+	"""Hybrid Quanvolutional Neural Network (HQuanvolution) model."""
 	def __init__(self, in_channels, classes, **kwargs):
 		# Call the parent constructor
 		super().__init__(**kwargs)

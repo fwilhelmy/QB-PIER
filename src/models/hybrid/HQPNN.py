@@ -15,7 +15,8 @@ from torch import nn
 import time
 
 
-class HQNN_Parallel(BaseModel):
+class HQPNN(BaseModel):
+    """Hybrid Quantum Parrallel Neural Network (HQPNN) model."""
     def __init__(self, in_channels, classes, in_qlayer = 20, n_qubits = 5, n_qdepth = (3), qcircuit = "strongly_entangling", **kwargs):
         # Call the parent constructor
         super().__init__(**kwargs)

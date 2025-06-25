@@ -1,11 +1,11 @@
 """Hybrid quantum-classical models."""
 
-from .HQNN_Parallel import HQNN_Parallel
-from .HQNN_Quanv import HQNN_Quanv
-from .HQEN import HQEN
+from .HQPNN import HQPNN
+from .HQuanvolution import HQuanvolution
+from .HQE import HQENN
 
 __all__ = [
-    "HQNN_Parallel",
-    "HQNN_Quanv",
-    "HQEN",
+    "HQPNN",
+    "HQuanvolution",
+    "HQE",
 ]
