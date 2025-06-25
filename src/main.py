@@ -8,14 +8,14 @@ import pandas as pd
 
 from visualisation.AttacksVisualisation import (
     plot_attack_effect_on_accuracy,
-    plot_training_curves,
-    plot_transfer_attack_effects
+    plot_transfer_attack_effects,
 )
 from visualisation.TrainingVisualisation import (
     plot_training_result,
     plot_models_together,
+    plot_training_curves,
+    generate_gradient_flow_plots,
 )
-from visualisation.Tempvis import generate_gradient_flow_plots
 from arguments import Arguments
 from models.classical.LeNet import LeNet
 from models.classical.MLP import MLP
