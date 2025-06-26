@@ -1,4 +1,4 @@
-from torch.nn import Module
+import torch
 from torch.nn import Linear
 from torch.nn import ReLU
 from torch.nn import LogSoftmax
@@ -22,10 +22,9 @@ class HQuanvolution(BaseModel):
 		self.fc2 = Linear(in_features=784, out_features=classes)
 		self.logSoftmax = LogSoftmax(dim=1)
 
-
-	def forward(self, x):
+	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
 		# ==== Convolutional layer
-		x = self.quanv(x)
+		x = self.quanv(inputs)
 
 		x = flatten(x.to(float32), 1) # flatten the output from the previous layer and pass it
 

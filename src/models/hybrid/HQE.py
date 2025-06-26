@@ -6,7 +6,7 @@ from src.models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsa
 from src.models.BaseModel import BaseModel
 
 
-class HQENN(BaseModel):
+class HQE(BaseModel):
     """Hybrid Quantum Encoder (HQE) model
 
     Consists of classical encoder layers followed by a variational quantum
@@ -39,9 +39,10 @@ class HQENN(BaseModel):
         self.vqc = VQC(n_qubits=classes, n_layers=n_qdepth, ansatz_cls=ansatz_cls)
         self.logSoftmax = LogSoftmax(dim=1)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = x.view(x.size(0), -1)
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        x = inputs.view(inputs.size(0), -1)
         x = self.encoder(x)
         x = self.bottleneck_act(self.bottleneck(x))
         x = self.vqc(x)
         return self.logSoftmax(x)
+    

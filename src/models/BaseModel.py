@@ -174,7 +174,7 @@ class BaseModel(LightningModule):
         return {"loss": loss, "acc": acc, "weights_l2": params_l2}
 
     def on_train_epoch_end(self):
-        self.metrics.log_epoch(self.current_epoch, self.global_step)
+        self.metrics.log_epoch(self.global_step)
 
         with torch.no_grad():
             grad_l2 = {name: param.grad.data.norm(2).item()

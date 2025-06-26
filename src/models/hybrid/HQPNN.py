@@ -53,9 +53,9 @@ class HQPNN(BaseModel):
         self.fc2 = Linear(in_features=in_qlayer, out_features=classes)
         self.logSoftmax = LogSoftmax(dim=1)
 
-    def forward(self, x):
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         # ==== Convolutional layer
-        x = self.conv1(x)
+        x = self.conv1(inputs)
         x = self.batchNorm1(x)
         x = self.relu1(x)
         x = self.maxpool1(x)
