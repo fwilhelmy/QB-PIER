@@ -23,31 +23,48 @@ class FGSMAttack(BaseAttack):
         return torch.clamp(perturbed, 0, 1)
     
     @torch.no_grad()
-    def compute_gradients(self, model, max_x: Optional[int] = None):
+    def compute_gradients(
+        self,
+        model,
+        max_x: Optional[int] = None,
+        batch_size: int = 64,
+    ):
         """Return gradients for ``model`` on this dataset.
 
         Gradients are computed once and cached unless ``hot_reload`` is True.
         ``max_x`` limits the number of samples used when computing them.
+        ``batch_size`` controls how many samples are processed at once.
         """
-        
+
         if model.model_name in self.gradients:
             return self.gradients[model.model_name]
 
         gradients: List[tuple[Tensor, Tensor]] = []
         model.eval()
-        state = copy.deepcopy(model.state_dict()) # state-reload for model state
+        state = copy.deepcopy(model.state_dict())  # save model weights
         max_x = max_x if max_x is not None else len(self.dataset)
-        pbar = tqdm(self.dataset, desc=f"Computing gradients for {model.model_name}")
-        for idx, (image, target) in enumerate(pbar):
-            img = image.clone().detach().to(torch.float32).requires_grad_(True)
-            output = model(img.unsqueeze(0))
-            loss = model.loss_fn(output, torch.tensor([target], dtype=torch.long))
+
+        loader = torch.utils.data.DataLoader(
+            self.dataset, batch_size=batch_size, shuffle=False
+        )
+        processed = 0
+        pbar = tqdm(loader, desc=f"Computing gradients for {model.model_name}")
+        for images, targets in pbar:
+            if processed >= max_x:
+                break
+            images = images.clone().detach().to(torch.float32)
+            images.requires_grad_(True)
+            outputs = model(images)
+            loss = model.loss_fn(outputs, targets)
             model.zero_grad()
             loss.backward()
-            gradients.append((image, img.grad.detach()))
-            model.load_state_dict(state) # state-reload for model state
-            if idx >= max_x - 1:
-                break
+            grads = images.grad.detach()
+            for img, grad in zip(images, grads):
+                gradients.append((img.cpu(), grad.cpu()))
+                processed += 1
+                if processed >= max_x:
+                    break
+            model.load_state_dict(state)
 
         self.gradients[model.model_name] = gradients
         return gradients
