@@ -12,7 +12,7 @@ from src.data.DatasetManagerFactory import DatasetManagerFactory
 from src.utils import calculate_accuracy
 
 
-def run_transfer_attack(
+def transfer_attack(
     attacker_model,
     victim_model,
     dataset_name: str,

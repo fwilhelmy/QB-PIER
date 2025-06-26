@@ -27,7 +27,7 @@ from src.utils import seed_experiment, calculate_accuracy
 from src.data.DatasetManagerFactory import DatasetManagerFactory
 from src.attacks.FGSMAttack import FGSMAttack
 from src.attacks.PGDAttack import PGDAttack
-from src.attacks.TransferAttack import run_transfer_attack
+from src.attacks.TransferAttack import transfer_attack
 from src.logging.LoggingService import LoggingService
 
 
@@ -114,7 +114,7 @@ def run_attacks(trained_models, args):
 
         for attacker_model in models:
             for victim_model in models:
-                df = run_transfer_attack(
+                df = transfer_attack(
                     attacker_model,
                     victim_model,
                     dataset_name=args.dataset,
