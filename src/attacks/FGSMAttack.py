@@ -13,8 +13,9 @@ from src.data.DatasetManager import DatasetManager
 class FGSMAttack(BaseAttack):
     """Fast Gradient Sign Method attack."""
 
-    def __init__(self, dataset_manager: DatasetManager, max_samples: Optional[int] = None) -> None:
-        super().__init__("FGSM", dataset_manager, max_samples)
+    def __init__(self, dataset, max_samples: Optional[int] = None) -> None:
+        super().__init__("FGSM", dataset, max_samples)
+        self.gradients: dict[str, List[tuple[Tensor, Tensor]]] = {}
 
     def _fgsm(self, image: Tensor, gradient: Tensor, epsilon: float) -> Tensor:
         if epsilon == 0: return image
@@ -51,8 +52,8 @@ class FGSMAttack(BaseAttack):
         self.gradients[model.model_name] = gradients
         return gradients
 
-    def attack(self, model, epsilon: float) -> Tensor:
-        gradients = self.get_gradients(model)
+    def attack(self, model, epsilon: float, **kwargs) -> Tensor:
+        gradients = self.compute_gradients(model)
         adv_examples = []
         for image, gradient in gradients:
             perturbed_image = self._fgsm(image, gradient, epsilon)

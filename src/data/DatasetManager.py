@@ -13,7 +13,6 @@ class DatasetManager:
     def __init__(self, root: str, train: bool = True):
         self.root = root
         self.dataset = self.load_dataset(train=train)
-        self.gradients: Dict[str, List[tuple[Tensor, Tensor]]] = {}
 
     def load_dataset(self, train: bool):
         raise NotImplementedError("This method should be overridden in subclasses")

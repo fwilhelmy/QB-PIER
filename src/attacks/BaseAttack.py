@@ -17,24 +17,15 @@ class BaseAttack(ABC):
     def __init__(
         self,
         attack_name: str,
-        dataset_manager: DatasetManager,
+        dataset,
         max_samples: Optional[int] = None,
     ) -> None:
         self.attack_name = attack_name
-        self.dataset_manager = dataset_manager
+        self.dataset = dataset
         self.max_samples = max_samples
 
-    @property
-    def dataset(self):
-        return self.dataset_manager.dataset
-
-
-    def get_gradients(self, model):
-        """Retrieve gradients for ``model`` from the dataset manager."""
-        return self.dataset_manager.compute_gradients(model, self.max_samples)
-
     @abstractmethod
-    def attack(self, model, epsilon: float) -> Tensor:
+    def attack(self, model, epsilon: float, **kwargs) -> Tensor:
         """Generate adversarial examples for ``model`` at ``epsilon`` level."""
         raise NotImplementedError(
             "This method should be overridden in subclasses"

@@ -47,7 +47,7 @@ class PGDAttack(BaseAttack):
         adv_images = torch.clamp(images + delta.detach(), 0.0, 1.0)
         return adv_images
 
-    def attack(self, model, epsilon: float) -> Tensor:
+    def attack(self, model, epsilon: float, **kwargs) -> Tensor:
         """Generate PGD adversarial examples for ``model`` on this attack's dataset."""
         adv_batches = []
         device = next(model.parameters()).device
