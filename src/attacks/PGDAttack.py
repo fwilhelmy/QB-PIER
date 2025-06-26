@@ -43,7 +43,8 @@ class PGDAttack(BaseAttack):
             model.zero_grad()
             loss.backward()
             grad = delta.grad.detach()
-            delta.data = (delta + self.alpha * grad.sign()).clamp(-epsilon, epsilon)
+            with torch.no_grad():
+                delta.add_(self.alpha * grad.sign()).clamp_(-epsilon, epsilon)
             delta.grad.zero_()
 
         adv_images = torch.clamp(images + delta.detach(), 0.0, 1.0)
