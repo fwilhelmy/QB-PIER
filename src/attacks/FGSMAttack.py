@@ -42,7 +42,7 @@ class FGSMAttack(BaseAttack):
         gradients: List[tuple[Tensor, Tensor]] = []
         model.eval()
         state = copy.deepcopy(model.state_dict())  # save model weights
-        max_x = max_x if max_x is not None else len(self.dataset)
+        max_x = max_x or self.max_samples or len(self.dataset)
 
         loader = torch.utils.data.DataLoader(
             self.dataset, batch_size=batch_size, shuffle=False
@@ -70,7 +70,7 @@ class FGSMAttack(BaseAttack):
         return gradients
 
     def attack(self, model, epsilon: float, **kwargs) -> Tensor:
-        gradients = self.compute_gradients(model)
+        gradients = self.compute_gradients(model, max_x=self.max_samples)
         adv_examples = []
         for image, gradient in gradients:
             perturbed_image = self._fgsm(image, gradient, epsilon)
