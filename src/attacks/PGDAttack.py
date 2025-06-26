@@ -20,12 +20,14 @@ class PGDAttack(BaseAttack):
         num_iter: int = 10,
         alpha: float = 0.01,
         random_start: bool = True,
+        batch_size: int = 1,
         max_samples: Optional[int] = None,
     ) -> None:
         super().__init__("PGD", dataset, max_samples)
         self.num_iter = num_iter
         self.alpha = alpha
         self.random_start = random_start
+        self.batch_size = batch_size
 
     def _pgd(self, model, images: Tensor, labels: Tensor, epsilon: float) -> Tensor:
         """Apply PGD to a batch of images."""
@@ -55,7 +57,7 @@ class PGDAttack(BaseAttack):
         device = next(model.parameters()).device
         model.eval()
         state = copy.deepcopy(model.state_dict())  # save original weights
-        loader = DataLoader(self.dataset, batch_size=1, shuffle=False)
+        loader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=False)
         for idx, (images, labels) in enumerate(loader):
             if self.max_samples is not None and idx >= self.max_samples:
                 break
