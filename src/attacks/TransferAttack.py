@@ -46,7 +46,7 @@ def transfer_attack(
     data = dataset.data.unsqueeze(1).to(torch.float)
     targets = dataset.targets
 
-    attack = FGSMAttack(dm)
+    attack = FGSMAttack(dm.dataset)
     epsilons = list(epsilons) if epsilons is not None else [x / 100.0 for x in range(0, 105, 5)]
 
     attacker_model.eval()

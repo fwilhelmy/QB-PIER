@@ -7,13 +7,14 @@ import torch
 from torch import Tensor
 from tqdm import tqdm
 
+from torch.utils.data import Dataset
+
 from src.attacks.BaseAttack import BaseAttack
-from src.data.DatasetManager import DatasetManager
 
 class FGSMAttack(BaseAttack):
     """Fast Gradient Sign Method attack."""
 
-    def __init__(self, dataset, max_samples: Optional[int] = None) -> None:
+    def __init__(self, dataset: Dataset, max_samples: Optional[int] = None) -> None:
         super().__init__("FGSM", dataset, max_samples)
         self.gradients: dict[str, List[tuple[Tensor, Tensor]]] = {}
 
