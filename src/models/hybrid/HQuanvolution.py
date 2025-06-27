@@ -1,39 +1,69 @@
+"""Hybrid CNN model using a quanvolution layer."""
+
+from typing import Optional, Type
+
 import torch
-from torch.nn import Linear
-from torch.nn import ReLU
-from torch.nn import LogSoftmax
 from torch import flatten, float32
+from torch.nn import Linear, LogSoftmax, ReLU
+
 from src.models.BaseModel import BaseModel
 from src.models.quantum.Quanvolution import Quanvolution
+from src.models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
+from src.models.quantum.ansatzs.RandomStructureAnsatz import RandomStructureAnsatz
 
 class HQuanvolution(BaseModel):
-	"""Hybrid Quanvolutional Neural Network (HQuanvolution) model."""
-	def __init__(self, in_channels, classes, **kwargs):
-		# Call the parent constructor
-		super().__init__(**kwargs)
+    """Hybrid Quanvolutional Neural Network."""
 
-		self.quanv = Quanvolution(2)
-		
-		# Initialize first (and only) set of FC => RELU layers
-		self.fc1 = Linear(in_features=784, out_features=784)
-		self.relu3 = ReLU()
+    def __init__(
+        self,
+        in_channels: int,
+        classes: int,
+        img_size: int = 28,
+        patch_size: int = 2,
+        stride: Optional[int] = None,
+        n_qdepth: int = 1,
+        ansatz_cls: Type[BaseAnsatz] = RandomStructureAnsatz,
+        embedding: str = "angle",
+        rotation: str = "X",
+        fc_size: Optional[int] = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
 
-		# Initialize our softmax classifier
-		self.fc2 = Linear(in_features=784, out_features=classes)
-		self.logSoftmax = LogSoftmax(dim=1)
+        self.img_size = img_size
+        self.patch_size = patch_size
+        self.stride = stride or patch_size
 
-	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-		# ==== Convolutional layer
-		x = self.quanv(inputs)
+        # Quantum convolution layer
+        self.quanv = Quanvolution(
+            patch_size=self.patch_size,
+            stride=self.stride,
+            n_layers=n_qdepth,
+            ansatz_cls=ansatz_cls,
+            embedding=embedding,
+            rotation=rotation,
+        )
 
-		x = flatten(x.to(float32), 1) # flatten the output from the previous layer and pass it
+        n_patches = (self.img_size - self.patch_size) // self.stride + 1
+        self.fc_input_dim = fc_size or self.quanv.n_qubits * n_patches * n_patches
 
-		# ==== FC layer
-		x = self.fc1(x)
-		x = self.relu3(x)
-		
-		# ==== Softmax classifier
-		x = self.fc2(x)
-		output = self.logSoftmax(x)
+        # Classical fully connected layers
+        self.fc1 = Linear(in_features=self.fc_input_dim, out_features=self.fc_input_dim)
+        self.relu3 = ReLU()
 
-		return output # return the output predictions
+        self.fc2 = Linear(in_features=self.fc_input_dim, out_features=classes)
+        self.logSoftmax = LogSoftmax(dim=1)
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        # Quantum convolution
+        x = self.quanv(inputs)
+
+        # Flatten and pass through classical layers
+        x = flatten(x.to(float32), 1)
+        x = self.fc1(x)
+        x = self.relu3(x)
+
+        x = self.fc2(x)
+        output = self.logSoftmax(x)
+
+        return output

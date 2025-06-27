@@ -1,14 +1,15 @@
-from torch.nn import Conv2d
-from torch.nn import Linear
-from torch.nn import MaxPool2d
-from torch.nn import ReLU
-from torch.nn import LogSoftmax
-from torch.nn import BatchNorm2d
-from torch import flatten
-from src.models.quantum.ParallelVQC import ParallelVQC
-from src.models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
-from src.models.BaseModel import BaseModel
+"""Hybrid parallel CNN combined with a quantum layer."""
+
+from typing import Optional, Type
+
 import torch
+from torch import flatten
+from torch.nn import BatchNorm2d, Conv2d, Linear, LogSoftmax, MaxPool2d, ReLU
+
+from src.models.BaseModel import BaseModel
+from src.models.quantum.ParallelVQC import ParallelVQC
+from src.models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
+from src.models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 
 from torch.optim import Adam
 from torch import nn
@@ -16,14 +17,53 @@ import time
 
 
 class HQPNN(BaseModel):
-    """Hybrid Quantum Parrallel Neural Network (HQPNN) model."""
-    def __init__(self, in_channels, classes, in_qlayer = 20, n_qubits = 5, n_qdepth = (3), qcircuit = "strongly_entangling", **kwargs):
-        # Call the parent constructor
+    """Hybrid Quantum Parallel Neural Network (HQPNN).
+
+    This model consists of a small convolutional feature extractor followed by a
+    fully-connected layer.  The resulting feature vector is then processed by a
+    stack of variational quantum circuits (:class:`ParallelVQC`).
+
+    Parameters
+    ----------
+    in_channels: int
+        Number of input channels of the image.
+    classes: int
+        Number of output classes.
+    in_qlayer: int, optional
+        Size of the feature vector fed into the quantum layer.
+    n_qubits: int, optional
+        Number of qubits per quantum circuit.  If ``None`` the value of
+        ``in_qlayer`` is used.
+    n_qdepth: int, optional
+        Depth (number of layers) of each quantum circuit.
+    ansatz_cls: Type[BaseAnsatz], optional
+        Ansatz class used inside the quantum circuits.
+    **kwargs: Any
+        Forwarded to :class:`BaseModel`.
+    """
+
+    def __init__(
+        self,
+        in_channels: int,
+        classes: int,
+        in_qlayer: int = 20,
+        n_qubits: Optional[int] = None,
+        n_qdepth: int = 3,
+        ansatz_cls: Type[BaseAnsatz] = BasicEntanglingAnsatz,
+        **kwargs,
+    ) -> None:
         super().__init__(**kwargs)
 
-        # Initialize first set of CONV => RELU => POOL layers
+        self.in_qlayer = in_qlayer
+        self.n_qubits = n_qubits or in_qlayer
+        self.n_qdepth = n_qdepth
+
+        # Convolutional feature extractor
         self.conv1 = Conv2d(
-            in_channels=in_channels, out_channels=16, kernel_size=(5, 5), padding=2
+            in_channels=in_channels,
+            out_channels=16,
+            kernel_size=(5, 5),
+            padding=2,
         )
         self.batchNorm1 = BatchNorm2d(16)
         self.relu1 = ReLU()
@@ -37,20 +77,20 @@ class HQPNN(BaseModel):
         self.relu2 = ReLU()
         self.maxpool2 = MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
 
-        # Initialize first (and only) set of FC => RELU layers
-        self.fc1 = Linear(in_features=1568, out_features=in_qlayer)
+        # Classical fully-connected layer before the quantum block
+        self.fc1 = Linear(in_features=1568, out_features=self.in_qlayer)
         self.relu3 = ReLU()
 
-        # Initialize the quantum layer
+        # Quantum layer configuration
         self.qlayer1 = ParallelVQC(
-            size_in=in_qlayer,
-            n_layers=n_qdepth,
-            n_qubits=n_qubits,
-            ansatz_cls=BasicEntanglingAnsatz,
+            size_in=self.in_qlayer,
+            n_qubits=self.n_qubits,
+            n_layers=self.n_qdepth,
+            ansatz_cls=ansatz_cls,
         )
 
         # Initialize our softmax classifier
-        self.fc2 = Linear(in_features=in_qlayer, out_features=classes)
+        self.fc2 = Linear(in_features=self.in_qlayer, out_features=classes)
         self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
