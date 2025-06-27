@@ -1,58 +1,79 @@
 from __future__ import annotations
 
-from typing import Dict, List
 import copy
+from typing import List, Optional
 
 import torch
 from torch import Tensor
 from tqdm import tqdm
 
-from models.BaseModel import BaseModel
-from BaseAttack import BaseAttack
+from torch.utils.data import Dataset
 
+from src.attacks.BaseAttack import BaseAttack
 
 class FGSMAttack(BaseAttack):
     """Fast Gradient Sign Method attack."""
 
-    def __init__(self, dataset) -> None:
-        super().__init__("FGSM")
-        self.dataset = dataset
-        self.gradients: Dict[str, List[Tensor]] = {}
+    def __init__(self, dataset: Dataset, max_samples: Optional[int] = None) -> None:
+        super().__init__("FGSM", dataset, max_samples)
+        self.gradients: dict[str, List[tuple[Tensor, Tensor]]] = {}
 
     def _fgsm(self, image: Tensor, gradient: Tensor, epsilon: float) -> Tensor:
         if epsilon == 0: return image
         perturbed = image + epsilon * gradient.sign()
         return torch.clamp(perturbed, 0, 1)
+    
+    @torch.no_grad()
+    def compute_gradients(
+        self,
+        model,
+        max_x: Optional[int] = None,
+        batch_size: int = 64,
+    ):
+        """Return gradients for ``model`` on this dataset.
 
-    def _calculate_gradient(self, model, image: Tensor, target: int) -> Tensor:
-        img = image.clone().detach().to(torch.float32).requires_grad_(True)
-        output = model(img.unsqueeze(0))
-        loss = model.loss_fn(output, torch.tensor([target], dtype=torch.long))
-        model.zero_grad()
-        loss.backward()
-        return img.grad.detach()
+        Gradients are computed once and cached unless ``hot_reload`` is True.
+        ``max_x`` limits the number of samples used when computing them.
+        ``batch_size`` controls how many samples are processed at once.
+        """
 
-    def _precompute_gradients(self, model) -> None:
-        gradients: List[Tensor] = []
+        if model.model_name in self.gradients:
+            return self.gradients[model.model_name]
+
+        gradients: List[tuple[Tensor, Tensor]] = []
         model.eval()
-        state = copy.deepcopy(model.state_dict())
-        pbar = tqdm(self.dataset, desc=f"Computing gradients for {model.model_name}")
-        for idx, (img, target) in enumerate(pbar):
-            gradients.append(self._calculate_gradient(model, img, target))
+        state = copy.deepcopy(model.state_dict())  # save model weights
+        max_x = max_x or self.max_samples or len(self.dataset)
+
+        loader = torch.utils.data.DataLoader(
+            self.dataset, batch_size=batch_size, shuffle=False
+        )
+        processed = 0
+        pbar = tqdm(loader, desc=f"Computing gradients for {model.model_name}")
+        for images, targets in pbar:
+            if processed >= max_x:
+                break
+            images = images.clone().detach().to(torch.float32)
+            images.requires_grad_(True)
+            outputs = model(images)
+            loss = model.loss_fn(outputs, targets)
+            model.zero_grad()
+            loss.backward()
+            grads = images.grad.detach()
+            for img, grad in zip(images, grads):
+                gradients.append((img.cpu(), grad.cpu()))
+                processed += 1
+                if processed >= max_x:
+                    break
             model.load_state_dict(state)
-            if idx >= 149:
-                break
+
         self.gradients[model.model_name] = gradients
+        return gradients
 
-    def attack(self, model, epsilon: float) -> Tensor:
-        if model.model_name not in self.gradients:
-            self._precompute_gradients(model)
-
+    def attack(self, model, epsilon: float, **kwargs) -> Tensor:
+        gradients = self.compute_gradients(model, max_x=self.max_samples)
         adv_examples = []
-        for idx, (img, _) in enumerate(self.dataset):
-            gradient = self.gradients[model.model_name][idx]
-            adv_examples.append(self._fgsm(img, gradient, epsilon))
-            if idx >= 149:
-                break
-
+        for image, gradient in gradients:
+            perturbed_image = self._fgsm(image, gradient, epsilon)
+            adv_examples.append(perturbed_image)
         return torch.stack(adv_examples)

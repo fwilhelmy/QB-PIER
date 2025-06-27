@@ -5,9 +5,9 @@ from torch.nn import ReLU
 from torch.nn import LogSoftmax
 from torch.nn import BatchNorm2d
 from torch import flatten
-from models.quantum.ParallelVQC import ParallelVQC
-from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
-from models.BaseModel import BaseModel
+from src.models.quantum.ParallelVQC import ParallelVQC
+from src.models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from src.models.BaseModel import BaseModel
 import torch
 
 from torch.optim import Adam
@@ -15,7 +15,8 @@ from torch import nn
 import time
 
 
-class HQNN_Parallel(BaseModel):
+class HQPNN(BaseModel):
+    """Hybrid Quantum Parrallel Neural Network (HQPNN) model."""
     def __init__(self, in_channels, classes, in_qlayer = 20, n_qubits = 5, n_qdepth = (3), qcircuit = "strongly_entangling", **kwargs):
         # Call the parent constructor
         super().__init__(**kwargs)
@@ -52,9 +53,9 @@ class HQNN_Parallel(BaseModel):
         self.fc2 = Linear(in_features=in_qlayer, out_features=classes)
         self.logSoftmax = LogSoftmax(dim=1)
 
-    def forward(self, x):
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         # ==== Convolutional layer
-        x = self.conv1(x)
+        x = self.conv1(inputs)
         x = self.batchNorm1(x)
         x = self.relu1(x)
         x = self.maxpool1(x)

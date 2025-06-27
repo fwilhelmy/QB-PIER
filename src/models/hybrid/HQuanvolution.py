@@ -1,12 +1,13 @@
-from torch.nn import Module
+import torch
 from torch.nn import Linear
 from torch.nn import ReLU
 from torch.nn import LogSoftmax
 from torch import flatten, float32
-from models.BaseModel import BaseModel
-from models.quantum.Quanvolution import Quanvolution
+from src.models.BaseModel import BaseModel
+from src.models.quantum.Quanvolution import Quanvolution
 
-class HQNN_Quanv(BaseModel):
+class HQuanvolution(BaseModel):
+	"""Hybrid Quanvolutional Neural Network (HQuanvolution) model."""
 	def __init__(self, in_channels, classes, **kwargs):
 		# Call the parent constructor
 		super().__init__(**kwargs)
@@ -21,10 +22,9 @@ class HQNN_Quanv(BaseModel):
 		self.fc2 = Linear(in_features=784, out_features=classes)
 		self.logSoftmax = LogSoftmax(dim=1)
 
-
-	def forward(self, x):
+	def forward(self, inputs: torch.Tensor) -> torch.Tensor:
 		# ==== Convolutional layer
-		x = self.quanv(x)
+		x = self.quanv(inputs)
 
 		x = flatten(x.to(float32), 1) # flatten the output from the previous layer and pass it
 

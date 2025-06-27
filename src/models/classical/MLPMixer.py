@@ -6,11 +6,11 @@ import os
 import math
 import torch
 import matplotlib.pyplot as plt
-from models.BaseModel import BaseModel
+from src.models.BaseModel import BaseModel
 
 class PatchEmbed(nn.Module):
     """ 2D Image to Patch Embedding """
-    def __init__(self, img_size, patch_size, in_chans=3, embed_dim=768):
+    def __init__(self, img_size, patch_size, in_chans, embed_dim=768):
         super(PatchEmbed, self).__init__()
         self.img_size = img_size
         self.patch_size = patch_size

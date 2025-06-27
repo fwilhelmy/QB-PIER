@@ -1,5 +1,5 @@
 import pennylane as qml
-from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
+from src.models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
 import numpy as np
 
 class RandomStructureAnsatz(BaseAnsatz):

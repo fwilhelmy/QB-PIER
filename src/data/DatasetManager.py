@@ -2,11 +2,17 @@ from torch.utils.data import DataLoader, random_split
 import torch
 from tqdm import tqdm
 import numpy as np
+from typing import Dict, List, Optional
+import copy
+import torch
+from torch import Tensor
+from pytorch_lightning.utilities import rank_zero_only
+from tqdm import tqdm
 
 class DatasetManager:
-    def __init__(self, root: str):
+    def __init__(self, root: str, train: bool = True):
         self.root = root
-        self.dataset = self.load_dataset(train=True)
+        self.dataset = self.load_dataset(train=train)
 
     def load_dataset(self, train: bool):
         raise NotImplementedError("This method should be overridden in subclasses")

@@ -8,25 +8,27 @@ import pandas as pd
 
 from visualisation.AttacksVisualisation import (
     plot_attack_effect_on_accuracy,
-    plot_training_curves,
-    plot_transfer_attack_effects
+    plot_transfer_attack_effects,
 )
 from visualisation.TrainingVisualisation import (
     plot_training_result,
     plot_models_together,
+    plot_training_curves,
+    generate_gradient_flow_plots,
 )
-from arguments import Arguments
-from models.classical.LeNet import LeNet
-from models.classical.mlp import MLP
-from models.classical.resnet18 import ResNet18
-from models.classical.mlpmixer import MLPMixer
-from models.hybrid.HQNN_Quanv import HQNN_Quanv
-from models.hybrid.HQNN_Parallel import HQNN_Parallel
-from utils import seed_experiment, calculate_accuracy
-from data.DatasetManagerFactory import DatasetManagerFactory
-from attacks.FGSMAttack import FGSMAttack
-from attacks.PGDAttack import PGDAttack
-from LoggingService import LoggingService
+from src.arguments import Arguments
+from src.models.classical.LeNet import LeNet
+from src.models.classical.MLP import MLP
+from src.models.classical.ResNet18 import ResNet18
+from src.models.classical.MLPMixer import MLPMixer
+from src.models.hybrid.HQuanvolution import HQuanvolution
+from src.models.hybrid.HQPNN import HQPNN
+from src.utils import seed_experiment, calculate_accuracy
+from src.data.DatasetManagerFactory import DatasetManagerFactory
+from src.attacks.FGSMAttack import FGSMAttack
+from src.attacks.PGDAttack import PGDAttack
+from src.attacks.TransferAttack import transfer_attack
+from src.logging.LoggingService import LoggingService
 
 
 def train_model(args, seeds=[0, 42]):
@@ -77,6 +79,8 @@ def train_model(args, seeds=[0, 42]):
             weight_decay = args.weight_decay,
             momentum = args.momentum,
             devices = args.device,
+            train_log_interval = args.train_log_interval,
+            eval_log_interval = args.eval_log_interval
         )
         model = model.to(args.device)
 
@@ -96,90 +100,57 @@ def train_model(args, seeds=[0, 42]):
     return trained
 
 def run_attacks(trained_models, args):
-    """
-    For each seed‐group in `trained_models`:
-      - Re‐seed once (for repeatability within that seed)
-      - Load test dataset
-      - Instantiate FGSM/PGD attacks
-      - Run transfer attacks only among models sharing the same seed
-      - Print clean accuracy before and after generating adversarial examples
-      - Plot & visualize results
-    """
+    """Run pairwise transfer attacks among the trained models."""
     records = []
 
-    # Group models by seed
     models_by_seed = defaultdict(list)
     for model_seeds in trained_models.values():
-        for seed in model_seeds.keys():
-            models_by_seed[seed].append(model_seeds[seed])
+        for seed, model in model_seeds.items():
+            models_by_seed[seed].append(model)
 
-    # For each seed group, run attacks among that seed’s models
     for seed, models in models_by_seed.items():
         print(f"\n>>> Running attacks for seed : {seed}")
         seed_experiment(seed)
 
-        # Load the test dataset
-        dataset_manager = DatasetManagerFactory(args.dataset)
-        test_dataset = dataset_manager.load_dataset(train=False)
-        test_data = test_dataset.data.unsqueeze(1).to(torch.float).to(args.device)
-        test_targets = test_dataset.targets
-
-        # Instantiate attack
-        fgsm = FGSMAttack(test_dataset)
-        epsilons = [x / 100.0 for x in range(0, 105, 5)]
-
-        # For every "attacker" model in this seed group
         for attacker_model in models:
-            attacker_name = attacker_model.model_name
-            print(f"\n--- Attacking with model '{attacker_name}' (seed {seed}) ---")
-            attacker_model.eval()
-
-            # Compute clean (white‐box) accuracy BEFORE generating adversarial examples
-            with torch.no_grad():
-                logits_before = attacker_model(test_data)
-                clean_acc_before = calculate_accuracy(logits_before, test_targets)
-            print(f"Clean accuracy before generating adversarial examples: {clean_acc_before:.4f}")
-
-            # For each ε, generate FGSM examples on attacker_model
-            for ε in epsilons:
-                adv_examples = fgsm.attack(attacker_model, ε).to(args.device)
-
-                # Evaluate every victim on those adversarial examples
-                with torch.no_grad():
-                    for victim_model in models:
-                        victim_name = victim_model.model_name
-                        victim_model.eval()
-                        adv_logits = victim_model(adv_examples)
-                        adv_acc = calculate_accuracy(
-                            adv_logits,
-                            test_targets[:adv_examples.size(0)]
-                        )
-                        records.append({
+            for victim_model in models:
+                df = transfer_attack(
+                    attacker_model,
+                    victim_model,
+                    dataset_name=args.dataset,
+                    device=args.device,
+                    epsilons=[x / 100.0 for x in range(0, 105, 5)],
+                )
+                for _, row in df.iterrows():
+                    records.append(
+                        {
                             "seed": seed,
-                            "source_model": attacker_name,
-                            "target_model": victim_name,
-                            "epsilon": ε,
-                            "accuracy": float(adv_acc)
-                        })
-
-            # Compute clean accuracy AGAIN to verify weights unchanged
-            with torch.no_grad():
-                logits_after = attacker_model(test_data)
-                clean_acc_after = calculate_accuracy(logits_after, test_targets)
-            print(f"Clean accuracy after generating adversarial examples: {clean_acc_after:.4f}")
+                            "source_model": attacker_model.model_name,
+                            "target_model": victim_model.model_name,
+                            "epsilon": row["epsilon"],
+                            "accuracy": row["accuracy"],
+                        }
+                    )
 
     return pd.DataFrame(records)
 
 def main():
     # Define a arguments and set global defaults
-    LoggingService("tests")
+    LoggingService("newtests")
     seeds = [0]
     args = Arguments()
     args.verbose = False
     args.n_steps = 100
     args.num_workers = 0
-    args.train_batch_size = 512
-    args.eval_batch_size = 512
+
+    args.eval_ratio = 0.40
+    args.train_ratio = 0.60
+
+    args.train_batch_size = 2**8
+    args.eval_batch_size = 2**11
+
+    args.train_log_interval = 0.25
+    args.eval_log_interval = 0.25
 
     # 2) Define your list of model‐configurations: (name, class, kwargs)
     model_specs = [
@@ -188,21 +159,22 @@ def main():
         # }),
         # ("MLPMixer_1", MLPMixer, {
         #     "num_classes": 10,
-        #     "img_size": 32,
+        #     "in_chans": 1,
+        #     "img_size": 28,
         #     "patch_size": 4,
         #     "embed_dim": 256,
         #     "num_blocks": 4,
         #     "drop_rate": 0.0,
         #     "activation": "gelu",
-        #     "mlp_ratio": [1, 1]
+        #     "mlp_ratio": [0.5, 4.0]
         # }),
         # ("MLP_1", MLP, {
-        #     "input_size": 3072,
+        #     "input_size": (1, 28),
         #     "hidden_sizes": [1024, 512, 64, 64],
         #     "num_classes": 10,
         #     "activation": "relu"
         # }),
-        ("HQNN_Parallel_1", HQNN_Parallel, {
+        ("HQNN_Parallel_1", HQPNN, {
             "in_channels": 1,
             "classes": 10
         }),
@@ -229,21 +201,11 @@ def main():
     
     # plot_transfer_attack_effects(attacks_metrics,
     #                             title_prefix="transfer")
-    from pprint import pprint
-    pprint(trained_models['HQNN_Parallel_1'][0].all_metrics, depth=2)
-    metrics = trained_models['HQNN_Parallel_1'][0].all_metrics
+    # from pprint import pprint
+    # pprint(trained_models['HQNN_Parallel_1'][0].all_metrics, depth=2)
+    # metrics = trained_models['HQNN_Parallel_1'][0].all_metrics
 
-    print("Training metrics sizes:")
-    print("loss:", len(metrics['train']['loss']))
-    print("acc:", len(metrics['train']['acc']))
-    print("step:", len(metrics['train']['step']))
-    print("epoch:", len(metrics['train']['epoch']))
-
-    print("\nValidation metrics sizes:")
-    print("loss:", len(metrics['val']['loss']))
-    print("acc:", len(metrics['val']['acc']))
-    print("step:", len(metrics['val']['step']))
-    print("epoch:", len(metrics['val']['epoch']))
+    generate_gradient_flow_plots(trained_models)
 
 if __name__ == "__main__":
     main()

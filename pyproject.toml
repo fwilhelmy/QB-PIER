@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qmlbenchmark"
+version = "0.1.0"
+description = "Tools for evaluating the robustness of classical and quantum neural networks against adversarial attacks."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE"}
+authors = [ {name = "F\u00e9lix Wilhelmy"} ]
+dependencies = [
+    "pandas",
+    "fastparquet",
+    "numpy",
+    "cvxpy",
+    "pennylane",
+    "torch",
+    "torchvision",
+    "lightning",
+    "scikit-learn",
+    "umap-learn",
+    "tensorboard",
+    "matplotlib"
+]
+
+[project.optional-dependencies]
+docs = ["sphinx"]
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+

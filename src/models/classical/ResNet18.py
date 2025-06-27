@@ -9,7 +9,7 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import math
 import numpy as np
-from models.BaseModel import BaseModel
+from src.models.BaseModel import BaseModel
 
 class BasicBlock(nn.Module):
     
