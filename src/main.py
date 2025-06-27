@@ -21,8 +21,11 @@ from src.models.classical.LeNet import LeNet
 from src.models.classical.MLP import MLP
 from src.models.classical.ResNet18 import ResNet18
 from src.models.classical.MLPMixer import MLPMixer
+from src.models.classical.ConvNet import ConvNet
 from src.models.hybrid.HQuanv import HQuanv
 from src.models.hybrid.HQNN import HQNN
+from src.models.hybrid.HQE import HQE
+from src.models.hybrid.DimVQC import DimVQC
 from src.utils import seed_experiment, calculate_accuracy
 from src.data.DatasetManagerFactory import DatasetManagerFactory
 from src.attacks.FGSMAttack import FGSMAttack
@@ -154,34 +157,90 @@ def main():
 
     # 2) Define your list of model‐configurations: (name, class, kwargs)
     model_specs = [
-        # ("ResNet18_1", ResNet18, {
-        #     "num_classes": 10
-        # }),
-        # ("MLPMixer_1", MLPMixer, {
-        #     "num_classes": 10,
-        #     "in_chans": 1,
-        #     "img_size": 28,
-        #     "patch_size": 4,
-        #     "embed_dim": 256,
-        #     "num_blocks": 4,
-        #     "drop_rate": 0.0,
-        #     "activation": "gelu",
-        #     "mlp_ratio": [0.5, 4.0]
-        # }),
-        # ("MLP_1", MLP, {
-        #     "input_size": (1, 28),
-        #     "hidden_sizes": [1024, 512, 64, 64],
-        #     "num_classes": 10,
-        #     "activation": "relu"
-        # }),
-        ("HQNN_Parallel_1", HQNN, {
-            "in_channels": 1,
-            "classes": 10
-        }),
-        ("LeNet_1", LeNet, {
-            "in_channels": 1,
-            "classes": 10
-        }),
+        (
+            "ResNet18_1",
+            ResNet18,
+            {
+                "input_size": (1, 28),
+                "num_classes": 10,
+            },
+        ),
+        (
+            "MLPMixer_1",
+            MLPMixer,
+            {
+                "num_classes": 10,
+                "input_size": (1, 28),
+                "patch_size": 4,
+                "embed_dim": 256,
+                "num_blocks": 4,
+                "drop_rate": 0.0,
+                "activation": "gelu",
+                "mlp_ratio": (0.5, 4.0),
+            },
+        ),
+        (
+            "MLP_1",
+            MLP,
+            {
+                "input_size": (1, 28),
+                "hidden_sizes": [1024, 512, 64, 64],
+                "num_classes": 10,
+                "activation": "relu",
+            },
+        ),
+        (
+            "ConvNet_1",
+            ConvNet,
+            {
+                "input_size": (1, 28),
+                "num_classes": 10,
+            },
+        ),
+        (
+            "LeNet_1",
+            LeNet,
+            {
+                "in_channels": 1,
+                "classes": 10,
+            },
+        ),
+        (
+            "HQNN_Parallel_1",
+            HQNN,
+            {
+                "in_channels": 1,
+                "classes": 10,
+            },
+        ),
+        (
+            "HQuanv_1",
+            HQuanv,
+            {
+                "in_channels": 1,
+                "classes": 10,
+                "img_size": 28,
+            },
+        ),
+        (
+            "HQE_1",
+            HQE,
+            {
+                "input_size": 28 * 28,
+                "hidden_sizes": [256],
+                "classes": 10,
+            },
+        ),
+        (
+            "DimVQC_1",
+            DimVQC,
+            {
+                "input_size": 28 * 28,
+                "reduction_method": "pca",
+                "reduced_dim": 4,
+                "n_qdepth": 1,
+            },
+        ),
     ]
 
     # Train each model spec across all seeds, collect results as (model, seed)
