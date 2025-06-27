@@ -12,7 +12,7 @@ REGISTRY: Dict[str, Type] = {
     'pca': PCA,
     'kernel_pca': KernelPCA,
     'truncated_svd': TruncatedSVD,
-    'random_projection': GaussianRandomProjection,
+    'random_projection': GaussianRandomProjection, # Johnson-Lindenstrauss lemma
     'umap': umap.UMAP,
 }
 
