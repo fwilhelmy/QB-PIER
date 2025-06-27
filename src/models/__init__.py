@@ -1,7 +1,7 @@
 """Collection of classical, hybrid and quantum models."""
 
 from src.models.BaseModel import BaseModel
-from src.models.classical import LeNet, MLP, MLPMixer, ResNet18
+from src.models.classical import LeNet, MLP, MLPMixer, ResNet18, ConvNet
 from src.models.hybrid import HQPNN, HQuanvolution, HQE, HDimVQC
 from src.models.quantum import (
     VQC,
@@ -23,6 +23,7 @@ __all__ = [
     "MLP",
     "MLPMixer",
     "ResNet18",
+    "ConvNet",
     "HQPNN",
     "HQuanvolution",
     "HDimVQC",
