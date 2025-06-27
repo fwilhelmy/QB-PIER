@@ -17,13 +17,13 @@ class PGDAttack(BaseAttack):
 
     def __init__(
         self,
-        dataset_manager: DatasetManager,
+        dataset,
         num_iter: int = 10,
         alpha: float = 0.01,
         random_start: bool = True,
         max_samples: Optional[int] = None,
     ) -> None:
-        super().__init__("PGD", dataset_manager, max_samples)
+        super().__init__("PGD", dataset, max_samples)
         self.num_iter = num_iter
         self.alpha = alpha
         self.random_start = random_start
