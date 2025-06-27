@@ -16,8 +16,8 @@ from torch import nn
 import time
 
 
-class HQPNN(BaseModel):
-    """Hybrid Quantum Parallel Neural Network (HQPNN).
+class HQNN(BaseModel):
+    """Hybrid Quantum Neural Network (HQNN).
 
     This model consists of a small convolutional feature extractor followed by a
     fully-connected layer.  The resulting feature vector is then processed by a

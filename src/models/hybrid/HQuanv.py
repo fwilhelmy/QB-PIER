@@ -11,7 +11,7 @@ from src.models.quantum.Quanvolution import Quanvolution
 from src.models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
 from src.models.quantum.ansatzs.RandomStructureAnsatz import RandomStructureAnsatz
 
-class HQuanvolution(BaseModel):
+class HQuanv(BaseModel):
     """Hybrid Quanvolutional Neural Network."""
 
     def __init__(

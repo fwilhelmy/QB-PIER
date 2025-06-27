@@ -9,7 +9,7 @@ from src.models.BaseModel import BaseModel
 from typing import Type
 
 
-class HDimVQC(BaseModel):
+class DimVQC(BaseModel):
     """Hybrid model applying dimensionality reduction followed by a VQC."""
 
     def __init__(

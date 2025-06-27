@@ -2,7 +2,7 @@
 
 from src.models.BaseModel import BaseModel
 from src.models.classical import LeNet, MLP, MLPMixer, ResNet18, ConvNet
-from src.models.hybrid import HQPNN, HQuanvolution, HQE, HDimVQC
+from src.models.hybrid import HQNN, HQuanv, HQE, DimVQC
 from src.models.quantum import (
     VQC,
     ParallelVQC,
@@ -24,9 +24,9 @@ __all__ = [
     "MLPMixer",
     "ResNet18",
     "ConvNet",
-    "HQPNN",
-    "HQuanvolution",
-    "HDimVQC",
+    "HQNN",
+    "HQuanv",
+    "DimVQC",
     "VQC",
     "ParallelVQC",
     "Quanvolution",
