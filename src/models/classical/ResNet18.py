@@ -51,9 +51,10 @@ class BasicBlock(nn.Module):
 
 
 class ResNet18(nn.Module):
-    def __init__(self, num_classes=10):
+    def __init__(self, input_size=(3, 32), num_classes=10):
         super(ResNet18, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        in_channels, _ = input_size
+        self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.layer1 = self._make_layer(64, 64, stride=1)
         self.layer2 = self._make_layer(64, 128, stride=2)
@@ -129,9 +130,10 @@ class BasicBlock(nn.Module):
 
 
 class ResNet18(BaseModel):
-    def __init__(self, num_classes=10, **kwargs):
+    def __init__(self, input_size=(3, 32), num_classes=10, **kwargs):
         super().__init__(**kwargs)
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        in_channels, _ = input_size
+        self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.layer1 = self._make_layer(64, 64, stride=1)
         self.layer2 = self._make_layer(64, 128, stride=2)
@@ -171,22 +173,25 @@ class ResNet18(BaseModel):
         filters = module.weight.data.clone()  # [out_channels, in_channels, k, k]
         
         # Determine number of filters (output channels) and grid size
-        assert filters.shape[1] == 3, f"Expected 3 input channels, but got {filters.shape[1]}"
+        in_ch = filters.shape[1]
         n_filters = filters.shape[0]
         grid_size = int(math.ceil(math.sqrt(n_filters)))
-        
-        # Prepare each filter for display as RGB
+
+        # Prepare each filter for display
         filters_np = filters.cpu().numpy()
         images = []
         for i in range(n_filters):
             f = filters_np[i]
             # Normalize each filter individually to [0, 1]
             f_max, f_min = f.max(), f.min()
-            # Edge-case Handling (Division by Zero)
             f = (f - f_min) / (f_max - f_min if f_max - f_min > 0 else 1)
-            # Transpose to (height, width, channels) for matplotlib.
-            f = np.transpose(f, (1, 2, 0))
-            images.append(f)
+            if in_ch == 3:
+                # Transpose to (height, width, channels) for matplotlib.
+                img = np.transpose(f, (1, 2, 0))
+            else:
+                # Average across channels for visualization
+                img = f.mean(axis=0)
+            images.append(img)
         
         # Create the square grid of subplots.
         fig, axs = plt.subplots(grid_size, grid_size, figsize=(grid_size * 2, grid_size * 2))
@@ -194,7 +199,10 @@ class ResNet18(BaseModel):
         
         for idx, ax in enumerate(axs):
             if idx < len(images):
-                ax.imshow(images[idx])
+                if in_ch == 3:
+                    ax.imshow(images[idx])
+                else:
+                    ax.imshow(images[idx], cmap='gray')
                 ax.set_xticks([])
                 ax.set_yticks([])
             else: ax.axis('off')

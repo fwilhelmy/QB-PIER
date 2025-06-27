@@ -36,10 +36,21 @@ class MLP(BaseModel):
     SUPPORTED_ACTIVATION_FN = {'relu': torch.relu, 'tanh': torch.tanh, 'sigmoid': torch.sigmoid}
 
     # 20 points
-    def __init__(self, input_size: int, hidden_sizes: List[int], num_classes: int, activation: str = "relu", **kwargs) -> None:
+    def __init__(self, input_size: Tuple[int, int], hidden_sizes: List[int], num_classes: int,
+                 activation: str = "relu", **kwargs) -> None:
+        """Initialize a fully connected network.
+
+        Args:
+            input_size: Tuple of (channels, image_size).
+            hidden_sizes: Sizes of the hidden layers.
+            num_classes: Number of output classes.
+            activation: Activation function to use.
+        """
         super().__init__(**kwargs)
-        self.input_size = input_size
-        assert input_size > 0, "The size of the input should be positive"
+        channels, img_size = input_size
+        assert channels > 0 and img_size > 0, "Invalid input_size provided"
+        flattened = channels * img_size * img_size
+        self.input_size = flattened
         self.hidden_sizes = hidden_sizes
         assert len(hidden_sizes) > 1, "You should at least have one hidden layer"
         assert all([hidden_size > 0 for hidden_size in hidden_sizes]), "The number of neurons in each layer should be positive"
@@ -47,19 +58,19 @@ class MLP(BaseModel):
         assert num_classes > 1, "The number of classes should be at least 2"
         self.activation = activation
         assert activation in self.SUPPORTED_ACTIVATION_FN.keys(), "Invalid choice of activation"
-        self.hidden_layers, self.output_layer = self._build_layers(input_size, hidden_sizes, num_classes)
+        self.hidden_layers, self.output_layer = self._build_layers(flattened, hidden_sizes, num_classes)
         
         # Initializaton
         for layer in self.hidden_layers:
             self._initialize_linear_layer(layer)
         self._initialize_linear_layer(self.output_layer)
     
-    def _build_layers(self, input_size: int, 
-                        hidden_sizes: List[int], 
+    def _build_layers(self, input_size: int,
+                        hidden_sizes: List[int],
                         num_classes: int) -> Tuple[nn.ModuleList, nn.Module]:
         """
-        Build the layers for MLP. Be ware of handlling corner cases.
-        :param input_size: An int
+        Build the layers for MLP.
+        :param input_size: Flattened input dimension
         :param hidden_sizes: A list of ints. E.g., for [32, 32] means two hidden layers with 32 each.
         :param num_classes: An int
         :Return:
