@@ -94,9 +94,10 @@ class MixerBlock(nn.Module):
     
 
 class MLPMixer(BaseModel):
-    def __init__(self, num_classes, in_chans, img_size, patch_size, embed_dim, num_blocks, 
+    def __init__(self, num_classes, input_size, patch_size, embed_dim, num_blocks, 
                  drop_rate=0., activation='gelu', mlp_ratio=(0.5, 4.0), **kwargs):
         super().__init__(**kwargs)
+        in_chans, img_size = input_size
         self.patchemb = PatchEmbed(img_size=img_size, 
                                    patch_size=patch_size, 
                                    in_chans=in_chans,

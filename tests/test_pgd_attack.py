@@ -57,10 +57,10 @@ def test_pgd_iterative_updates():
     dataset = torch.utils.data.TensorDataset(images, labels)
     dm = DummyDatasetManager(dataset)
 
-    pgd_one = PGDAttack(dm, num_iter=1, alpha=0.1, random_start=False)
+    pgd_one = PGDAttack(dm.dataset, num_iter=1, alpha=0.1, random_start=False)
     adv1 = pgd_one.attack(model, epsilon=0.2)
 
-    pgd_three = PGDAttack(dm, num_iter=3, alpha=0.1, random_start=False)
+    pgd_three = PGDAttack(dm.dataset, num_iter=3, alpha=0.1, random_start=False)
     adv3 = pgd_three.attack(model, epsilon=0.2)
 
     assert not torch.allclose(adv1, adv3)

@@ -6,10 +6,9 @@ import copy
 
 import torch
 from torch import Tensor
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 from src.attacks.BaseAttack import BaseAttack
-from src.data.DatasetManager import DatasetManager
 
 
 class PGDAttack(BaseAttack):
@@ -17,16 +16,18 @@ class PGDAttack(BaseAttack):
 
     def __init__(
         self,
-        dataset,
+        dataset: Dataset,
         num_iter: int = 10,
         alpha: float = 0.01,
         random_start: bool = True,
+        batch_size: int = 1,
         max_samples: Optional[int] = None,
     ) -> None:
         super().__init__("PGD", dataset, max_samples)
         self.num_iter = num_iter
         self.alpha = alpha
         self.random_start = random_start
+        self.batch_size = batch_size
 
     def _pgd(self, model, images: Tensor, labels: Tensor, epsilon: float) -> Tensor:
         """Apply PGD to a batch of images."""
@@ -43,7 +44,8 @@ class PGDAttack(BaseAttack):
             model.zero_grad()
             loss.backward()
             grad = delta.grad.detach()
-            delta.data = (delta + self.alpha * grad.sign()).clamp(-epsilon, epsilon)
+            with torch.no_grad():
+                delta.add_(self.alpha * grad.sign()).clamp_(-epsilon, epsilon)
             delta.grad.zero_()
 
         adv_images = torch.clamp(images + delta.detach(), 0.0, 1.0)
@@ -55,7 +57,7 @@ class PGDAttack(BaseAttack):
         device = next(model.parameters()).device
         model.eval()
         state = copy.deepcopy(model.state_dict())  # save original weights
-        loader = DataLoader(self.dataset, batch_size=1, shuffle=False)
+        loader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=False)
         for idx, (images, labels) in enumerate(loader):
             if self.max_samples is not None and idx >= self.max_samples:
                 break
