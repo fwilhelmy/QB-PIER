@@ -77,75 +77,80 @@ def line_with_std(ax, x, mean, std, label=None, **plot_kwargs):
     ax.fill_between(x, mean - std, mean + std, alpha=0.2)
 
 
-def plot_training_curves(trained_models, title_prefix="training"):
+def plot_training_curves(model_name, seed_dict):
     """Plot averaged loss, accuracy and weights norm over multiple seeds."""
-    for model_name, seed_dict in trained_models.items():
-        seeds = sorted(seed_dict.keys())
+    seeds = sorted(seed_dict.keys())
 
-        train_loss_seeds = []
-        val_loss_seeds = []
-        train_acc_seeds = []
-        val_acc_seeds = []
-        train_weights_l2_seeds = []
-        step_lists = []
-        for seed in seeds:
-            df = seed_dict[seed].metrics.get_metrics()
-            step_lists.append(df["step"].to_numpy())
-            train_loss_seeds.append(df["train_loss"].to_numpy())
-            val_loss_seeds.append(df["val_loss"].to_numpy())
-            train_acc_seeds.append(df["train_acc"].to_numpy())
-            val_acc_seeds.append(df["val_acc"].to_numpy())
-            train_weights_l2_seeds.append(df["train_weights_l2"].to_numpy())
+    first_model = seed_dict[seeds[0]]
+    model_name = first_model.model_name
+    fig_dir = f"{first_model.__class__.__name__}/{model_name}"
 
-        steps = step_lists[0]
-        if not all(len(sl) == len(steps) for sl in step_lists):
-            raise ValueError("Inconsistent step counts across seeds")
+    train_loss_seeds = []
+    val_loss_seeds = []
+    train_acc_seeds = []
+    val_acc_seeds = []
+    train_weights_l2_seeds = []
+    step_lists = []
+    for seed in seeds:
+        df = seed_dict[seed].metrics.format_metrics()
+        step_lists.append(df["step"].to_numpy())
+        train_loss_seeds.append(df["train_loss"].to_numpy())
+        val_loss_seeds.append(df["val_loss"].to_numpy())
+        train_acc_seeds.append(df["train_acc"].to_numpy())
+        val_acc_seeds.append(df["val_acc"].to_numpy())
+        train_weights_l2_seeds.append(df["train_weights_l2"].to_numpy())
 
-        tl = np.vstack(train_loss_seeds)
-        vl = np.vstack(val_loss_seeds)
-        ta = np.vstack(train_acc_seeds)
-        va = np.vstack(val_acc_seeds)
-        tw = np.vstack(train_weights_l2_seeds)
+    steps = step_lists[0]
+    if not all(len(sl) == len(steps) for sl in step_lists):
+        raise ValueError("Inconsistent step counts across seeds")
 
-        tl_mean, tl_std = tl.mean(0), tl.std(0)
-        vl_mean, vl_std = vl.mean(0), vl.std(0)
-        ta_mean, ta_std = ta.mean(0), ta.std(0)
-        va_mean, va_std = va.mean(0), va.std(0)
-        tw_mean, tw_std = tw.mean(0), tw.std(0)
+    tl = np.vstack(train_loss_seeds)
+    vl = np.vstack(val_loss_seeds)
+    ta = np.vstack(train_acc_seeds)
+    va = np.vstack(val_acc_seeds)
+    tw = np.vstack(train_weights_l2_seeds)
 
-        fig, (ax_loss, ax_acc, ax_weights) = plt.subplots(1, 3, figsize=(24, 6))
+    tl_mean, tl_std = tl.mean(0), tl.std(0)
+    vl_mean, vl_std = vl.mean(0), vl.std(0)
+    ta_mean, ta_std = ta.mean(0), ta.std(0)
+    va_mean, va_std = va.mean(0), va.std(0)
+    tw_mean, tw_std = tw.mean(0), tw.std(0)
 
-        line_with_std(ax_loss, steps, tl_mean, tl_std, label="Train Loss")
-        line_with_std(ax_loss, steps, vl_mean, vl_std, label="Val Loss")
-        ax_loss.set_title(f"{model_name} Loss")
-        ax_loss.set_xlabel("Step")
-        ax_loss.set_ylabel("Loss")
-        ax_loss.grid(True, linestyle="--", linewidth=0.5)
-        ax_loss.legend()
+    fig, (ax_loss, ax_acc, ax_weights) = plt.subplots(3, 1, figsize=(12, 16), sharex=True)
 
-        line_with_std(ax_acc, steps, ta_mean, ta_std, label="Train Acc")
-        line_with_std(ax_acc, steps, va_mean, va_std, label="Val Acc")
-        ax_acc.set_title(f"{model_name} Accuracy")
-        ax_acc.set_xlabel("Step")
-        ax_acc.set_ylabel("Accuracy")
-        ax_acc.set_ylim(0, 1.0)
-        ax_acc.grid(True, linestyle="--", linewidth=0.5)
-        ax_acc.legend()
+    line_with_std(ax_loss, steps, tl_mean, tl_std, label="Train Loss")
+    line_with_std(ax_loss, steps, vl_mean, vl_std, label="Val Loss")
+    ax_loss.set_ylabel("Loss")
+    ax_loss.grid(True, linestyle="--", linewidth=0.5)
+    ax_loss.legend()
 
-        line_with_std(ax_weights, steps, tw_mean, tw_std, label="Train Weights L2")
-        ax_weights.set_title(f"{model_name} Weights L2")
-        ax_weights.set_xlabel("Step")
-        ax_weights.set_ylabel("Weights L2 Norm")
-        ax_weights.grid(True, linestyle="--", linewidth=0.5)
-        ax_weights.legend()
+    line_with_std(ax_acc, steps, ta_mean, ta_std, label="Train Acc")
+    line_with_std(ax_acc, steps, va_mean, va_std, label="Val Acc")
+    ax_acc.set_ylabel("Accuracy")
+    ax_acc.set_ylim(0, 1.0)
+    ax_acc.grid(True, linestyle="--", linewidth=0.5)
+    ax_acc.legend()
 
-        fig.suptitle(f"{title_prefix.capitalize()} Curves — {model_name}")
-        fig.tight_layout(rect=[0, 0, 1, 0.96])
+    line_with_std(ax_weights, steps, tw_mean, tw_std, label="Train Weights L2")
+    ax_weights.set_xlabel("Step")
+    ax_weights.set_ylabel("Weights L2 Norm")
+    ax_weights.grid(True, linestyle="--", linewidth=0.5)
+    ax_weights.legend()
 
-        LoggingService().save_figure(fig, f"{title_prefix}_{model_name}")
+    # Add vertical lines marking the end of each epoch
+    # The epoch endpoints are retrieved from the model metrics
+    epoch_end_steps = first_model.metrics["epoch"]
+    for epoch_step in epoch_end_steps:
+        ax_loss.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
+        ax_acc.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
+        ax_weights.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
 
+    fig.suptitle(f"Training Curves — {model_name}")
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
 
-def plot_gradient_flow(grad_dict, title, save_path):
+    LoggingService().save_figure(fig, f"training_{model_name}", fig_dir)
+
+def plot_gradient_flow(grad_dict, title):
     layers = [k.replace('.weight', '').replace('.bias', '') for k in grad_dict.keys()]
     num_epochs = len(next(iter(grad_dict.values())))
     data = np.array([grad_dict[k] for k in grad_dict.keys()])
@@ -176,53 +181,22 @@ def plot_gradient_flow(grad_dict, title, save_path):
 
     fig.suptitle(title, fontsize=16)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
-    plt.savefig(save_path)
-    plt.close()
-
+    return fig, axes
 
 def generate_gradient_flow_plots(model):
     grad_norms = model.metrics._raw['grad_l2']
+    fig_dir = f"{model.__class__.__name__}/{model.model_name}"
 
     weight_grads = {k: v for k, v in grad_norms.items() if 'weight' in k and 'bias' not in k and 'bn' not in k and 'norm' not in k}
-    bias_grads = {k: v for k, v in grad_norms.items() if 'bias' in k and 'bn' not in k and 'norm' not in k}
-
+    if weight_grads == {}: raise ValueError(f"No weight gradients found in {model.model_name}.")
     weight_title = f"Gradient Flow of Weights for {model.model_name}"
-    weight_save = os.path.join(model.log_dir, "gradient_flow_weight.png")
-    plot_gradient_flow(weight_grads, weight_title, weight_save)
+    weight_fig, weight_axes = plot_gradient_flow(weight_grads, weight_title)
+    LoggingService().save_figure(weight_fig, "gradient_flow_weight.png", fig_dir)
 
+    bias_grads = {k: v for k, v in grad_norms.items() if 'bias' in k and 'bn' not in k and 'norm' not in k}
+    if bias_grads == {}: 
+        print(f"No bias gradients found in {model.model_name}.") 
+        return
     bias_title = f"Gradient Flow of Bias for {model.model_name}"
-    bias_save = os.path.join(model.log_dir, "gradient_flow_bias.png")
-    plot_gradient_flow(bias_grads, bias_title, bias_save)
-
-
-def plot_gradient_flow_simple(grad_norms: dict, title: str, save_path: str):
-    layers, norms = zip(*sorted(grad_norms.items(), key=lambda kv: kv[0]))
-    plt.figure(figsize=(8, 4))
-    for name, vals in zip(layers, norms):
-        plt.plot(vals, label=name)
-    plt.xlabel("Iteration")
-    plt.ylabel("Gradient Norm")
-    plt.title(title)
-    plt.legend(fontsize=6, ncol=2, loc='upper right')
-    plt.tight_layout()
-    plt.savefig(save_path)
-    plt.close()
-
-
-def generate_gradient_flow_plots_from_dirs(list_of_dirs: list, legend_names: list):
-    for logdir, name in zip(list_of_dirs, legend_names):
-        json_path = os.path.join(logdir, 'results.json')
-        if not os.path.exists(json_path):
-            raise AssertionError(f"No results.json in {logdir}")
-        with open(json_path, 'r') as f:
-            data = json.load(f)
-        norms = data['train_grad_norms']
-
-        weights = {k: v for k, v in norms.items() if 'weight' in k and 'bias' not in k}
-        biases = {k: v for k, v in norms.items() if 'bias' in k}
-
-        w_path = os.path.join(logdir, f"gradient_flow_{name}_weights.png")
-        b_path = os.path.join(logdir, f"gradient_flow_{name}_biases.png")
-        plot_gradient_flow_simple(weights, f"Gradient Flow—Weights ({name})", w_path)
-        plot_gradient_flow_simple(biases, f"Gradient Flow—Biases ({name})", b_path)
-
+    bias_fig, bias_axes = plot_gradient_flow(bias_grads, bias_title, bias_save)
+    LoggingService().save_figure(bias_fig, "gradient_flow_bias", fig_dir)
