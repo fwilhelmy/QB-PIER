@@ -22,6 +22,9 @@ class DimVQC(BaseModel):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
+        self.save_hyperparameters("input_size", "reduction_method", "reduced_dim", "n_qdepth", "ansatz_cls")
+
+        
         self.input_size = input_size
         self.reduced_dim = reduced_dim
 

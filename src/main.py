@@ -80,15 +80,15 @@ def train_model(args, seeds=[0, 42]):
             **args.model_config
         )
         model.configure_training(
-            optimizer = args.optimizer,
-            loss_fn = args.loss_fn,
-            learning_rate = args.lr,
-            max_steps = args.n_steps,
-            weight_decay = args.weight_decay,
-            momentum = args.momentum,
-            devices = args.device,
-            train_log_interval = args.train_log_interval,
-            eval_log_interval = args.eval_log_interval
+            {"optimizer": args.optimizer,
+            "loss_fn": args.loss_fn,
+            "learning_rate": args.lr,
+            "max_steps": args.n_steps,
+            "weight_decay": args.weight_decay,
+            "momentum": args.momentum,
+            "devices": args.device,
+            "train_log_interval": args.train_log_interval,
+            "eval_log_interval": args.eval_log_interval}
         )
         model = model.to(args.device)
 
@@ -225,19 +225,17 @@ def main():
 
         trained_models[model_name] = train_model(args, seeds)
 
+    for model_name, model_seeds in trained_models.items():
+        plot_training_curves(model_name, model_seeds)
+        generate_gradient_flow_plots(list(model_seeds.values())[0])     
+
     # Run transfer attacks
     # attacks_metrics = run_attacks(trained_models, args)
-
-    plot_training_curves(trained_models,
-                     title_prefix="training")
-    
     # plot_transfer_attack_effects(attacks_metrics,
     #                             title_prefix="transfer")
     # from pprint import pprint
     # pprint(trained_models['HQNN_Parallel_1'][0].all_metrics, depth=2)
     # metrics = trained_models['HQNN_Parallel_1'][0].all_metrics
-
-    generate_gradient_flow_plots(trained_models)
 
 if __name__ == "__main__":
     main()

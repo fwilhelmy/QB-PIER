@@ -29,6 +29,8 @@ class HQuanv(BaseModel):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
+        self.save_hyperparameters("in_channels", "classes", "img_size", "patch_size", "stride",
+                                  "n_qdepth", "ansatz_cls", "embedding", "rotation", "fc_size")
 
         self.img_size = img_size
         self.patch_size = patch_size

@@ -19,6 +19,7 @@ class AmpVQC(BaseModel):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
+        self.save_hyperparameters("input_size", "n_qdepth", "ansatz_cls")
         self.input_size = input_size
         assert "ResidualAnsatz" not in ansatz_cls.__name__, "Amplitude encoding does not support residual ansatzes."
         n_qubits = math.ceil(math.log2(input_size))

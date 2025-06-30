@@ -53,7 +53,8 @@ class HQNN(BaseModel):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-
+        self.save_hyperparameters("in_channels", "classes", "n_qubits", "in_qlayer", "n_qdepth", "ansatz_cls")
+        
         self.in_qlayer = in_qlayer
         self.n_qubits = n_qubits or in_qlayer
         self.n_qdepth = n_qdepth

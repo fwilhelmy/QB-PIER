@@ -132,6 +132,7 @@ class BasicBlock(nn.Module):
 class ResNet18(BaseModel):
     def __init__(self, input_size=(3, 32), num_classes=10, **kwargs):
         super().__init__(**kwargs)
+        self.save_hyperparameters("input_size", "num_classes")
         in_channels, _ = input_size
         self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)

@@ -6,6 +6,7 @@ class ConvNet(BaseModel):
     """Simple configurable convolutional network."""
     def __init__(self, input_size=(3, 32), conv_channels=(32, 64), fc_sizes=(128,), num_classes=10, **kwargs):
         super().__init__(**kwargs)
+        self.save_hyperparameters("input_size", "conv_channels", "fc_sizes", "num_classes")
         in_channels, img_size = input_size
         layers = []
         for out_ch in conv_channels:

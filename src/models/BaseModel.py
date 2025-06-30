@@ -56,26 +56,16 @@ class BaseModel(LightningModule):
         self,
         config: Dict[str, Any],
     ) -> None:
-        loss_fn = config.get("loss_fn", "cross_entropy").lower()
-        optimizer = config.get("optimizer", "adam").lower()
-        max_steps = config.get("max_steps", 1000)
-        learning_rate = config.get("learning_rate", 1e-3)
-        weight_decay = config.get("weight_decay", 1.0)
-        momentum = config.get("momentum", 0.9)
-        devices = config.get("devices", CPU_NUMBER)
-        train_log_interval = config.get("train_log_interval", 0.5)
-        eval_log_interval = config.get("eval_log_interval", 0.5)
-
-        self.save_hyperparameters({
-            "loss_fn": loss_fn,
-            "learning_rate": learning_rate,
-            "max_steps": max_steps,
-            "optimizer": optimizer,
-            "weight_decay": weight_decay,
-            "momentum": momentum,
-            "devices": devices,
-            "train_log_interval": train_log_interval,
-            "eval_log_interval": eval_log_interval
+        self.hparams.update({
+            'loss_fn': config.get("loss_fn", "cross_entropy").lower(),
+            'optimizer': config.get("optimizer", "adam").lower(),
+            'max_steps': config.get("max_steps", 1000),
+            'learning_rate': config.get("learning_rate", 1e-3),
+            'weight_decay': config.get("weight_decay", 1.0),
+            'momentum': config.get("momentum", 0.9),
+            'devices': config.get("devices", CPU_NUMBER),
+            'train_log_interval': config.get("train_log_interval", 0.5),
+            'eval_log_interval': config.get("eval_log_interval", 0.5)
         })
 
         self._init_training()
@@ -119,7 +109,7 @@ class BaseModel(LightningModule):
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         self.model_name = self.hparams["model_name"]
         self.seed = self.hparams["seed"]
-        self.load
+        
         self.configure_directories()
         self.configure_training(checkpoint['hyper_parameters'])
         self.metrics.load_metrics(checkpoint['log_dir'])

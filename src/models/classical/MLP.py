@@ -47,6 +47,7 @@ class MLP(BaseModel):
             activation: Activation function to use.
         """
         super().__init__(**kwargs)
+        self.save_hyperparameters("input_size", "hidden_sizes", "num_classes", "activation")
         channels, img_size = input_size
         assert channels > 0 and img_size > 0, "Invalid input_size provided"
         flattened = channels * img_size * img_size

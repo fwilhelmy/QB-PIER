@@ -97,6 +97,8 @@ class MLPMixer(BaseModel):
     def __init__(self, num_classes, input_size, patch_size, embed_dim, num_blocks, 
                  drop_rate=0., activation='gelu', mlp_ratio=(0.5, 4.0), **kwargs):
         super().__init__(**kwargs)
+        self.save_hyperparameters("num_classes", "input_size", "patch_size", "embed_dim",
+                                 "num_blocks", "drop_rate", "activation", "mlp_ratio")
         in_chans, img_size = input_size
         self.patchemb = PatchEmbed(img_size=img_size, 
                                    patch_size=patch_size, 

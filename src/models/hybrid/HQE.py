@@ -19,6 +19,7 @@ class HQE(BaseModel):
                  ansatz_cls=BasicEntanglingAnsatz,
                  **kwargs) -> None:
         super().__init__(**kwargs)
+        self.save_hyperparameters("input_size", "hidden_sizes", "classes", "n_qdepth", "ansatz_cls")
         self.input_size = input_size
         self.classes = classes
         if isinstance(hidden_sizes, int):
