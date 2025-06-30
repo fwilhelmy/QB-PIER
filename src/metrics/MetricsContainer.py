@@ -18,10 +18,11 @@ class MetricsContainer():
     ):
         self._raw: Dict[str, Any] = {}
         self._log_dir = log_dir
+        self._init_directories()
 
+    @rank_zero_only
     def _init_directories(self) -> None:
-        metrics_dir = os.path.join(self.log_dir, "metrics")
-        os.makedirs(metrics_dir, exist_ok=True)
+        os.makedirs(self.log_dir, exist_ok=True)
 
     @property
     def log_dir(self) -> str:
