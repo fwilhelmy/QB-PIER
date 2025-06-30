@@ -3,7 +3,7 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from src.logging.LoggingService import LoggingService
+from metrics.LoggingService import LoggingService
 
 def plot_training_result(model, train_len, val_len):
     results = model.all_metrics
@@ -180,21 +180,19 @@ def plot_gradient_flow(grad_dict, title, save_path):
     plt.close()
 
 
-def generate_gradient_flow_plots(models):
-    for md in models.values():
-        model = md[0]
-        grad_norms = model.metrics._raw['grad_l2']
+def generate_gradient_flow_plots(model):
+    grad_norms = model.metrics._raw['grad_l2']
 
-        weight_grads = {k: v for k, v in grad_norms.items() if 'weight' in k and 'bias' not in k and 'bn' not in k and 'norm' not in k}
-        bias_grads = {k: v for k, v in grad_norms.items() if 'bias' in k and 'bn' not in k and 'norm' not in k}
+    weight_grads = {k: v for k, v in grad_norms.items() if 'weight' in k and 'bias' not in k and 'bn' not in k and 'norm' not in k}
+    bias_grads = {k: v for k, v in grad_norms.items() if 'bias' in k and 'bn' not in k and 'norm' not in k}
 
-        weight_title = f"Gradient Flow of Weights for {model.model_name}"
-        weight_save = os.path.join(model.log_dir, "gradient_flow_weight.png")
-        plot_gradient_flow(weight_grads, weight_title, weight_save)
+    weight_title = f"Gradient Flow of Weights for {model.model_name}"
+    weight_save = os.path.join(model.log_dir, "gradient_flow_weight.png")
+    plot_gradient_flow(weight_grads, weight_title, weight_save)
 
-        bias_title = f"Gradient Flow of Bias for {model.model_name}"
-        bias_save = os.path.join(model.log_dir, "gradient_flow_bias.png")
-        plot_gradient_flow(bias_grads, bias_title, bias_save)
+    bias_title = f"Gradient Flow of Bias for {model.model_name}"
+    bias_save = os.path.join(model.log_dir, "gradient_flow_bias.png")
+    plot_gradient_flow(bias_grads, bias_title, bias_save)
 
 
 def plot_gradient_flow_simple(grad_norms: dict, title: str, save_path: str):
