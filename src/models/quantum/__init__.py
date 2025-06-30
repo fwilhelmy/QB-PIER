@@ -1,10 +1,10 @@
 """Purely quantum neural network layers and utilities."""
 
-from src.models.quantum.VQC import VQC
-from src.models.quantum.ParallelVQC import ParallelVQC
-from src.models.quantum.Quanvolution import Quanvolution
+from .VQC import VQC
+from .ParallelVQC import ParallelVQC
+from .Quanvolution import Quanvolution
 
-from src.models.quantum.ansatzs import (
+from .ansatzs import (
     BaseAnsatz,
     BasicEntanglingAnsatz,
     StrongEntanglingAnsatz,

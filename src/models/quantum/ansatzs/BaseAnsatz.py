@@ -1,6 +1,6 @@
 import pennylane as qml
 import numpy as np
-from src.utils import get_qnode, create_qtorchlayer
+from utils import get_qnode, create_qtorchlayer
 
 class BaseAnsatz:
     """
@@ -29,7 +29,7 @@ class BaseAnsatz:
         if self.embedding == "angle":
             qml.AngleEmbedding(inputs, wires=range(self.n_qubits), rotation=self.rotation)
         elif self.embedding == "amplitude":
-            qml.AmplitudeEmbedding(inputs, wires=range(self.n_qubits), normalize=True)
+            qml.AmplitudeEmbedding(inputs, wires=range(self.n_qubits), normalize=True, pad_with=0.0)
         elif self.embedding != "none":
             raise ValueError(f"Unknown embedding method: {self.embedding}")
 

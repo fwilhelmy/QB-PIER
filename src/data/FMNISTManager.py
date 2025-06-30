@@ -1,6 +1,6 @@
 from torchvision.datasets import FashionMNIST
 from torchvision.transforms import ToTensor
-from src.data.DatasetManager import DatasetManager
+from data.DatasetManager import DatasetManager
 
 class FMNISTManager(DatasetManager):
     def __init__(self, **kwargs):

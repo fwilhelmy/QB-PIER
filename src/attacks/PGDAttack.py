@@ -8,7 +8,7 @@ import torch
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 
-from src.attacks.BaseAttack import BaseAttack
+from attacks.BaseAttack import BaseAttack
 
 
 class PGDAttack(BaseAttack):

@@ -1,6 +1,6 @@
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, Normalize, Compose
-from src.data.DatasetManager import DatasetManager
+from data.DatasetManager import DatasetManager
 
 class MNISTManager(DatasetManager):
     def __init__(self, **kwargs):

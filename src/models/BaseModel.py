@@ -14,10 +14,10 @@ from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities import rank_zero_only
 
-from src.utils import calculate_accuracy
-from src.Configuration import CPU_NUMBER
-from src.logging.LoggingService import LoggingService
-from src.logging import TrainingLogger, MetricsContainer
+from utils import calculate_accuracy
+from Configuration import CPU_NUMBER
+from metrics.LoggingService import LoggingService
+from metrics import TrainingLogger, MetricsContainer
 
 SUPPORTED_LOSS_FUNCTIONS = {
     "cross_entropy": CrossEntropyLoss,  # For classification tasks
@@ -70,15 +70,18 @@ class BaseModel(LightningModule):
         Record each hyperparameter into self.hparams so that Lightning
         serializes them into the checkpoint.
         """
-        self.hparams["loss_fn"]       = loss_fn.lower()
-        self.hparams["learning_rate"] = learning_rate
-        self.hparams["max_steps"]     = max_steps
-        self.hparams["optimizer"]     = optimizer.lower()
-        self.hparams["weight_decay"]  = weight_decay
-        self.hparams["momentum"]      = momentum
-        self.hparams["devices"]       = devices or CPU_NUMBER
-        self.hparams["train_log_interval"]  = train_log_interval
-        self.hparams["eval_log_interval"]   = eval_log_interval
+        params = {
+            "loss_fn": loss_fn.lower(),
+            "learning_rate": learning_rate,
+            "max_steps": max_steps,
+            "optimizer": optimizer.lower(),
+            "weight_decay": weight_decay,
+            "momentum": momentum,
+            "devices": devices or CPU_NUMBER,
+            "train_log_interval": train_log_interval,
+            "eval_log_interval": eval_log_interval
+        }
+        self.save_hyperparameters(params)
 
         self._init_trainer()
 

@@ -1,13 +1,13 @@
 """Quantum circuit ansatz definitions."""
 
-from src.models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
-from src.models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
-from src.models.quantum.ansatzs.StrongEntanglingAnsatz import StrongEntanglingAnsatz
-from src.models.quantum.ansatzs.NoEntanglingAnsatz import NoEntanglingAnsatz
-from src.models.quantum.ansatzs.IdentityAnsatz import IdentityAnsatz
-from src.models.quantum.ansatzs.RandomStructureAnsatz import RandomStructureAnsatz
-from src.models.quantum.ansatzs.ReUpAnsatzWrapper import ReUpAnsatzWrapper
-from src.models.quantum.ansatzs.ResidualAnsatzWrapper import ResidualAnsatzWrapper
+from .BaseAnsatz import BaseAnsatz
+from .BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from .StrongEntanglingAnsatz import StrongEntanglingAnsatz
+from .NoEntanglingAnsatz import NoEntanglingAnsatz
+from .IdentityAnsatz import IdentityAnsatz
+from .RandomStructureAnsatz import RandomStructureAnsatz
+from .ReUpAnsatzWrapper import ReUpAnsatzWrapper
+from .ResidualAnsatzWrapper import ResidualAnsatzWrapper
 
 __all__ = [
     "BaseAnsatz",

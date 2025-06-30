@@ -2,7 +2,7 @@ import torch
 import matplotlib.pyplot as plt
 import random
 from sklearn.manifold import TSNE
-from src.logging.LoggingService import LoggingService
+from metrics.LoggingService import LoggingService
 
 # Function to print general information about the dataset
 def print_dataset_info(dataset):

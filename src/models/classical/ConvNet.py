@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from src.models.BaseModel import BaseModel
+from models.BaseModel import BaseModel
 
 class ConvNet(BaseModel):
     """Simple configurable convolutional network."""

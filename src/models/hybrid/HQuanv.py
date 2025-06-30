@@ -6,10 +6,10 @@ import torch
 from torch import flatten, float32
 from torch.nn import Linear, LogSoftmax, ReLU
 
-from src.models.BaseModel import BaseModel
-from src.models.quantum.Quanvolution import Quanvolution
-from src.models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
-from src.models.quantum.ansatzs.RandomStructureAnsatz import RandomStructureAnsatz
+from models.BaseModel import BaseModel
+from models.quantum.Quanvolution import Quanvolution
+from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
+from models.quantum.ansatzs.RandomStructureAnsatz import RandomStructureAnsatz
 
 class HQuanv(BaseModel):
     """Hybrid Quanvolutional Neural Network."""

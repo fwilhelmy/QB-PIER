@@ -6,10 +6,10 @@ import torch
 from torch import flatten
 from torch.nn import BatchNorm2d, Conv2d, Linear, LogSoftmax, MaxPool2d, ReLU
 
-from src.models.BaseModel import BaseModel
-from src.models.quantum.ParallelVQC import ParallelVQC
-from src.models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
-from src.models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from models.BaseModel import BaseModel
+from models.quantum.ParallelVQC import ParallelVQC
+from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
+from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 
 from torch.optim import Adam
 from torch import nn
@@ -46,9 +46,9 @@ class HQNN(BaseModel):
         self,
         in_channels: int,
         classes: int,
+        n_qubits: int = 5,
         in_qlayer: int = 20,
-        n_qubits: Optional[int] = None,
-        n_qdepth: int = 3,
+        n_qdepth: int = (3),
         ansatz_cls: Type[BaseAnsatz] = BasicEntanglingAnsatz,
         **kwargs,
     ) -> None:

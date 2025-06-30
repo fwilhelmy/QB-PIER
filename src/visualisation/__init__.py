@@ -1,9 +1,9 @@
 """Visualization helpers for training and attacks."""
 
-from src.visualisation import AttacksVisualisation
-from src.visualisation import DataVisualisation
-from src.visualisation import TrainingVisualisation
-from src.visualisation import CircuitsVisualisation
+from . import AttacksVisualisation
+from . import DataVisualisation
+from . import TrainingVisualisation
+from . import CircuitsVisualisation
 
 __all__ = [
     "AttacksVisualisation",

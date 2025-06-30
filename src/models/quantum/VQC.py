@@ -1,9 +1,9 @@
-from src.models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
-from src.models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
+from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
 import pennylane as qml
 import torch
 import torch.nn as nn
-from src.utils import create_qtorchlayer
+from utils import create_qtorchlayer
 from typing import Type
 
 class VQC(nn.Module):

@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from torch.utils.data import Dataset
 
-from src.attacks.BaseAttack import BaseAttack
+from attacks.BaseAttack import BaseAttack
 
 class FGSMAttack(BaseAttack):
     """Fast Gradient Sign Method attack."""
