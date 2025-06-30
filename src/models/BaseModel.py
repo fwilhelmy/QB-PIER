@@ -51,52 +51,42 @@ class BaseModel(LightningModule):
     @rank_zero_only
     def _init_directories(self) -> None:
         os.makedirs(self.log_dir, exist_ok=True)
-        metrics_dir = os.path.join(self.log_dir, "metrics")
-        os.makedirs(metrics_dir, exist_ok=True)
 
     def configure_training(
         self,
-        loss_fn: str = "cross_entropy",
-        learning_rate: float = 1e-3,
-        max_steps: int = 1000,
-        optimizer: str = "adam",
-        weight_decay: float = 1e-0,
-        momentum: float = 0.9,
-        devices: Optional[int] = None,
-        train_log_interval: float = 0.5,
-        eval_log_interval: float = 0.5
+        config: Dict[str, Any],
     ) -> None:
-        """
-        Record each hyperparameter into self.hparams so that Lightning
-        serializes them into the checkpoint.
-        """
-        params = {
-            "loss_fn": loss_fn.lower(),
+        loss_fn = config.get("loss_fn", "cross_entropy").lower()
+        optimizer = config.get("optimizer", "adam").lower()
+        max_steps = config.get("max_steps", 1000)
+        learning_rate = config.get("learning_rate", 1e-3)
+        weight_decay = config.get("weight_decay", 1.0)
+        momentum = config.get("momentum", 0.9)
+        devices = config.get("devices", CPU_NUMBER)
+        train_log_interval = config.get("train_log_interval", 0.5)
+        eval_log_interval = config.get("eval_log_interval", 0.5)
+
+        self.save_hyperparameters({
+            "loss_fn": loss_fn,
             "learning_rate": learning_rate,
             "max_steps": max_steps,
-            "optimizer": optimizer.lower(),
+            "optimizer": optimizer,
             "weight_decay": weight_decay,
             "momentum": momentum,
-            "devices": devices or CPU_NUMBER,
+            "devices": devices,
             "train_log_interval": train_log_interval,
             "eval_log_interval": eval_log_interval
-        }
-        self.save_hyperparameters(params)
+        })
 
-        self._init_trainer()
+        self._init_training()
 
-    def _init_trainer(self) -> None:
-        """
-        1) Build loss function
-        2) Create loggers
-        3) Create checkpoint callback
-        4) Instantiate Trainer
-        """
-        # Build Loss Function
-        lf = self.hparams["loss_fn"]
-        if lf not in SUPPORTED_LOSS_FUNCTIONS:
-            raise ValueError(f"Unsupported loss_fn: {lf}")
-        self.loss_fn = SUPPORTED_LOSS_FUNCTIONS[lf]()
+    def _init_training(self) -> None:
+        " Initializes the PyTorch Lightning Trainer with the specified hyperparameters, loggers and callbacks."
+        # Loss function
+        loss_fn = self.hparams["loss_fn"]
+        if loss_fn not in SUPPORTED_LOSS_FUNCTIONS:
+            raise ValueError(f"Unsupported loss_fn: {loss_fn}")
+        self.loss_fn = SUPPORTED_LOSS_FUNCTIONS[loss_fn]()
 
         # Create loggers
         tb_logger = TensorBoardLogger(save_dir=self.log_dir, name=None, version="tensorboard")
@@ -129,11 +119,11 @@ class BaseModel(LightningModule):
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         self.model_name = self.hparams["model_name"]
         self.seed = self.hparams["seed"]
-
+        self.load
         self.configure_directories()
-        self._init_trainer()
-        self.metrics.load(checkpoint['log_dir'])
-        
+        self.configure_training(checkpoint['hyper_parameters'])
+        self.metrics.load_metrics(checkpoint['log_dir'])
+    
     def configure_optimizers(self) -> Any:
         if self.hparams["optimizer"] == "adamw":
             return optim.AdamW(
@@ -164,7 +154,7 @@ class BaseModel(LightningModule):
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError # must be implemented by each subclass
-    
+
     def training_step(self, batch: Any, batch_idx: int):
         x, y = batch
         y_hat = self(x)
@@ -213,4 +203,4 @@ class BaseModel(LightningModule):
             assert hasattr(self, "trainer"), "Trainer not configured. Call configure_training() first."
             self.trainer.fit(self, train_dataloaders, val_dataloaders)
             self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")
-            self.metrics.save()
+            self.metrics.save_metrics()
