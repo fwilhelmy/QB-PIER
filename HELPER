@@ -18,4 +18,4 @@ nohup python QMLBenchmark/src/main.py > funsies.out 2> oopsies.err < /dev/null &
 tail -f funsies.out
 
 == Watch Training ==
-%tensorboard --logdir=lightning_logs/
+%tensorboard --logdir=logs/test_models/2025-06-27@19-37-02/AmpVQC/AmpVQC_1
