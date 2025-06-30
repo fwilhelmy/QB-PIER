@@ -11,6 +11,8 @@ from torch.utils.data import Dataset
 
 from attacks.BaseAttack import BaseAttack
 
+# TODO Test model.freeze()
+
 class FGSMAttack(BaseAttack):
     """Fast Gradient Sign Method attack."""
 
