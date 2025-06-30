@@ -10,24 +10,22 @@ import pandas as pd
 import torch
 from typing_extensions import override
 from lightning.pytorch.utilities import rank_zero_only
-from Configuration import LOGS_DIR
 
 class MetricsContainer():
     def __init__(
         self,
-        save_dir: str = LOGS_DIR,
+        log_dir: str,
     ):
-        super().__init__()
-        self._save_dir = save_dir
         self._raw: Dict[str, Any] = {}
+        self._log_dir = log_dir
 
-    @property
-    def save_dir(self) -> str:
-        return self._save_dir
+    def _init_directories(self) -> None:
+        metrics_dir = os.path.join(self.log_dir, "metrics")
+        os.makedirs(metrics_dir, exist_ok=True)
 
     @property
     def log_dir(self) -> str:
-        return os.path.join(self.save_dir, "metrics")
+        return os.path.join(self._log_dir, "metrics")
 
     def __getitem__(self, key: str):
         if "/" in key:
@@ -72,7 +70,7 @@ class MetricsContainer():
         self.log_dict("performance", metrics, step=step)
 
     def to_csv(self, path: Optional[str] = None) -> None:
-        df = self.get_metrics()
+        df = self.format_metrics()
         if df is None or df.empty:
             return
         out = path or os.path.join(self.log_dir, "metrics.csv")
@@ -86,7 +84,7 @@ class MetricsContainer():
             json.dump(self._raw, f, indent=2)
 
     @rank_zero_only
-    def save(self) -> None:
+    def save_metrics(self) -> None:
         os.makedirs(self.log_dir, exist_ok=True)
         with open(os.path.join(self.log_dir, "logger.pkl"), "wb") as f:
             pickle.dump({
@@ -95,17 +93,16 @@ class MetricsContainer():
         self.to_csv()
 
     @rank_zero_only
-    def load(self, path: Optional[str] = None) -> None:
-        base = path or self.log_dir
-        pkl = os.path.join(base, "metrics", "logger.pkl")
-        if not os.path.exists(pkl):
-            return
-        with open(pkl, "rb") as f:
+    def load_metrics(self, log_dir: str) -> None:
+        pkl_path = os.path.join(log_dir, "metrics", "logger.pkl")
+        if not os.path.exists(pkl_path):
+            raise FileNotFoundError(f"Metrics file not found at {pkl_path}")
+        with open(pkl_path, "rb") as f:
             data = pickle.load(f)
         self._raw = data.get("_raw", {})
         
     @rank_zero_only
-    def get_metrics(self) -> pd.DataFrame:
+    def format_metrics(self) -> pd.DataFrame:
         train = pd.DataFrame(self._raw.get("train", {}))
         if train.empty:
             return pd.DataFrame()
