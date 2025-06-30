@@ -31,9 +31,10 @@ class TrainingLogger(Callback):
             self._pending_thresholds.pop(0)
             avg = {k: sum(vs) / len(vs) for k, vs in self._train_buf.items()}
             pl_module.metrics.log_dict("train", avg, step)
-            for k, v in avg.items():
-                pl_module.log(f"train/{k}", v)
             self._train_buf.clear()
+
+
+        pl_module.log_dict({f"train/{k}": vs for k, vs in outputs.items()})
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0):
         # now correctly buffer on the callback

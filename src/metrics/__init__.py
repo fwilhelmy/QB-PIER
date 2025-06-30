@@ -10,10 +10,10 @@ Contains:
 __version__ = "0.1.0"
 
 # expose these classes at package level
-from src.logging.MetricsContainer import MetricsContainer
-from src.logging.EpochTimingCallback import EpochTimingCallback
-from src.logging.TrainingLogger import TrainingLogger
-from src.logging.LoggingService import LoggingService
+from .MetricsContainer import MetricsContainer
+from .EpochTimingCallback import EpochTimingCallback
+from .TrainingLogger import TrainingLogger
+from .LoggingService import LoggingService
 
 # what gets imported with `from logging import *`
 __all__ = [

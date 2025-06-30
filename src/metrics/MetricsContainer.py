@@ -10,7 +10,7 @@ import pandas as pd
 import torch
 from typing_extensions import override
 from lightning.pytorch.utilities import rank_zero_only
-from src.Configuration import LOGS_DIR
+from Configuration import LOGS_DIR
 
 class MetricsContainer():
     def __init__(
