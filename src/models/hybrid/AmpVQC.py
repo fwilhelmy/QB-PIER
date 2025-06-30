@@ -2,10 +2,10 @@ import torch
 from torch import nn
 from torch.nn import LogSoftmax
 
-from src.models.DimensionalityReductionLayer import DimensionalityReductionLayer
-from src.models.quantum.VQC import VQC
-from src.models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
-from src.models.BaseModel import BaseModel
+from models.DimensionalityReductionLayer import DimensionalityReductionLayer
+from models.quantum.VQC import VQC
+from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from models.BaseModel import BaseModel
 from typing import Type
 import math
 
