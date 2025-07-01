@@ -5,68 +5,82 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from metrics.LoggingService import LoggingService
 
-def plot_training_result(model, train_len, val_len):
-    results = model.all_metrics
+def plot_models_together(trained_models):
+    trained_first_model = list(next(iter(trained_models.values())).values())[0]
+    fig, ax = plt.subplots(2, 2, figsize=(12, 10), sharex='col', sharey='row')
+    
+    # Define subplots
+    ax_train_loss = ax[0, 0]
+    ax_val_loss = ax[0, 1]
+    ax_train_acc = ax[1, 0]
+    ax_val_acc = ax[1, 1]
+    
+    # Set titles and labels
+    ax_train_loss.set_title('Training')
+    ax_val_loss.set_title('Validation')
+    ax_train_loss.set_ylabel('Loss')
+    ax_train_acc.set_ylabel('Accuracy (%)')
+    ax_train_acc.set_xlabel('Step')
+    ax_val_acc.set_xlabel('Step')
+    
+    # Iterate over each model. Each model contains a list of seeds in model.seeds.
+    for model_name, seed_dict in trained_models.items():
+        first_model = list(seed_dict.values())[0]
 
-    # Plot the training loss and accuracy
-    plt.style.use("ggplot")
-    fig, (ax1, ax2) = plt.subplots(2, figsize=(8, 6))
-    fig.suptitle(f"Training Loss and Accuracy with {model.model_name}")
-    fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.15, hspace=0.2)
-    ax1.plot(results["train_acc"], label="Training")
-    ax1.plot(results["val_acc"], label="Validation")
-    ax1.set_ylabel("Accuracy")
-    ax1.legend(loc="upper right")
-    ax2.plot(results["train_loss"], label="Training")
-    ax2.plot(results["val_loss"], label="Validation")
-    ax2.set_ylabel("Loss")
-    ax2.set_xlabel("Epoch #")
+        train_loss_list = []
+        val_loss_list = []
+        train_acc_list = []
+        val_acc_list = []
+        
+        # Aggregate metrics for each seed in the model
+        for model_seed in seed_dict.values():
+            metrics = model_seed.metrics.format_metrics()
+            train_loss_list.append(np.array(metrics['train_loss']))
+            val_loss_list.append(np.array(metrics['val_loss']))
+            train_acc_list.append(np.array(metrics['train_acc']))
+            val_acc_list.append(np.array(metrics['val_acc']))
+        
+        # Convert lists to arrays for vectorised operations
+        train_loss_arr = np.vstack(train_loss_list)
+        val_loss_arr = np.vstack(val_loss_list)
+        train_acc_arr = np.vstack(train_acc_list)
+        val_acc_arr = np.vstack(val_acc_list)
+        
+        # Calculate mean and standard deviation across seeds
+        train_loss_mean = train_loss_arr.mean(axis=0)
+        train_loss_std = train_loss_arr.std(axis=0)
+        val_loss_mean = val_loss_arr.mean(axis=0)
+        val_loss_std = val_loss_arr.std(axis=0)
+        train_acc_mean = train_acc_arr.mean(axis=0)
+        train_acc_std = train_acc_arr.std(axis=0)
+        val_acc_mean = val_acc_arr.mean(axis=0)
+        val_acc_std = val_acc_arr.std(axis=0)
+        
+        # Create step indices
+        steps = np.array(first_model.metrics.format_metrics()['step'])
+        
+        # Plot curves with shaded std regions using the helper function line_with_std
+        line_with_std(ax_train_loss, steps, train_loss_mean, train_loss_std, label=model_name)
+        line_with_std(ax_val_loss, steps, val_loss_mean, val_loss_std, label=model_name)
+        line_with_std(ax_train_acc, steps, train_acc_mean, train_acc_std, label=model_name)
+        line_with_std(ax_val_acc, steps, val_acc_mean, val_acc_std, label=model_name)
 
-    # Add hyperparameters to the plot
-    fig.text(
-        0.01,
-        0.01,
-        "Model: {}, Devices: {}, max_steps: {}, Learning Rate: {}\nSamples (T|V): ({}|{}), Accuracy (T|V): ({}|{})".format(
-            type(model).__name__,
-            model.hparams["devices"],
-            model.hparams["max_steps"],
-            model.hparams["learning_rate"],
-            train_len,
-            val_len,
-            results["train_acc"][-1],
-            results["val_acc"][-1],
-        ),
-        fontsize=10,
-    )
+    epoch_end_steps = trained_first_model.metrics["epoch"]
+    for epoch_step in epoch_end_steps:
+        ax_train_loss.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
+        ax_val_loss.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
+        ax_train_acc.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
+        ax_val_acc.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
+    
+    # Add legends to each subplot
+    ax_train_loss.legend()
+    ax_val_loss.legend()
+    ax_train_acc.legend()
+    ax_val_acc.legend()
 
-    # TODO Extract the time taken to train the model
-    # TODO Extract number of training and validation samples
-
-    # Save the results
-    LoggingService().save_figure(fig, "training_result", model)
-
-def plot_models_together(models):
-    fig, ax = plt.subplots(2, 1, figsize=(10, 10))
-    # Plotting training loss
-    ax[0].set_title('Training Loss per Epoch')
-    ax[0].set_xlabel('Epoch')
-    ax[0].set_ylabel('Loss')
-
-    # Plotting validation accuracy
-    ax[1].set_title('Validation Accuracy per Epoch')
-    ax[1].set_xlabel('Epoch')
-    ax[1].set_ylabel('Accuracy (%)')
-
-    for model in models:
-        model_name = model.model_name
-        history = model.history
-        epochs = list(range(1, len(history['train_loss']) + 1))
-        ax[0].plot(epochs, history['train_loss'], label=f'{model_name}')
-        ax[1].plot(epochs, history['val_acc'], label=f'{model_name}', linestyle='--')
-
-        ax[0].legend()
-        ax[1].legend()
-
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    fig.suptitle("Training and Validation Curves of for models", fontsize=16)
+    
     # Saving the results
     LoggingService().save_figure(fig, "models_together")
 
