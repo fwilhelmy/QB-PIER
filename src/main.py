@@ -11,7 +11,6 @@ from visualisation.AttacksVisualisation import (
     plot_transfer_attack_effects,
 )
 from visualisation.TrainingVisualisation import (
-    plot_training_result,
     plot_models_together,
     plot_training_curves,
     generate_gradient_flow_plots,
@@ -145,14 +144,14 @@ def run_attacks(trained_models, args):
 def main():
     # Define a arguments and set global defaults
     LoggingService("test_models")
-    seeds = [0]
+    seeds = [0, 42]
     args = Arguments()
     args.verbose = False
-    args.n_steps = 100
+    args.n_steps = 2000
     args.num_workers = 0
 
     args.eval_ratio = 0.4
-    args.train_ratio = 0.2
+    args.train_ratio = 0.6
 
     args.train_batch_size = 2**8
     args.eval_batch_size = 2**11
@@ -210,9 +209,21 @@ def main():
         #     "reduced_dim": 4,
         #     "n_qdepth": 1,
         # }),
-        ("AmpVQC_1", AmpVQC, {
+        ("AmpVQC_depth1", AmpVQC, {
             "input_size": 28 * 28,
             "n_qdepth": 1,
+        }),
+        ("AmpVQC_depth2", AmpVQC, {
+            "input_size": 28 * 28,
+            "n_qdepth": 2,
+        }),
+        ("AmpVQC_depth3", AmpVQC, {
+            "input_size": 28 * 28,
+            "n_qdepth": 3,
+        }),
+        ("AmpVQC_depth4", AmpVQC, {
+            "input_size": 28 * 28,
+            "n_qdepth": 4,
         }),
     ]
 
@@ -227,7 +238,9 @@ def main():
 
     for model_name, model_seeds in trained_models.items():
         plot_training_curves(model_name, model_seeds)
-        generate_gradient_flow_plots(list(model_seeds.values())[0])     
+        generate_gradient_flow_plots(list(model_seeds.values())[0])
+
+    plot_models_together(trained_models)  
 
     # Run transfer attacks
     # attacks_metrics = run_attacks(trained_models, args)
