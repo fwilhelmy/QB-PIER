@@ -100,8 +100,14 @@ def train_model(args, seeds=[0, 42]):
             print("=" * 40)
             for k, v in vars(args).items():
                 print(f"{k:20s}: {v}")
-            print(f" rootdir      : {model.root_dir}")
-            print(f" dataset_size : {len(dm.dataset)}")
+            print(f" rootdir      : {model.log_dir}")
+            print(f" train_size: {len(train_loader.dataset)}")
+            print(f" eval_size: {len(eval_loader.dataset)}")
+            print(f"accelerator: {args.accelerator}")
+            print(f"devices: {args.devices}")
+            print(f"num_workers: {args.num_workers}")
+            print(f"num_threads: {args.num_threads}")
+            print(f"device: {args.device}")
             print("=" * 40)
 
         # 5) Training
@@ -160,7 +166,6 @@ def main(args: Arguments | None = None):
     args = args or Arguments()
     args.verbose = True
     args.n_steps = 2000
-    args.num_workers = 0
     
     if getattr(args, "num_threads", None) is not None:
         torch.set_num_threads(args.num_threads)
