@@ -63,6 +63,7 @@ class BaseModel(LightningModule):
             'learning_rate': config.get("learning_rate", 1e-3),
             'weight_decay': config.get("weight_decay", 1.0),
             'momentum': config.get("momentum", 0.9),
+            'accelerator': config.get("accelerator", "auto"),
             'devices': config.get("devices", CPU_NUMBER),
             'train_log_interval': config.get("train_log_interval", 0.5),
             'eval_log_interval': config.get("eval_log_interval", 0.5)
@@ -97,6 +98,8 @@ class BaseModel(LightningModule):
         # Build the Trainer
         self.trainer: Trainer = Trainer(
             max_steps=self.hparams["max_steps"],
+            accelerator=self.hparams["accelerator"],
+            devices=self.hparams["devices"],
             logger=[tb_logger],
             default_root_dir=self.log_dir,
             callbacks=[checkpoint_cb, tr_logger],
