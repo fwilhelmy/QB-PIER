@@ -165,7 +165,7 @@ def main(args: Arguments | None = None):
     seeds = [0, 42]
     args = args or Arguments()
     args.verbose = False
-    args.n_steps = 2000
+    args.n_steps = 1000
     
     if getattr(args, "num_threads", None) is not None:
         torch.set_num_threads(args.num_threads)
@@ -205,14 +205,14 @@ def main(args: Arguments | None = None):
         #     "input_size": (1, 28),
         #     "num_classes": 10,
         # }),
-        # ("LeNet_1", LeNet, {
-        #     "in_channels": 1,
-        #     "classes": 10,
-        # }),
-        # ("HQNN_Parallel_1", HQNN, {
-        #     "in_channels": 1,
-        #     "classes": 10,
-        # }),
+        ("LeNet_1", LeNet, {
+            "in_channels": 1,
+            "classes": 10,
+        }),
+        ("HQNN_Parallel_1", HQNN, {
+            "in_channels": 1,
+            "classes": 10,
+        }),
         # ("HQuanv_1", HQuanv, {
         #     "in_channels": 1,
         #     "classes": 10,
@@ -233,18 +233,18 @@ def main(args: Arguments | None = None):
             "input_size": 28 * 28,
             "n_qdepth": 1,
         }),
-        ("AmpVQC_depth2", AmpVQC, {
-            "input_size": 28 * 28,
-            "n_qdepth": 2,
-        }),
-        ("AmpVQC_depth3", AmpVQC, {
-            "input_size": 28 * 28,
-            "n_qdepth": 3,
-        }),
-        ("AmpVQC_depth4", AmpVQC, {
-            "input_size": 28 * 28,
-            "n_qdepth": 4,
-        }),
+        # ("AmpVQC_depth2", AmpVQC, {
+        #     "input_size": 28 * 28,
+        #     "n_qdepth": 2,
+        # }),
+        # ("AmpVQC_depth3", AmpVQC, {
+        #     "input_size": 28 * 28,
+        #     "n_qdepth": 3,
+        # }),
+        # ("AmpVQC_depth4", AmpVQC, {
+        #     "input_size": 28 * 28,
+        #     "n_qdepth": 4,
+        # }),
     ]
 
     # Train each model spec across all seeds, collect results as (model, seed)
