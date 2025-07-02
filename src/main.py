@@ -1,5 +1,6 @@
 import os
 import random
+import argparse
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
@@ -144,11 +145,19 @@ def run_attacks(trained_models, args):
 
     return pd.DataFrame(records)
 
-def main():
-    # Define a arguments and set global defaults
+def main(args: Arguments | None = None):
+    """Run the experiment with the provided configuration.
+
+    Parameters
+    ----------
+    args : Arguments | None
+        Configuration object. When ``None`` a new :class:`Arguments` instance
+        with default values is created.
+    """
+    # Define arguments and set global defaults
     LoggingService("test_models")
     seeds = [0, 42]
-    args = Arguments()
+    args = args or Arguments()
     args.verbose = True
     args.n_steps = 2000
     args.num_workers = 0
@@ -254,5 +263,25 @@ def main():
     # pprint(trained_models['HQNN_Parallel_1'][0].all_metrics, depth=2)
     # metrics = trained_models['HQNN_Parallel_1'][0].all_metrics
 
+def _parse_cli() -> Arguments:
+    """Parse a minimal set of command line options for experimentation."""
+    parser = argparse.ArgumentParser(description="Run QB-PIER main entry point")
+    parser.add_argument("--device", type=str, help="torch device, e.g. 'cpu' or 'cuda'")
+    parser.add_argument("--accelerator", type=str, help="accelerator backend for lightning")
+    parser.add_argument("--devices", type=int, help="number of devices to use")
+    parser.add_argument("--num_workers", type=int, help="dataloader worker count")
+    parser.add_argument("--num_threads", type=int, help="override torch num threads")
+
+    cli_args = parser.parse_args()
+
+    args = Arguments()
+    for field in ["device", "accelerator", "devices", "num_workers", "num_threads"]:
+        value = getattr(cli_args, field)
+        if value is not None:
+            setattr(args, field, value)
+    return args
+
+
 if __name__ == "__main__":
-    main()
+    cli_args = _parse_cli()
+    main(cli_args)
