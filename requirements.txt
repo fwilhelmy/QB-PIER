@@ -15,6 +15,12 @@ numpy
 cvxpy
 tensorboard
 matplotlib
+seaborn
+
+# Others
+psutil
+tqdm
+scipy
 
 # Testing libraries
 pytest

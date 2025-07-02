@@ -164,7 +164,7 @@ def main(args: Arguments | None = None):
     LoggingService("test_models")
     seeds = [0, 42]
     args = args or Arguments()
-    args.verbose = True
+    args.verbose = False
     args.n_steps = 2000
     
     if getattr(args, "num_threads", None) is not None:
