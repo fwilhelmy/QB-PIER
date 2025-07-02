@@ -9,6 +9,9 @@ class Arguments:
 
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     num_workers: int = 0
+    # Optional override for PyTorch's thread count. Setting this can
+    # improve reproducibility and limit CPU usage during training.
+    num_threads: int | None = None
 
     # Model
     model: BaseModel
