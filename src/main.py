@@ -79,15 +79,18 @@ def train_model(args, seeds=[0, 42]):
             **args.model_config
         )
         model.configure_training(
-            {"optimizer": args.optimizer,
-            "loss_fn": args.loss_fn,
-            "learning_rate": args.lr,
-            "max_steps": args.n_steps,
-            "weight_decay": args.weight_decay,
-            "momentum": args.momentum,
-            "devices": args.device,
-            "train_log_interval": args.train_log_interval,
-            "eval_log_interval": args.eval_log_interval}
+            {
+                "optimizer": args.optimizer,
+                "loss_fn": args.loss_fn,
+                "learning_rate": args.lr,
+                "max_steps": args.n_steps,
+                "weight_decay": args.weight_decay,
+                "momentum": args.momentum,
+                "accelerator": args.accelerator,
+                "devices": args.devices,
+                "train_log_interval": args.train_log_interval,
+                "eval_log_interval": args.eval_log_interval,
+            }
         )
         model = model.to(args.device)
 
