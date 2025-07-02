@@ -152,6 +152,7 @@ def main():
     args.verbose = True
     args.n_steps = 2000
     args.num_workers = 0
+    
     if getattr(args, "num_threads", None) is not None:
         torch.set_num_threads(args.num_threads)
 
@@ -240,10 +241,8 @@ def main():
         args.model_config = config
 
         trained_models[model_name] = train_model(args, seeds)
-
-    for model_name, model_seeds in trained_models.items():
-        plot_training_curves(model_name, model_seeds)
-        generate_gradient_flow_plots(list(model_seeds.values())[0])
+        plot_training_curves(model_name, trained_models[model_name])
+        generate_gradient_flow_plots(list(trained_models[model_name].values())[0])
 
     plot_models_together(trained_models)  
 
