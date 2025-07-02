@@ -11,6 +11,9 @@ class Arguments:
     accelerator: str = "auto"
     devices: int = 1
     num_workers: int = 0
+    # Optional override for PyTorch's thread count. Setting this can
+    # improve reproducibility and limit CPU usage during training.
+    num_threads: int | None = None
 
     # Model
     model: BaseModel

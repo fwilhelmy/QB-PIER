@@ -42,6 +42,10 @@ Results (checkpoints, figures and TensorBoard logs) are saved under a timestampe
 └── HELPER                # Convenience commands for remote runs
 ```
 
+## Running Experiments
+The script `src/main.py` shows how to configure an experiment with the
+`Arguments` class. Setting `num_threads` limits the CPU threads used by PyTorch via `torch.set_num_threads`, which can be helpful on shared machines.
+
 ## Documentation
 Sphinx documentation lives in `docs/`. After installing `Sphinx`, you can build the HTML pages with:
 ```bash
