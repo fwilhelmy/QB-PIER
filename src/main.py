@@ -146,7 +146,7 @@ def main():
     LoggingService("test_models")
     seeds = [0, 42]
     args = Arguments()
-    args.verbose = False
+    args.verbose = True
     args.n_steps = 2000
     args.num_workers = 0
 

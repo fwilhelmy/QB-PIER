@@ -1,7 +1,9 @@
 import torch
-# TODO MOVE TO ARGPARSE
 
 debug = True
+
+DATA_DIR = "./data/processed"
+LOGS_DIR = "./logs"
 
 # Constants for qunodes configuration
 # default.qubit lightning.qubit
@@ -9,12 +11,3 @@ debug = True
 QDEVICE = "default.qubit"
 INTERFACE = "torch"
 QDIFF = "backprop"
-
-DATA_DIR = "./data/processed"
-LOGS_DIR = "./logs"
-
-CPU_NUMBER = 1
-
-device: str = "cuda" if torch.cuda.is_available() else "cpu"
-verbose: bool = True
-ghost_run: bool = False # implement my ghost run code

@@ -15,7 +15,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities import rank_zero_only
 
 from utils import calculate_accuracy
-from Configuration import CPU_NUMBER
 from metrics.LoggingService import LoggingService
 from metrics import TrainingLogger, MetricsContainer
 
@@ -63,7 +62,7 @@ class BaseModel(LightningModule):
             'learning_rate': config.get("learning_rate", 1e-3),
             'weight_decay': config.get("weight_decay", 1.0),
             'momentum': config.get("momentum", 0.9),
-            'devices': config.get("devices", CPU_NUMBER),
+            'devices': config.get("devices", 1),
             'train_log_interval': config.get("train_log_interval", 0.5),
             'eval_log_interval': config.get("eval_log_interval", 0.5)
         })
