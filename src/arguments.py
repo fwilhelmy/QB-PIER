@@ -8,7 +8,12 @@ class Arguments:
     verbose: bool = False
 
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    accelerator: str = "auto"
+    devices: int = 1
     num_workers: int = 0
+    # Optional override for PyTorch's thread count. Setting this can
+    # improve reproducibility and limit CPU usage during training.
+    num_threads: int | None = None
 
     # Model
     model: BaseModel
@@ -33,4 +38,4 @@ class Arguments:
     loss_fn: str = 'cross_entropy'  # [cross_entropy, mse]
     lr: float = 1e-3
     momentum: float = 0.9
-    weight_decay: float = 1e-0
+    weight_decay: float = 1.0
