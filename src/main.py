@@ -196,8 +196,8 @@ def main(args: Arguments | None = None):
     if getattr(args, "num_threads", None) is not None:
         torch.set_num_threads(args.num_threads)
 
-    args.eval_ratio = 0.4
-    args.train_ratio = 0.6
+    args.eval_ratio = 1
+    args.train_ratio = 1
 
     args.train_batch_size = 2**8
     args.eval_batch_size = 2**11
