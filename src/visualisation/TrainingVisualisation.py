@@ -212,5 +212,5 @@ def generate_gradient_flow_plots(model):
         print(f"No bias gradients found in {model.model_name}.") 
         return
     bias_title = f"Gradient Flow of Bias for {model.model_name}"
-    bias_fig, bias_axes = plot_gradient_flow(bias_grads, bias_title, bias_save)
+    bias_fig, bias_axes = plot_gradient_flow(bias_grads, bias_title)
     LoggingService().save_figure(bias_fig, "gradient_flow_bias", fig_dir)
