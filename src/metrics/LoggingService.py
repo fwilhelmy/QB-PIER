@@ -9,7 +9,7 @@ import torch
 
 from Configuration import LOGS_DIR
 from pytorch_lightning.utilities import rank_zero_only
-from src import __version__
+from . import __version__
 
 class LoggingService:
     _instance = None

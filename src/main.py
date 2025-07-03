@@ -54,13 +54,9 @@ def train_model(args, seeds=[0, 42]):
         dict: { seed: trained_model_instance }
     """
     trained = {}
-    print(f">>> Starting experiment '{args.exp_name}' over seeds {seeds}")
-
-    # Save the model configuration before running seeds
-    cfg_dict = {k: (str(v) if callable(v) else v) for k, v in vars(args).items() if not k.startswith('_')}
-    LoggingService().save_file(json.dumps(cfg_dict, indent=2), f"{args.exp_name}_config.json", log_dir=args.exp_name)
     seed_times = {}
 
+    print(f">>> Starting experiment '{args.exp_name}' over seeds {seeds}")
     for idx, seed in enumerate(seeds, start=1):
         print(f"({idx}/{len(seeds)}); Seed = {seed}  ...")
 
@@ -123,12 +119,26 @@ def train_model(args, seeds=[0, 42]):
         model.fit(train_loader, eval_loader)
         elapsed = time.time() - start_time
         seed_times[seed] = elapsed
-        LoggingService().save_file(str(elapsed), f"seed_{seed}_time.txt", log_dir=args.exp_name)
         trained[seed] = model
 
+    model_dir = f"{trained[seeds[0]].__class__.__name__}/{str(trained[seeds[0]].model_name)}"
+
     avg_time = sum(seed_times.values()) / len(seed_times) if seed_times else 0.0
-    summary = {"seed_times": seed_times, "average": avg_time}
-    LoggingService().save_file(json.dumps(summary, indent=2), f"{args.exp_name}_times.json", log_dir=args.exp_name)
+    performance = {"seed_times": seed_times, "average": avg_time}
+    LoggingService().save_file(
+        content=json.dumps(performance, indent=2),
+        title=f"performance.json",
+        log_dir=model_dir)
+    
+    summary = {
+        k: str(v) if callable(v) else v
+        for k, v in vars(args).items()
+        if k.startswith("_") is False
+    }
+    LoggingService().save_file(
+        content=json.dumps(summary, indent=2),
+        title=f"summary.json",
+        log_dir=model_dir)
 
     return trained
 
@@ -178,10 +188,10 @@ def main(args: Arguments | None = None):
     """
     # Define arguments and set global defaults
     LoggingService("test_models")
-    seeds = [0, 42]
+    seeds = [0]
     args = args or Arguments()
     args.verbose = False
-    args.n_steps = 1000
+    args.n_steps = 142
     
     if getattr(args, "num_threads", None) is not None:
         torch.set_num_threads(args.num_threads)
