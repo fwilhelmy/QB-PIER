@@ -15,7 +15,7 @@ class TrainingLogger(Callback):
         total = trainer.num_training_batches
         thresholds = []
         r = self.ratio
-        while r < 1.0:
+        while r <= 1.0:
             thresholds.append(r)
             r += self.ratio
         if 1.0 not in thresholds:
