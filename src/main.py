@@ -32,6 +32,9 @@ from models.hybrid import (
     AmpVQC,
 )
 
+import json
+import time
+
 from utils import seed_experiment, calculate_accuracy
 from data.DatasetManagerFactory import DatasetManagerFactory
 from attacks import PGDAttack, FGSMAttack
@@ -52,6 +55,11 @@ def train_model(args, seeds=[0, 42]):
     """
     trained = {}
     print(f">>> Starting experiment '{args.exp_name}' over seeds {seeds}")
+
+    # Save the model configuration before running seeds
+    cfg_dict = {k: (str(v) if callable(v) else v) for k, v in vars(args).items() if not k.startswith('_')}
+    LoggingService().save_file(json.dumps(cfg_dict, indent=2), f"{args.exp_name}_config.json", log_dir=args.exp_name)
+    seed_times = {}
 
     for idx, seed in enumerate(seeds, start=1):
         print(f"({idx}/{len(seeds)}); Seed = {seed}  ...")
@@ -111,8 +119,16 @@ def train_model(args, seeds=[0, 42]):
             print("=" * 40)
 
         # 5) Training
+        start_time = time.time()
         model.fit(train_loader, eval_loader)
+        elapsed = time.time() - start_time
+        seed_times[seed] = elapsed
+        LoggingService().save_file(str(elapsed), f"seed_{seed}_time.txt", log_dir=args.exp_name)
         trained[seed] = model
+
+    avg_time = sum(seed_times.values()) / len(seed_times) if seed_times else 0.0
+    summary = {"seed_times": seed_times, "average": avg_time}
+    LoggingService().save_file(json.dumps(summary, indent=2), f"{args.exp_name}_times.json", log_dir=args.exp_name)
 
     return trained
 
