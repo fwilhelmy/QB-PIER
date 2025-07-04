@@ -10,6 +10,7 @@ from models.BaseModel import BaseModel
 from models.quantum.ParallelVQC import ParallelVQC
 from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
 from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from metrics import LoggingService
 
 from torch.optim import Adam
 from torch import nn
@@ -121,98 +122,11 @@ class HQNN(BaseModel):
 
         return output  # return the output predictions
     
-
-    # old fit method
-    def fit2(self, trainDataLoader, valDataLoader):
-        # Calculate steps per epoch for training and validation set
-        trainSteps = len(trainDataLoader.dataset) // trainDataLoader.batch_size
-        valSteps = len(valDataLoader.dataset) // valDataLoader.batch_size
-
-        # Configure the device we will be using to train the model
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.to(device)
-
-        # Use the optimizer and loss function from the BaseModel
-        opt = Adam(self.parameters(), lr=0.001)
-        lossFn = nn.CrossEntropyLoss()
-
-        # Initialize a dictionary to store training history
-        H = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
-
-        print("[TRAIN] Training the model...")
-
-        startTime = time.time()  # To measure how long training is going to take
-
-        # loop over our epochs
-        for e in range(0, self.max_epochs):
-            # Set the model in training mode
-            self.train()
-            # Initialize the total training/validation loss/correct predictions
-            totalTrainLoss, totalValLoss, trainCorrect, valCorrect = 0, 0, 0, 0
-
-            # Training
-            for x, y in trainDataLoader:
-                # Send the input to the device
-                (x, y) = (x.to(device), y.to(device))
-                # Perform a forward pass and calculate the training loss
-                pred = self(x)
-                loss = lossFn(pred, y)
-                # Zero out the gradients, perform the backpropagation step, and update the weights
-                opt.zero_grad()
-                loss.backward()
-                opt.step()
-                # Sum the loss to the total training loss so far
-                totalTrainLoss += loss
-                # Calculate the number of correct predictions
-                trainCorrect += (pred.argmax(1) == y).type(torch.float).sum().item()
-
-            # Validation
-            with torch.no_grad():
-                # Set the model in evaluation mode
-                self.eval()
-                # Loop over the validation set
-                for x, y in valDataLoader:
-                    # Send the input to the device
-                    (x, y) = (x.to(device), y.to(device))
-                    # Make the predictions and calculate the validation loss
-                    pred = self(x)
-                    totalValLoss += lossFn(pred, y)
-                    # Calculate the number of correct predictions
-                    valCorrect += (pred.argmax(1) == y).type(torch.float).sum().item()
-
-            # Calculate the average training and validation loss
-            avgTrainLoss = totalTrainLoss / trainSteps
-            avgValLoss = totalValLoss / valSteps
-            # Calculate the training and validation accuracy
-            trainCorrect = trainCorrect / len(trainDataLoader.dataset)
-            valCorrect = valCorrect / len(valDataLoader.dataset)
-
-            # Update our training history
-            H["train_loss"].append(avgTrainLoss.cpu().detach().numpy())
-            H["train_acc"].append(trainCorrect)
-            H["val_loss"].append(avgValLoss.cpu().detach().numpy())
-            H["val_acc"].append(valCorrect)
-            intervalTime = time.time() - startTime
-
-            # Print the model training and validation information
-            print(
-                "[TRAIN] EPOCH: {}/{} | Train loss: {:0.6f} | Train acc: {:0.4f} | Val loss: {:0.6f} | Val acc: {:0.4f} "
-                "| Time elapsed: {:0.2f}".format(
-                    e + 1,
-                    self.max_epochs,
-                    avgTrainLoss,
-                    trainCorrect,
-                    avgValLoss,
-                    valCorrect,
-                    intervalTime,
-                )
-            )
-
-        # Finish measuring how long training took
-        endTime = time.time()
-        print("[TRAIN] Finished training the model...")
-        print(
-            "[TRAIN] Total time taken to train the model: {:.2f}s".format(endTime - startTime)
+    def on_fit_end(self) -> None:
+        circuit_fig = self.qlayer1.blocks[0].ansatz.visualize(True)
+        path = f"{self.__class__.__name__}/{self.model_name}"
+        LoggingService().save_figure(
+            circuit_fig,
+            "circuit_diagram",
+            path,
         )
-        
-        return H
