@@ -7,6 +7,8 @@ from models.quantum.VQC import VQC
 from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 from models.BaseModel import BaseModel
 from typing import Type
+from metrics import LoggingService
+import math
 
 
 class DimVQC(BaseModel):
@@ -14,26 +16,35 @@ class DimVQC(BaseModel):
 
     def __init__(
         self,
-        input_size: int,
-        reduction_method: str,
+        input_size: tuple[int, int],
         reduced_dim: int,
+        reduction_method: str = "pca",
         n_qdepth: int = 1,
         ansatz_cls: Type[BasicEntanglingAnsatz] = BasicEntanglingAnsatz,
+        embedding: str = "amplitude",
+        classes: int = 10,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.save_hyperparameters("input_size", "reduction_method", "reduced_dim", "n_qdepth", "ansatz_cls")
 
-        
-        self.input_size = input_size
-        self.reduced_dim = reduced_dim
+        n_qubits = math.ceil(math.log2(reduced_dim))
 
         self.reducer = DimensionalityReductionLayer(reduction_method, reduced_dim)
-        self.vqc = VQC(n_qubits=reduced_dim, n_layers=n_qdepth, ansatz_cls=ansatz_cls)
-        self.logSoftmax = LogSoftmax(dim=1)
+        self.vqc = VQC(n_qubits=n_qubits, n_layers=n_qdepth, ansatz_cls=ansatz_cls, embedding=embedding)
+        self.logSoftmax = LogSoftmax(dim=input_size[0])
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         x = inputs.view(inputs.size(0), -1)
         x = self.reducer(x)
         x = self.vqc(x)
         return self.logSoftmax(x)
+
+    def on_fit_end(self) -> None:
+        circuit_fig = self.vqc.ansatz.visualize(True)
+        path = f"{self.__class__.__name__}/{self.model_name}"
+        LoggingService().save_figure(
+            circuit_fig,
+            "circuit_diagram",
+            path,
+        )
