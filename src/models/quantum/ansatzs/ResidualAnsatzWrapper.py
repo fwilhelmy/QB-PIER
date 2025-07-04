@@ -2,9 +2,11 @@ import torch, pennylane as qml
 from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
 from utils import create_qtorchlayer
 
+# TODO layer(template, depth, *args, **kwargs)
+
 def ResidualAnsatzWrapper(ansatz_cls):
     class ResidualAnsatz(ansatz_cls):
-        def __init__(self, n_qubits, n_layers, rotation="Y", **ansatz_kwargs):
+        def __init__(self, n_qubits, n_layers, embedding: str = "none", rotation="Y", **ansatz_kwargs):
             # Initialize the parent ansatz with no embedding
             ansatz_cls.__init__(
                 self,
@@ -18,16 +20,13 @@ def ResidualAnsatzWrapper(ansatz_cls):
             weight_shapes = self.weight_shapes["weights"]
             self.weight_shapes = {"weights": weight_shapes, "bias": weight_shapes}
 
-        def circuit(self, inputs, weights):
-            W = weights.pop("weights")
-            B = weights.pop("bias")
-
+        def circuit(self, inputs, weights, bias):
             # Tile once per layer
-            stacked = torch.hstack([inputs] * self.num_reup) # (batch_size, in_dim * in_dim * n_reup)
+            stacked = torch.hstack([inputs] * self.n_layers) # (batch_size, in_dim * in_dim * n_reup)
             tiled  = stacked.reshape(self.weight_shapes["weights"]) # (num_layers, n_qubits, n_rotations)
 
             # Apply the ansatz with modulated weights
-            ansatz_cls.ansatz(self, W * tiled + B)
+            ansatz_cls.ansatz(self, weights * tiled + bias)
 
             return [qml.expval(qml.PauliZ(wires=i)) for i in range(self.n_qubits)]
 
