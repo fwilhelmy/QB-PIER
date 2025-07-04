@@ -25,7 +25,6 @@ class FGSMAttack(BaseAttack):
         perturbed = image + epsilon * gradient.sign()
         return torch.clamp(perturbed, 0, 1)
     
-    @torch.no_grad()
     def compute_gradients(
         self,
         model,
