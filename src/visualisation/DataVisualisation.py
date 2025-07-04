@@ -2,9 +2,11 @@ import torch
 import matplotlib.pyplot as plt
 import random
 from sklearn.manifold import TSNE
+from lightning.pytorch.utilities import rank_zero_only
 from metrics.LoggingService import LoggingService
 
 # Function to print general information about the dataset
+@rank_zero_only
 def print_dataset_info(dataset):
     print("Dataset Information:")
     print(f"Number of samples: {len(dataset)}")
@@ -13,6 +15,7 @@ def print_dataset_info(dataset):
         print(f"Classes: {dataset.classes}")
 
 # Function to plot class distribution histogram
+@rank_zero_only
 def plot_class_distribution(dataset):
     class_counts = [0] * len(dataset.classes)
     for _, label in dataset:
@@ -29,6 +32,7 @@ def plot_class_distribution(dataset):
     LoggingService().save_figure(plt.gcf(), "class_distribution")
 
 # Function to plot class visualizations: sample, mean, and standard deviation images
+@rank_zero_only
 def plot_class_visualizations(dataset):
     mean_images = []
     std_images = []
@@ -67,6 +71,7 @@ def plot_class_visualizations(dataset):
     LoggingService().save_figure(fig, "class_visualizations")
 
 # Function to perform t-SNE and plot the results
+@rank_zero_only
 def plot_tsne(dataset, subset_size=1000):
     indices = random.sample(range(len(dataset)), subset_size)
     subset_data = [dataset[i] for i in indices]
@@ -85,6 +90,7 @@ def plot_tsne(dataset, subset_size=1000):
     LoggingService().save_figure(plt.gcf(), "tsne")
 
 # Function to plot sample images from the dataset
+@rank_zero_only
 def plot_sample_images(dataset, x=10, rows=2, cols=5):
     indices = random.sample(range(len(dataset)), x)
     images, labels = zip(*[dataset[i] for i in indices])

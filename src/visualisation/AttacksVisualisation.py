@@ -6,9 +6,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import torch
+from lightning.pytorch.utilities import rank_zero_only
 from metrics.LoggingService import LoggingService
 from visualisation.TrainingVisualisation import line_with_std
 
+@rank_zero_only
 def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix="transfer"):
     """
     Plot transfer attack accuracy curves from a DataFrame.
@@ -47,6 +49,7 @@ def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix="transfer"):
 
         LoggingService().save_figure(plt.gcf(), f"{title_prefix}_{attacker}")
 
+@rank_zero_only
 def plot_attack_effect_on_accuracy(figstr, models, epsilons, accuracies):
     plt.figure(figsize=(10, 6))
 
@@ -63,6 +66,7 @@ def plot_attack_effect_on_accuracy(figstr, models, epsilons, accuracies):
 
     LoggingService().save_figure(plt.gcf(), figstr)
 
+@rank_zero_only
 def store_attack_results(records: list, root_dir: str) -> pd.DataFrame:
     """
     Turn a list of dicts into a pandas DataFrame, save to CSV, and return it.
@@ -75,6 +79,7 @@ def store_attack_results(records: list, root_dir: str) -> pd.DataFrame:
     return df
 
 
+@rank_zero_only
 def plot_attack_accuracy_df(df: pd.DataFrame, source_model: str, root_dir: str):
     """
     For a given source_model, plot accuracy vs epsilon for each target_model,
@@ -107,6 +112,7 @@ def plot_attack_accuracy_df(df: pd.DataFrame, source_model: str, root_dir: str):
     plt.close()
 
 
+@rank_zero_only
 def plot_confusion_matrix(
     y_true: np.ndarray,
     y_pred: np.ndarray,
@@ -141,6 +147,7 @@ def plot_confusion_matrix(
 from attacks.BaseAttack import BaseAttack
 from attacks.FGSMAttack import FGSMAttack
 
+@rank_zero_only
 def plot_perturbation_and_saliency(
     model,
     attack: FGSMAttack,
@@ -173,6 +180,7 @@ def plot_perturbation_and_saliency(
         plt.savefig(os.path.join(out_dir, f"saliency_{i}.png"))
         plt.close()
 
+@rank_zero_only
 def plot_loss_landscape(
     model,
     x: torch.Tensor,
