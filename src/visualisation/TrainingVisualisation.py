@@ -3,8 +3,10 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from lightning.pytorch.utilities import rank_zero_only
 from metrics.LoggingService import LoggingService
 
+@rank_zero_only
 def plot_models_together(trained_models):
     trained_first_model = list(next(iter(trained_models.values())).values())[0]
     fig, ax = plt.subplots(2, 2, figsize=(12, 10), sharex='col', sharey='row')
@@ -92,6 +94,7 @@ def line_with_std(ax, x, mean, std, label=None, **plot_kwargs):
     ax.fill_between(x, mean - std, mean + std, alpha=0.2)
 
 
+@rank_zero_only
 def plot_training_curves(model_name, seed_dict):
     """Plot averaged loss, accuracy and weights norm over multiple seeds."""
     seeds = sorted(seed_dict.keys())
@@ -199,6 +202,7 @@ def plot_gradient_flow(grad_dict, title):
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     return fig, axes
 
+@rank_zero_only
 def generate_gradient_flow_plots(model):
     grad_norms = model.metrics._raw['grad_l2']
     fig_dir = f"{model.__class__.__name__}/{model.model_name}"
