@@ -54,9 +54,6 @@ def transfer_attack(
 
     records: List[Dict[str, float]] = []
 
-    with torch.no_grad():
-        attacker_model(data.to(device))  # warm-up forward pass
-
     for eps in epsilons:
         adv_examples = attack.attack(attacker_model, eps).to(device)
         with torch.no_grad():
