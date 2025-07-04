@@ -4,6 +4,7 @@ from torch.nn import LogSoftmax
 from models.quantum.VQC import VQC
 from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 from models.BaseModel import BaseModel
+from metrics import LoggingService
 
 
 class HQE(BaseModel):
@@ -46,4 +47,13 @@ class HQE(BaseModel):
         x = self.bottleneck_act(self.bottleneck(x))
         x = self.vqc(x)
         return self.logSoftmax(x)
+    
+    def on_fit_end(self) -> None:
+        circuit_fig = self.vqc.ansatz.visualize(True)
+        path = f"{self.__class__.__name__}/{self.model_name}"
+        LoggingService().save_figure(
+            circuit_fig,
+            "circuit_diagram",
+            path,
+        )
     

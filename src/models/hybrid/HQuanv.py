@@ -5,6 +5,7 @@ from typing import Optional, Type
 import torch
 from torch import flatten, float32
 from torch.nn import Linear, LogSoftmax, ReLU
+from metrics import LoggingService
 
 from models.BaseModel import BaseModel
 from models.quantum.Quanvolution import Quanvolution
@@ -69,3 +70,12 @@ class HQuanv(BaseModel):
         output = self.logSoftmax(x)
 
         return output
+    
+    def on_fit_end(self) -> None:
+        circuit_fig = self.quanv.vqc.ansatz.visualize(True)
+        path = f"{self.__class__.__name__}/{self.model_name}"
+        LoggingService().save_figure(
+            circuit_fig,
+            "circuit_diagram",
+            path,
+        )
