@@ -32,6 +32,15 @@ from models.hybrid import (
     AmpVQC,
 )
 
+from models.quantum.ansatzs import (
+    BasicEntanglingAnsatz,
+    StrongEntanglingAnsatz,
+    RandomStructureAnsatz,
+    ResidualAnsatzWrapper,
+    NoEntanglingAnsatz,
+    IdentityAnsatz
+)
+
 import json
 import time
 
@@ -131,7 +140,7 @@ def train_model(args, seeds=[0, 42]):
         log_dir=model_dir)
     
     summary = {
-        k: str(v) if callable(v) else v
+        k: str(v)
         for k, v in vars(args).items()
         if k.startswith("_") is False
     }
@@ -191,7 +200,7 @@ def main(args: Arguments | None = None):
     seeds = [0, 42]
     args = args or Arguments()
     args.verbose = False
-    args.n_steps = 20000
+    args.n_steps = 10000
     
     if getattr(args, "num_threads", None) is not None:
         torch.set_num_threads(args.num_threads)
@@ -207,70 +216,36 @@ def main(args: Arguments | None = None):
 
     # 2) Define your list of model‐configurations: (name, class, kwargs)
     model_specs = [
-        # ("ResNet18_1", ResNet18, {
-        #     "input_size": (1, 28),
-        #     "num_classes": 10,
-        # }),
-        # ("MLPMixer_1", MLPMixer, {
-        #     "num_classes": 10,
-        #     "input_size": (1, 28),
-        #     "patch_size": 4,
-        #     "embed_dim": 256,
-        #     "num_blocks": 4,
-        #     "drop_rate": 0.0,
-        #     "activation": "gelu",
-        #     "mlp_ratio": (0.5, 4.0),
-        # }),
-        # ("MLP_1", MLP, {
-        #     "input_size": (1, 28),
-        #     "hidden_sizes": [1024, 512, 64, 64],
-        #     "num_classes": 10,
-        #     "activation": "relu",
-        # }),
-        # ("ConvNet_1", ConvNet, {
-        #     "input_size": (1, 28),
-        #     "num_classes": 10,
-        # }),
-        # ("LeNet_1", LeNet, {
-        #     "in_channels": 1,
-        #     "classes": 10,
-        # }),
-        # ("HQNN_Parallel_1", HQNN, {
-        #     "in_channels": 1,
-        #     "classes": 10,
-        # }),
-        # ("HQuanv_1", HQuanv, {
-        #     "in_channels": 1,
-        #     "classes": 10,
-        #     "img_size": 28,
-        # }),
-        # ("HQE_1", HQE, {
-        #     "input_size": 28 * 28,
-        #     "hidden_sizes": [256],
-        #     "classes": 10,
-        # }),
-        # ("DimVQC_1", DimVQC, {
-        #     "input_size": 28 * 28,
-        #     "reduction_method": "pca",
-        #     "reduced_dim": 4,
-        #     "n_qdepth": 1,
-        # }),
-        ("AmpVQC_depth1", AmpVQC, {
-            "input_size": 28 * 28,
-            "n_qdepth": 1,
-        }),
-        ("AmpVQC_depth2", AmpVQC, {
+        ("AmpVQC_Basic", AmpVQC, {
             "input_size": 28 * 28,
             "n_qdepth": 2,
+            "ansatz_cls": BasicEntanglingAnsatz,
         }),
-        ("AmpVQC_depth3", AmpVQC, {
+        ("AmpVQC_Strong", AmpVQC, {
             "input_size": 28 * 28,
-            "n_qdepth": 3,
+            "n_qdepth": 2,
+            "ansatz_cls": StrongEntanglingAnsatz,
         }),
-        ("AmpVQC_depth4", AmpVQC, {
+        ("AmpVQC_Random", AmpVQC, {
             "input_size": 28 * 28,
-            "n_qdepth": 4,
+            "n_qdepth": 2,
+            "ansatz_cls": RandomStructureAnsatz,
         }),
+        ("AmpVQC_NoEntangling", AmpVQC, {
+            "input_size": 28 * 28,
+            "n_qdepth": 2,
+            "ansatz_cls": NoEntanglingAnsatz,
+        }),
+        # ("AmpVQC_Residual_Basic", AmpVQC, {
+        #     "input_size": 28 * 28,
+        #     "n_qdepth": 2,
+        #     "ansatz_cls": ResidualAnsatzWrapper(BasicEntanglingAnsatz),
+        # }),
+        # ("AmpVQC_Residual_Strong", AmpVQC, {
+        #     "input_size": 28 * 28,
+        #     "n_qdepth": 2,
+        #     "ansatz_cls": ResidualAnsatzWrapper(StrongEntanglingAnsatz),
+        # }),
     ]
 
     # Train each model spec across all seeds, collect results as (model, seed)
