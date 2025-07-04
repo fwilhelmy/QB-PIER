@@ -7,7 +7,9 @@ from models.quantum.VQC import VQC
 from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 from models.BaseModel import BaseModel
 from typing import Type
+from metrics import LoggingService
 import math
+from typing import Any, Dict, Optional, Union
 
 class AmpVQC(BaseModel):
 
@@ -30,3 +32,12 @@ class AmpVQC(BaseModel):
         x = inputs.view(inputs.size(0), -1)
         x = self.vqc(x)
         return self.logSoftmax(x)
+    
+    def on_fit_end(self) -> None:
+        circuit_fig = self.vqc.ansatz.visualize(True)
+        path = f"{self.__class__.__name__}/{self.model_name}"
+        LoggingService().save_figure(
+            circuit_fig,
+            "circuit_diagram",
+            path,
+        )

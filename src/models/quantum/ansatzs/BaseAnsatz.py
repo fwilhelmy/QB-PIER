@@ -1,6 +1,7 @@
 import pennylane as qml
 import numpy as np
 from utils import get_qnode, create_qtorchlayer
+from Configuration import CIRCUIT_STYLE
 
 class BaseAnsatz:
     """
@@ -51,9 +52,13 @@ class BaseAnsatz:
         self.qlayer = create_qtorchlayer(self.n_qubits, self.circuit, self.weight_shapes)
         return self.qlayer
     
-    def visualize(self):
+    def visualize(self, expanded: bool = False):
         """
         Visualize the circuit diagram using matplotlib.
+
+        Args:
+            expanded (bool): If True, show fully decomposed gates.
+                             If False, show high-level layer boxes.
 
         Returns:
             fig: A matplotlib.Figure containing the circuit diagram.
@@ -66,6 +71,9 @@ class BaseAnsatz:
         default_weights = np.zeros(weight_shape)
 
         qnode = get_qnode(self.circuit, self.n_qubits)
-        mpl_drawer = qml.draw_mpl(qnode)
-        fig = mpl_drawer(default_inputs, default_weights)
+        strategy = "device" if expanded else "gradient"
+        mpl_drawer = qml.draw_mpl(qnode, style=CIRCUIT_STYLE, level=strategy)
+
+        # Draw and return figure
+        fig, _ = mpl_drawer(default_inputs, default_weights)
         return fig
