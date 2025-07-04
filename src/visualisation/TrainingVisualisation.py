@@ -66,11 +66,12 @@ def plot_models_together(trained_models):
         line_with_std(ax_val_acc, steps, val_acc_mean, val_acc_std, label=model_name)
 
     epoch_end_steps = trained_first_model.metrics["epoch"]
-    for epoch_step in epoch_end_steps:
-        ax_train_loss.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
-        ax_val_loss.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
-        ax_train_acc.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
-        ax_val_acc.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
+    if len(epoch_end_steps) <= 10:
+        for epoch_step in epoch_end_steps:
+            ax_train_loss.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
+            ax_val_loss.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
+            ax_train_acc.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
+            ax_val_acc.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
     
     # Add legends to each subplot
     ax_train_loss.legend()
@@ -153,7 +154,7 @@ def plot_training_curves(model_name, seed_dict):
 
     # Add vertical lines marking the end of each epoch
     # The epoch endpoints are retrieved from the model metrics
-    if len(first_model.metrics["epoch"]) < 10:
+    if len(first_model.metrics["epoch"]) <= 10:
         epoch_end_steps = first_model.metrics["epoch"]
         for epoch_step in epoch_end_steps:
             ax_loss.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
