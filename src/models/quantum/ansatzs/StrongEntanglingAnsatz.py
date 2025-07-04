@@ -15,8 +15,4 @@ class StrongEntanglingAnsatz(BaseAnsatz):
         self.weight_shapes = {"weights": qml.StronglyEntanglingLayers.shape(n_layers=n_layers, n_wires=n_qubits)}
 
     def ansatz(self, weights):
-        qml.StronglyEntanglingLayers(
-            weights,
-            wires=range(self.n_qubits),
-            ranges=np.ones(3, dtype=int),
-        )
+        qml.StronglyEntanglingLayers(weights, wires=range(self.n_qubits))
