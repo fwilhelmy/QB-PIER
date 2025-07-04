@@ -226,7 +226,7 @@ def main(args: Arguments | None = None):
     seeds = [0, 42]
     args = args or Arguments()
     args.verbose = False
-    args.n_steps = 142
+    args.n_steps = 10000
     
     if getattr(args, "num_threads", None) is not None:
         torch.set_num_threads(args.num_threads)
