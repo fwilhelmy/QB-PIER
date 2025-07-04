@@ -153,11 +153,12 @@ def plot_training_curves(model_name, seed_dict):
 
     # Add vertical lines marking the end of each epoch
     # The epoch endpoints are retrieved from the model metrics
-    epoch_end_steps = first_model.metrics["epoch"]
-    for epoch_step in epoch_end_steps:
-        ax_loss.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
-        ax_acc.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
-        ax_weights.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
+    if len(first_model.metrics["epoch"]) < 10:
+        epoch_end_steps = first_model.metrics["epoch"]
+        for epoch_step in epoch_end_steps:
+            ax_loss.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
+            ax_acc.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
+            ax_weights.axvline(x=epoch_step, color="gray", linestyle="--", alpha=0.8)
 
     fig.suptitle(f"Training Curves — {model_name}")
     fig.tight_layout(rect=[0, 0, 1, 0.96])
