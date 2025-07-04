@@ -6,6 +6,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from collections import defaultdict
 import pandas as pd
+from typing import Iterable, List, Dict, Any
 
 from visualisation.AttacksVisualisation import (
     plot_attack_effect_on_accuracy,
@@ -130,7 +131,8 @@ def train_model(args, seeds=[0, 42]):
         seed_times[seed] = elapsed
         trained[seed] = model
 
-    model_dir = f"{trained[seeds[0]].__class__.__name__}/{str(trained[seeds[0]].model_name)}"
+    first_model = trained[seeds[0]]
+    model_dir = f"{first_model.__class__.__name__}/{str(first_model.model_name)}"
 
     avg_time = sum(seed_times.values()) / len(seed_times) if seed_times else 0.0
     performance = {"seed_times": seed_times, "average": avg_time}
@@ -139,11 +141,19 @@ def train_model(args, seeds=[0, 42]):
         title=f"performance.json",
         log_dir=model_dir)
     
-    summary = {
+    summary: Dict[str, Any] = {
         k: str(v)
         for k, v in vars(args).items()
         if k.startswith("_") is False
     }
+    total = 0
+    layers_params = {}
+    for name, param in first_model.named_parameters():
+        n = param.numel()
+        layers_params[name] = n
+        total += n
+    summary['total_parameters'] = total
+    summary['parameters'] = layers_params
     LoggingService().save_file(
         content=json.dumps(summary, indent=2),
         title=f"summary.json",
@@ -163,17 +173,33 @@ def run_attacks(trained_models, args):
     for seed, models in models_by_seed.items():
         print(f"\n>>> Running attacks for seed : {seed}")
         seed_experiment(seed)
+        
+        # Prepare dataset and gradients once for efficiency
+        dm = DatasetManagerFactory(args.dataset)
+        dataset = dm.load_dataset(train=False)
+        dm.dataset = dataset
+        data = dataset.data.unsqueeze(1).to(torch.float)
+        targets = dataset.targets
+
+        attack = FGSMAttack(dm.dataset)
+        epsilons = [x / 100.0 for x in range(0, 102, 2)]
 
         for attacker_model in models:
+            attacker_model.eval()
             for victim_model in models:
-                df = transfer_attack(
-                    attacker_model,
-                    victim_model,
-                    dataset_name=args.dataset,
-                    device=args.device,
-                    epsilons=[x / 100.0 for x in range(0, 105, 5)],
-                )
-                for _, row in df.iterrows():
+                victim_model.eval()
+                attack_results: List[Dict[str, float]] = []
+                for eps in epsilons:
+                    adv_examples = attack.attack(attacker_model, eps).to(args.device)
+                    with torch.no_grad():
+                        adv_logits = victim_model(adv_examples)
+                        adv_acc = calculate_accuracy(
+                            adv_logits,
+                            targets[: adv_examples.size(0)],
+                        )
+                    attack_results.append({"epsilon": eps, "accuracy": float(adv_acc)})
+
+                for _, row in pd.DataFrame(attack_results).iterrows():
                     records.append(
                         {
                             "seed": seed,
@@ -200,7 +226,7 @@ def main(args: Arguments | None = None):
     seeds = [0, 42]
     args = args or Arguments()
     args.verbose = False
-    args.n_steps = 10000
+    args.n_steps = 142
     
     if getattr(args, "num_threads", None) is not None:
         torch.set_num_threads(args.num_threads)
@@ -218,22 +244,22 @@ def main(args: Arguments | None = None):
     model_specs = [
         ("AmpVQC_Basic", AmpVQC, {
             "input_size": 28 * 28,
-            "n_qdepth": 2,
+            "n_qdepth": 4,
             "ansatz_cls": BasicEntanglingAnsatz,
         }),
         ("AmpVQC_Strong", AmpVQC, {
             "input_size": 28 * 28,
-            "n_qdepth": 2,
+            "n_qdepth": 4,
             "ansatz_cls": StrongEntanglingAnsatz,
         }),
         ("AmpVQC_Random", AmpVQC, {
             "input_size": 28 * 28,
-            "n_qdepth": 2,
+            "n_qdepth": 4,
             "ansatz_cls": RandomStructureAnsatz,
         }),
         ("AmpVQC_NoEntangling", AmpVQC, {
             "input_size": 28 * 28,
-            "n_qdepth": 2,
+            "n_qdepth": 4,
             "ansatz_cls": NoEntanglingAnsatz,
         }),
         # ("AmpVQC_Residual_Basic", AmpVQC, {
@@ -262,9 +288,9 @@ def main(args: Arguments | None = None):
     plot_models_together(trained_models)  
 
     # Run transfer attacks
-    # attacks_metrics = run_attacks(trained_models, args)
-    # plot_transfer_attack_effects(attacks_metrics,
-    #                             title_prefix="transfer")
+    attacks_metrics = run_attacks(trained_models, args)
+    plot_transfer_attack_effects(attacks_metrics,
+                                title_prefix="transfer")
     # from pprint import pprint
     # pprint(trained_models['HQNN_Parallel_1'][0].all_metrics, depth=2)
     # metrics = trained_models['HQNN_Parallel_1'][0].all_metrics
@@ -286,7 +312,6 @@ def _parse_cli() -> Arguments:
         if value is not None:
             setattr(args, field, value)
     return args
-
 
 if __name__ == "__main__":
     cli_args = _parse_cli()
