@@ -242,26 +242,40 @@ def main(args: Arguments | None = None):
 
     # 2) Define your list of model‐configurations: (name, class, kwargs)
     model_specs = [
-        ("AmpVQC_Basic", AmpVQC, {
+        # ("AmpVQC_Basic", AmpVQC, {
+        #     "input_size": 28 * 28,
+        #     "n_qdepth": 4,
+        #     "ansatz_cls": BasicEntanglingAnsatz,
+        ("AmpVQC_Strong_depth_3", AmpVQC, {
             "input_size": 28 * 28,
-            "n_qdepth": 4,
-            "ansatz_cls": BasicEntanglingAnsatz,
+            "n_qdepth": 3,
+            "ansatz_cls": StrongEntanglingAnsatz,
         }),
-        ("AmpVQC_Strong", AmpVQC, {
+        ("AmpVQC_Strong_depth_4", AmpVQC, {
             "input_size": 28 * 28,
             "n_qdepth": 4,
             "ansatz_cls": StrongEntanglingAnsatz,
         }),
-        ("AmpVQC_Random", AmpVQC, {
+        ("AmpVQC_Strong_depth_5", AmpVQC, {
             "input_size": 28 * 28,
-            "n_qdepth": 4,
-            "ansatz_cls": RandomStructureAnsatz,
+            "n_qdepth": 5,
+            "ansatz_cls": StrongEntanglingAnsatz,
         }),
-        ("AmpVQC_NoEntangling", AmpVQC, {
+        ("AmpVQC_Strong_depth_6", AmpVQC, {
             "input_size": 28 * 28,
-            "n_qdepth": 4,
-            "ansatz_cls": NoEntanglingAnsatz,
+            "n_qdepth": 6,
+            "ansatz_cls": StrongEntanglingAnsatz,
         }),
+        # ("AmpVQC_Random", AmpVQC, {
+        #     "input_size": 28 * 28,
+        #     "n_qdepth": 4,
+        #     "ansatz_cls": RandomStructureAnsatz,
+        # }),
+        # ("AmpVQC_NoEntangling", AmpVQC, {
+        #     "input_size": 28 * 28,
+        #     "n_qdepth": 4,
+        #     "ansatz_cls": NoEntanglingAnsatz,
+        # }),
         # ("AmpVQC_Residual_Basic", AmpVQC, {
         #     "input_size": 28 * 28,
         #     "n_qdepth": 2,
