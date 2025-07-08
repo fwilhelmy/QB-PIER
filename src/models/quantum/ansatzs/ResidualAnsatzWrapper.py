@@ -1,12 +1,11 @@
 import torch, pennylane as qml
-from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
 from utils import create_qtorchlayer
 
 # TODO layer(template, depth, *args, **kwargs)
 
 def ResidualAnsatzWrapper(ansatz_cls):
     class ResidualAnsatz(ansatz_cls):
-        def __init__(self, n_qubits, n_layers, embedding: str = "none", rotation="Y", **ansatz_kwargs):
+        def __init__(self, n_qubits, n_layers, rotation="Y", **ansatz_kwargs):
             # Initialize the parent ansatz with no embedding
             ansatz_cls.__init__(
                 self,

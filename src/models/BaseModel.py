@@ -1,16 +1,12 @@
-from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Union
 import os
-import json
-import pandas as pd
 
 import torch
 import torch.optim as optim
 from torch.nn import CrossEntropyLoss, MSELoss
 
-from lightning.pytorch.loggers.logger import Logger
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities import rank_zero_only
 
@@ -155,7 +151,7 @@ class BaseModel(LightningModule):
         
         params_l2 = sum((p.norm(2).item() ** 2) for p in self.parameters() if p.requires_grad)
         params_l2 = params_l2 ** 0.5
-
+        
         return {"loss": loss, "acc": acc, "weights_l2": params_l2}
 
     def on_train_epoch_end(self):

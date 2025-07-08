@@ -1,6 +1,5 @@
 import pennylane as qml
 from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
-import numpy as np
 
 class NoEntanglingAnsatz(BaseAnsatz):
     def __init__(
@@ -17,4 +16,4 @@ class NoEntanglingAnsatz(BaseAnsatz):
     def ansatz(self, weights):
         # Apply a rotation on each qubit with its corresponding weight
         for i in range(self.n_qubits):
-            qml.RY(weights[i], wires=i)
+            qml.RY(weights[i], wires=i) # TODO CHANGE TO ROTATION TYPE
