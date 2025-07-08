@@ -1,5 +1,3 @@
-import os
-import json
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -138,7 +136,8 @@ def plot_training_curves(model_name, seed_dict):
 
     line_with_std(ax_loss, steps, tl_mean, tl_std, label="Train Loss")
     line_with_std(ax_loss, steps, vl_mean, vl_std, label="Val Loss")
-    ax_loss.set_ylabel("Loss")
+    ax_loss.set_ylabel("Loss (Log Scale)")
+    ax_loss.set_yscale('log')
     ax_loss.grid(True, linestyle="--", linewidth=0.5)
     ax_loss.legend()
 
