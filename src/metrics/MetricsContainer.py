@@ -3,12 +3,11 @@ import time
 import json
 import pickle
 from contextlib import contextmanager
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any
 
 import psutil
 import pandas as pd
 import torch
-from typing_extensions import override
 from lightning.pytorch.utilities import rank_zero_only
 
 class MetricsContainer():
@@ -17,34 +16,28 @@ class MetricsContainer():
         log_dir: str,
     ):
         self._raw: Dict[str, Any] = {}
-        self._log_dir = log_dir
+        self.log_dir = os.path.join(self.log_dir, "metrics")
         self._init_directories()
 
     @rank_zero_only
     def _init_directories(self) -> None:
         os.makedirs(self.log_dir, exist_ok=True)
 
-    @property
-    def log_dir(self) -> str:
-        return os.path.join(self._log_dir, "metrics")
-
     def __getitem__(self, key: str):
         if "/" in key:
             group, metric = key.split("/", 1)
-            grp = self._raw.setdefault(group, {})
-            return grp.setdefault(metric, [])
-        else:
-            return self._raw.setdefault(key, [])
+            return self._raw.setdefault(group, {}).get(metric, {})
+        return self._raw.get(key, [])
     
     def log_scalar(self, metric: str, value: Any, group: Optional[str] = None) -> None:
         bucket = self._raw.setdefault(group, {}) if group is not None else self._raw
-        bucket = bucket.setdefault(metric, []).append(value)
+        bucket.setdefault(metric, []).append(value)
 
     def log_dict(self, group: str, metrics: Dict[str, Any], step: Optional[int] = None) -> None:
         for key, value in metrics.items():
             self.log_scalar(key, value, group=group)
         if step is not None:
-            self._raw[group].setdefault("step", []).append(step if step is not None else 0)
+            self._raw[group].setdefault("step", []).append(step)
 
     @rank_zero_only
     def log_epoch(self, step: int) -> None:
@@ -55,8 +48,9 @@ class MetricsContainer():
         start = time.time()
         yield
         elapsed = time.time() - start
-        self.log_scalar("timer", elapsed, group=name)
-        self.log_scalar("step", step, group=name)
+        self.log_scalar("time", elapsed, group=name)
+        if step is not None:
+            self.log_scalar("step", step, group=name)
 
     def log_resources(self, step: Optional[int] = None) -> None:
         cpu_pct = psutil.cpu_percent(interval=None)
@@ -104,6 +98,13 @@ class MetricsContainer():
         
     @rank_zero_only
     def format_metrics(self) -> pd.DataFrame:
+        """
+        Formats and merges training and validation metrics into a single pandas DataFrame.
+
+        Returns:
+            pd.DataFrame: A DataFrame containing merged and renamed columns for training and validation metrics,
+            with an 'epoch' column and a sanity-check row at the top. If no training data is present, returns an empty DataFrame.
+        """
         train = pd.DataFrame(self._raw.get("train", {}))
         if train.empty:
             return pd.DataFrame()
@@ -121,18 +122,13 @@ class MetricsContainer():
         val = val.iloc[1:].reset_index(drop=True)
 
         # Merging train and val dataframes
-        merged = pd.merge_asof(
-            train,
-            val,
-            on="step",
-            direction="nearest",
-            tolerance=1
-        )
+        merged = pd.merge_asof(train, val, on="step", direction="nearest", tolerance=1)
 
         # Assign epochs by walking through epoch-step bindings
+        n_epochs = len(self._raw['epoch'])
         epochs, bi = [], 0
         for step in merged["step"]:
-            while step > self['epoch'][bi] and bi < len(self['epoch']):
+            while step > self._raw['epoch'][bi] and bi < n_epochs:
                 bi += 1
             epochs.append(bi)
         merged.insert(0, "epoch", epochs)
