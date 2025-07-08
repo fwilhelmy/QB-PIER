@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import os
 import re
-from pathlib import Path
 from importlib import import_module
 from typing import Dict, Any
+import json
+
+from lightning import LightningModule
 
 from metrics import MetricsContainer
 
 
-def _get_model_class(name: str):
+def _resolve_class(name: str) -> LightningModule:
     """Dynamically import a model class from the package."""
     modules = [
         "src.models.classical",
@@ -23,24 +25,20 @@ def _get_model_class(name: str):
     raise ValueError(f"Unknown model class '{name}'")
 
 
-def _best_checkpoint(checkpoint_dir: Path) -> Path | None:
-    """Return the checkpoint with the lowest validation loss."""
-    if not checkpoint_dir.exists():
-        return None
-    best_path = None
-    best_loss = float("inf")
-    pattern = re.compile(r"loss=([0-9.]+)")
-    for ckpt in checkpoint_dir.glob("*.ckpt"):
-        match = pattern.search(ckpt.name)
-        if match:
-            loss = float(match.group(1))
-            if loss < best_loss:
-                best_loss = loss
-                best_path = ckpt
-    return best_path
+def _best_checkpoint(ckpt_dir: str) -> str:
+    """Return path to the best checkpoint inside ``ckpt_dir``."""
+    ckpts = [f for f in os.listdir(ckpt_dir) if f.endswith(".ckpt")]
+    if not ckpts:
+        raise FileNotFoundError("No checkpoint files found")
 
+    def score(name: str) -> float:
+        m = re.search(r"loss=([0-9.]+)", name)
+        return float(m.group(1)) if m else float("inf")
 
-def load_model(path: str, *, best: bool = True) -> Dict[str, Any]:
+    ckpts.sort(key=score)
+    return os.path.join(ckpt_dir, ckpts[0]) 
+
+def load_model(path: str, *, best: bool = True, map_location: str = "cpu") -> Dict[str, Any]:
     """Load all seeded models found in ``path``.
 
     Parameters
@@ -56,59 +54,44 @@ def load_model(path: str, *, best: bool = True) -> Dict[str, Any]:
     Dict[str, LightningModule]
         Mapping of seed value to the loaded model instance.
     """
-    path = Path(path)
-    model_class = path.parent.name
-    model_cls = _get_model_class(model_class)
+    summary_path = os.path.join(path, "summary.json")
+    with open(summary_path, "r") as f:
+        summary = json.load(f)
 
+    model_cls = _resolve_class(summary["model"])
     models = {}
-    for seed_dir in path.iterdir():
-        if not seed_dir.is_dir() or not seed_dir.name.isdigit():
-            continue
-        ckpt = seed_dir / "final.ckpt"
+    for seed in os.listdir(path):
+        seed_dir = os.path.join(path, seed)
+        if not os.path.isdir(seed_dir): continue
+        ckpt = os.path.join(seed_dir, "final.ckpt")
         if best:
-            candidate = _best_checkpoint(seed_dir / "checkpoints")
+            candidate = _best_checkpoint(os.path.join(seed_dir, "checkpoints"))
             if candidate is not None:
                 ckpt = candidate
-        model = model_cls.load_from_checkpoint(str(ckpt), map_location="cpu")
-        models[seed_dir.name] = model
+        model = model_cls.load_from_checkpoint(str(ckpt), map_location)
+        models[int(seed)] = model
     return models
 
 
-def load_metrics(path: str, *, best: bool = True) -> Dict[str, MetricsContainer]:
-    """Load metrics for each seed found in ``path``.
-
-    The ``best`` argument is accepted for API compatibility but currently has no
-    effect since metrics are stored independently of checkpoints.
-    """
-    path = Path(path)
+def load_metrics(path: str) -> Dict[Any, MetricsContainer]:
+    """Load metrics for all seeds of a model configuration."""
     metrics = {}
-    for seed_dir in path.iterdir():
-        if not seed_dir.is_dir() or not seed_dir.name.isdigit():
-            continue
-        mc = MetricsContainer(str(seed_dir))
-        mc.load_metrics(str(seed_dir))
-        metrics[seed_dir.name] = mc
+    for seed in sorted(os.listdir(path)):
+        seed_dir = os.path.join(path, seed)
+        if not os.path.isdir(seed_dir): continue
+        container = MetricsContainer(seed_dir)
+        container.load_metrics(seed_dir)
+        metrics[int(seed)] = container
     return metrics
 
-
-def load_experiment(path: str, *, best: bool = True) -> Dict[str, Dict[str, Any]]:
-    """Load an entire experiment structure.
-
-    Parameters
-    ----------
-    path:
-        Root experiment directory that contains model class folders.
-    best:
-        When ``True`` loads the best checkpoints for each model; otherwise the
-        final checkpoints.
-    """
-    path = Path(path)
-    experiment: Dict[str, Dict[str, Any]] = {}
-    for model_class_dir in path.iterdir():
-        if not model_class_dir.is_dir():
-            continue
-        for config_dir in model_class_dir.iterdir():
-            if not config_dir.is_dir():
-                continue
-            experiment[config_dir.name] = load_model(str(config_dir), best=best)
+def load_experiment(path: str, best: bool = True) -> Dict[str, Dict[Any, Any]]:
+    """Load every model in an experiment directory."""
+    experiment = {}
+    for model_cls in os.listdir(path):
+        cls_dir = os.path.join(path, model_cls)
+        if not os.path.isdir(cls_dir): continue
+        for config in os.listdir(cls_dir):
+            config_dir = os.path.join(cls_dir, config)
+            if not os.path.isdir(config_dir): continue
+            experiment[config] = load_model(config_dir, best=best)
     return experiment
