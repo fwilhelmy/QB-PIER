@@ -5,7 +5,7 @@ debug = True
 DATA_DIR = "./data/processed"
 LOGS_DIR = "./logs"
 
-CIRCUIT_STYLE = "solarized_light"
+CIRCUIT_STYLE = "pennylane"
 
 # Constants for qunodes configuration
 # default.qubit lightning.qubit
