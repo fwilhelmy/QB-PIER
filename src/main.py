@@ -1,15 +1,10 @@
-import os
-import random
 import argparse
 import torch
-import torch.optim as optim
-from torch.utils.data import DataLoader
 from collections import defaultdict
 import pandas as pd
-from typing import Iterable, List, Dict, Any
+from typing import List, Dict, Any
 
 from visualisation.AttacksVisualisation import (
-    plot_attack_effect_on_accuracy,
     plot_transfer_attack_effects,
 )
 from visualisation.TrainingVisualisation import (
@@ -18,28 +13,12 @@ from visualisation.TrainingVisualisation import (
     generate_gradient_flow_plots,
 )
 from arguments import Arguments
-from models.classical import (
-    ResNet18,
-    MLPMixer,
-    MLP,
-    ConvNet,
-    LeNet,
-)
 from models.hybrid import (
-    HQuanv,
-    HQNN,
-    HQE,
-    DimVQC,
     AmpVQC,
 )
 
 from models.quantum.ansatzs import (
-    BasicEntanglingAnsatz,
-    StrongEntanglingAnsatz,
-    RandomStructureAnsatz,
-    ResidualAnsatzWrapper,
-    NoEntanglingAnsatz,
-    IdentityAnsatz
+    StrongEntanglingAnsatz
 )
 
 import json
@@ -47,8 +26,7 @@ import time
 
 from utils import seed_experiment, calculate_accuracy
 from data.DatasetManagerFactory import DatasetManagerFactory
-from attacks import PGDAttack, FGSMAttack
-from attacks.TransferAttack import transfer_attack
+from attacks import FGSMAttack
 from metrics.LoggingService import LoggingService
 
 
@@ -144,16 +122,27 @@ def train_model(args, seeds=[0, 42]):
     summary: Dict[str, Any] = {
         k: str(v)
         for k, v in vars(args).items()
-        if k.startswith("_") is False
+        if k.startswith("_") is False and k != "seed"
     }
+    summary['seeds'] = seeds
     total = 0
     layers_params = {}
     for name, param in first_model.named_parameters():
         n = param.numel()
         layers_params[name] = n
         total += n
-    summary['total_parameters'] = total
-    summary['parameters'] = layers_params
+    layers_params['total'] = total
+    summary['layers_params'] = layers_params
+    summary['dataset'] = {
+        "name": args.dataset,
+        "dataset_size": len(dm.dataset),
+        "train_size": len(train_loader.dataset),
+        "eval_size": len(eval_loader.dataset),
+        "train_ratio": args.train_ratio,
+        "eval_ratio": args.eval_ratio,
+        "train_batch_size": args.train_batch_size,
+        "eval_batch_size": args.eval_batch_size,
+    }
     LoggingService().save_file(
         content=json.dumps(summary, indent=2),
         title=f"summary.json",
