@@ -1,0 +1,5 @@
+device: cuda
+accelerator: auto
+devices: 1
+num_workers: 0
+num_threads:

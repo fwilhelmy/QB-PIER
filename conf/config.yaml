@@ -1,0 +1,12 @@
+defaults:
+  - training: default
+  - device: default
+  - qdevice: default
+  - dataset: default
+  - model: ampvqc_depth_4
+
+seeds: [0, 42]
+verbose: false
+train_log_interval: 0.5
+eval_log_interval: 0.5
+n_steps: 10001
