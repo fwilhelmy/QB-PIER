@@ -1,9 +1,9 @@
 defaults:
   - training: default
-  - device: default
-  - qdevice: default
-  - dataset: default
-  - model: ampvqc
+  - device: local
+  - qdevice: sim_backprop
+  - dataset: mnist
+  - model: ???
 
 seeds: [0, 42]
 verbose: false

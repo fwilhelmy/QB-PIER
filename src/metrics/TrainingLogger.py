@@ -33,7 +33,6 @@ class TrainingLogger(Callback):
             pl_module.metrics.log_dict("train", avg, step)
             self._train_buf.clear()
 
-
         pl_module.log_dict({f"train/{k}": vs for k, vs in outputs.items()})
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0):

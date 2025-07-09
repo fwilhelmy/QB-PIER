@@ -1,5 +1,6 @@
 # Fashion-MNIST dataset configuration
 dataset: FMNIST
+input_shape: [1, 28, 28]
 train_ratio: 0.6
 eval_ratio: 0.4
 train_batch_size: 512

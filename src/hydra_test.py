@@ -1,7 +1,7 @@
 from omegaconf import DictConfig, OmegaConf
 import hydra
 
-@hydra.main(version_base=None, config_path="conf")
+@hydra.main(version_base=None, config_path="../conf", config_name="config")
 def my_app(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
 

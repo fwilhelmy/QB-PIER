@@ -1,5 +1,0 @@
-dataset: MNIST
-train_ratio: 0.6
-eval_ratio: 0.4
-train_batch_size: 512
-eval_batch_size: 4096
