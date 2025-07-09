@@ -1,4 +1,4 @@
-exp_name: DimVQC
+model_name: DimVQC
 class_path: src.models.hybrid.DimVQC
 params:
   reduced_dim: 1024
