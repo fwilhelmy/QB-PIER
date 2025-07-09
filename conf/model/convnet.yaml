@@ -1,0 +1,7 @@
+exp_name: ConvNet
+class_path: src.models.classical.ConvNet
+params:
+  input_size: [1, 28]
+  conv_channels: [32, 64]
+  fc_sizes: [128]
+  num_classes: 10

@@ -1,6 +1,0 @@
-exp_name: AmpVQC_Strong_depth_5
-class_path: src.models.hybrid.AmpVQC
-params:
-  input_size: 784
-  n_qdepth: 5
-  ansatz_cls: src.models.quantum.ansatzs.StrongEntanglingAnsatz
