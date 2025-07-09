@@ -7,14 +7,11 @@ import pandas as pd
 import hydra
 from omegaconf import DictConfig
 
-from visualisation.AttacksVisualisation import (
-    plot_transfer_attack_effects,
-)
 from visualisation.TrainingVisualisation import (
     plot_training_curves,
     generate_gradient_flow_plots,
 )
-from arguments import Arguments, arguments_from_config
+from arguments import arguments_from_config
 
 import json
 import time
@@ -46,6 +43,9 @@ def train_model(args, seeds=[0, 42]):
         # Seeding (for reproducibility)
         args.seed = seed
         seed_experiment(seed)
+        
+        if hasattr(args, "num_threads"):
+            torch.set_num_threads(args.num_threads)
 
         # 2) Prepare data
         dm = DatasetManagerFactory(args.dataset)
@@ -53,33 +53,31 @@ def train_model(args, seeds=[0, 42]):
             args.train_ratio, args.eval_ratio
         )
         train_loader, eval_loader = dm.split_and_load(
-            train_samples_size = train_split,
-            eval_samples_size = eval_split,
-            train_batch_size = args.train_batch_size,
-            eval_batch_size = args.eval_batch_size,
-            num_workers = args.num_workers
+            train_samples_size=train_split,
+            eval_samples_size=eval_split,
+            train_batch_size=args.train_batch_size,
+            eval_batch_size=args.eval_batch_size,
+            num_workers=args.num_workers
         )
 
         # 3) Instantiate & configure the model
         model = args.model(
-            model_name = args.exp_name,
-            seed = seed,
+            model_name=args.exp_name,
+            seed=seed,
             **args.model_config
         )
-        model.configure_training(
-            {
-                "optimizer": args.optimizer,
-                "loss_fn": args.loss_fn,
-                "learning_rate": args.lr,
-                "max_steps": args.n_steps,
-                "weight_decay": args.weight_decay,
-                "momentum": args.momentum,
-                "accelerator": args.accelerator,
-                "devices": args.devices,
-                "train_log_interval": args.train_log_interval,
-                "eval_log_interval": args.eval_log_interval,
-            }
-        )
+        model.configure_training({
+            "optimizer": args.optimizer,
+            "loss_fn": args.loss_fn,
+            "learning_rate": args.lr,
+            "max_steps": args.n_steps,
+            "weight_decay": args.weight_decay,
+            "momentum": args.momentum,
+            "accelerator": args.accelerator,
+            "devices": args.devices,
+            "train_log_interval": args.train_log_interval,
+            "eval_log_interval": args.eval_log_interval,
+        })
         model = model.to(args.device)
 
         # 4) Print configuration
@@ -93,7 +91,7 @@ def train_model(args, seeds=[0, 42]):
             print(f"accelerator: {args.accelerator}")
             print(f"devices: {args.devices}")
             print(f"num_workers: {args.num_workers}")
-            print(f"num_threads: {args.num_threads}")
+            print(f"num_threads: {args.num_threads if hasattr(args, 'num_threads') else 'N/A'}")
             print(f"device: {args.device}")
             print("=" * 40)
 
