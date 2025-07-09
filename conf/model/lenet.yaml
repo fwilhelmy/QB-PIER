@@ -1,5 +1,3 @@
 exp_name: LeNet
 class_path: src.models.classical.LeNet
 params:
-  in_channels: 1
-  classes: 10

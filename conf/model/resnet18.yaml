@@ -1,5 +1,3 @@
 exp_name: ResNet18
 class_path: src.models.classical.ResNet18
 params:
-  input_size: [1, 28]
-  num_classes: 10

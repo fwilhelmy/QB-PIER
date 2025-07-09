@@ -62,6 +62,8 @@ def arguments_from_config(cfg) -> "Arguments":
     args.eval_ratio = cfg.dataset.eval_ratio
     args.train_batch_size = cfg.dataset.train_batch_size
     args.eval_batch_size = cfg.dataset.eval_batch_size
+    input_shape = cfg.dataset.input_shape
+    num_classes = cfg.dataset.classes
 
     # Training settings
     args.optimizer = cfg.training.optimizer
@@ -77,5 +79,22 @@ def arguments_from_config(cfg) -> "Arguments":
     # Model class and configuration
     args.model = cfg.model.class_obj
     args.model_config = dict(cfg.model.params)
+
+    channels = int(input_shape[0])
+    img_size = int(input_shape[-1])
+    flattened = int(channels * img_size * img_size)
+
+    if "input_size" in args.model_config:
+        val = args.model_config["input_size"]
+        if isinstance(val, (list, tuple)):
+            args.model_config["input_size"] = (channels, img_size)
+        else:
+            args.model_config["input_size"] = flattened
+    if "in_channels" in args.model_config:
+        args.model_config["in_channels"] = channels
+    if "num_classes" in args.model_config:
+        args.model_config["num_classes"] = num_classes
+    if "classes" in args.model_config:
+        args.model_config["classes"] = num_classes
 
     return args

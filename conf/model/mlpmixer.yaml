@@ -1,8 +1,6 @@
 exp_name: MLPMixer
 class_path: src.models.classical.MLPMixer
 params:
-  num_classes: 10
-  input_size: [1, 28]
   patch_size: 4
   embed_dim: 256
   num_blocks: 4
