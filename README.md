@@ -46,6 +46,19 @@ Results (checkpoints, figures and TensorBoard logs) are saved under a timestampe
 The script `src/main.py` shows how to configure an experiment with the
 `Arguments` class. Setting `num_threads` limits the CPU threads used by PyTorch via `torch.set_num_threads`, which can be helpful on shared machines.
 
+Device profiles under `conf/device/` allow quickly switching between hardware setups:
+
+```bash
+# Use the Google Colab GPU setup
+python src/main.py device=colab_t4
+
+# Run on a 64-CPU cluster
+python src/main.py device=cpu_cluster
+
+# Default local configuration
+python src/main.py device=local
+```
+
 ## Documentation
 Sphinx documentation lives in `docs/`. After installing `Sphinx`, you can build the HTML pages with:
 ```bash
