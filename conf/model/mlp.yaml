@@ -1,7 +1,5 @@
 exp_name: MLP
 class_path: src.models.classical.MLP
 params:
-  input_size: [1, 28]
   hidden_sizes: [1024, 512, 64, 64]
-  num_classes: 10
   activation: relu
