@@ -39,3 +39,43 @@ class Arguments:
     lr: float = 1e-3
     momentum: float = 0.9
     weight_decay: float = 1.0
+
+
+def arguments_from_config(cfg) -> "Arguments":
+    """Create an :class:`Arguments` instance from a Hydra config."""
+    args = Arguments()
+
+    # Basic experiment
+    args.exp_name = cfg.model.exp_name
+    args.verbose = cfg.get("verbose", False)
+
+    # Device
+    args.device = cfg.device.device
+    args.accelerator = cfg.device.accelerator
+    args.devices = cfg.device.devices
+    args.num_workers = cfg.device.num_workers
+    args.num_threads = cfg.device.num_threads
+
+    # Dataset
+    args.dataset = cfg.dataset.dataset
+    args.train_ratio = cfg.dataset.train_ratio
+    args.eval_ratio = cfg.dataset.eval_ratio
+    args.train_batch_size = cfg.dataset.train_batch_size
+    args.eval_batch_size = cfg.dataset.eval_batch_size
+
+    # Training settings
+    args.optimizer = cfg.training.optimizer
+    args.scheduler = cfg.training.scheduler
+    args.loss_fn = cfg.training.loss_fn
+    args.lr = cfg.training.lr
+    args.momentum = cfg.training.momentum
+    args.weight_decay = cfg.training.weight_decay
+    args.n_steps = cfg.get("n_steps", args.n_steps)
+    args.train_log_interval = cfg.get("train_log_interval", args.train_log_interval)
+    args.eval_log_interval = cfg.get("eval_log_interval", args.eval_log_interval)
+
+    # Model class and configuration
+    args.model = cfg.model.class_obj
+    args.model_config = dict(cfg.model.params)
+
+    return args

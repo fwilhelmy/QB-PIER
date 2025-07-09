@@ -1,0 +1,4 @@
+CIRCUIT_STYLE: pennylane
+QDEVICE: default.qubit
+INTERFACE: torch
+QDIFF: backprop
