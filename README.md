@@ -6,7 +6,10 @@ QB-PIER provides a set of tools to evaluate how robust classical and quantum neu
 - [Overview](#overview)
 - [Installation](#installation)
 - [Project Structure](#project-structure)
-- [Running Experiments](#running-experiments)
+- [Running Experiments](#hydra)
+- [Training Pipeline](#pytorch-lightning)
+- [Metrics & Logging](#metrics-storage)
+- [Running Tests](#tests)
 - [Documentation](#documentation)
 - [Credits](#credits)
 
@@ -30,23 +33,27 @@ Results (checkpoints, figures and TensorBoard logs) are saved under a timestampe
 ## Project Structure
 ```
 ├── src/                  # Main source code
-│   ├── attacks/          # Adversarial attacks classes
+│   ├── attacks/          # Adversarial attack implementations
 │   ├── data/             # Dataset management
-│   ├── logging           # Logging tools
+│   ├── metrics/          # Metric containers and logging utilities
 │   ├── models/           # Classical, quantum and hybrid models
-│   ├── visualisation/    # Figures generation functions
-│   └── experiments/      # Configuration for running different experiments 
-├── docs/                 # Sphinx documentation
-├── logs/                 # Created at runtime to store logs and checkpoints
+│   ├── visualisation/    # Figure generation helpers
+│   └── experiments/      # Experiment utilities
+├── conf/                 # Hydra configuration files
+├── logs/                 # Training outputs created at runtime
 ├── tests/                # Pytest unit tests
-└── HELPER                # Convenience commands for remote runs
+├── notebooks/            # Example notebooks and archived code
+├── docs/                 # Sphinx documentation
+└── HELPER                # Convenience scripts for remote runs
 ```
 
-## Running Experiments
-The script `src/main.py` shows how to configure an experiment with the
-`Arguments` class. Setting `num_threads` limits the CPU threads used by PyTorch via `torch.set_num_threads`, which can be helpful on shared machines.
+## Hydra
+Experiments are orchestrated with [Hydra](https://github.com/facebookresearch/hydra).
+The entry point [`main.py`](src/main.py) is decorated with `@hydra.main` and reads
+defaults from [`conf/`](conf/). Any parameter can be overridden on the command line
+to modify a run without touching the code.
 
-Device profiles under `conf/device/` allow quickly switching between hardware setups:
+Device profiles under `conf/device/` make it easy to switch hardware settings:
 
 ```bash
 # Use the Google Colab GPU setup
@@ -58,6 +65,71 @@ python src/main.py device=cpu_cluster
 # Default local configuration
 python src/main.py device=local
 ```
+
+To sweep over multiple values you can enable Hydra's multi-run mode:
+
+```bash
+python src/main.py -m seed=0,1 optimizer.lr=0.001,0.0001
+```
+
+## PyTorch Lightning
+All models inherit from [`BaseModel`](src/models/BaseModel.py), a thin wrapper
+around `LightningModule` that configures optimizers, callbacks and logging.
+`configure_training()` builds a `Trainer` with the desired devices and
+hyperparameters, and the `fit()` method simply forwards to `Trainer.fit()` while
+saving a final checkpoint and the collected metrics. This hierarchy keeps the
+training loop consistent across the classical, quantum and hybrid models found
+under `src/models/`.
+
+
+<a id="metrics-storage"></a>
+## Metrics & Logging
+Training and validation results are aggregated through
+[`MetricsContainer`](src/metrics/MetricsContainer.py) and stored with
+[`pandas`](https://pandas.pydata.org/). During training values are also written
+to TensorBoard for live monitoring.
+
+Logs follow the structure:
+
+```
+experiment_dir/
+└─ model_class_name/
+   └─ model_config_name/
+      └─ seed/
+         ├─ checkpoints/
+         ├─ metrics/
+         ├─ tensorboard/
+         └─ final.ckpt
+```
+
+The experiment root contains an `experiment_info.json` similar to:
+
+```json
+{
+  "pipeline_version": "0.1.0",
+  "start_time": "2025-07-04T00:46:06.599638",
+  "cuda_available": false,
+  "configuration": {"DATA_DIR": "./data/processed", ...}
+}
+```
+
+Metrics can be accessed via `model.metrics`, loaded with
+`load_utils.load_metrics()` or inspected in TensorBoard using
+`tensorboard --logdir logs`.
+Model checkpoints can be reloaded with `load_utils.load_model(path, best=True)`
+where the `best` flag selects the best checkpoint or the final one.
+
+<a id="tests"></a>
+## Running Tests
+Unit tests live in `tests/`. After installing the development dependencies you
+can run:
+
+```bash
+make lint  # style check with flake8
+make test  # execute pytest suite
+```
+Both commands should complete without errors once all required packages are
+available.
 
 ## Documentation
 Sphinx documentation lives in `docs/`. After installing `Sphinx`, you can build the HTML pages with:
