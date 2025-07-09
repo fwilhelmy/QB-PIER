@@ -1,3 +1,2 @@
-exp_name: ResNet18
-class_path: src.models.classical.ResNet18
-params:
+defaults:
+  - resnet18/baseline

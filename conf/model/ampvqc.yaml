@@ -1,5 +1,2 @@
-exp_name: AmpVQC
-class_path: src.models.hybrid.AmpVQC
-params:
-  n_qdepth: 4
-  ansatz_cls: src.models.quantum.ansatzs.StrongEntanglingAnsatz
+defaults:
+  - ampvqc/baseline

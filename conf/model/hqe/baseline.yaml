@@ -1,0 +1,6 @@
+exp_name: HQE
+class_path: src.models.hybrid.HQE
+params:
+  hidden_sizes: [4096, 2048, 1024]
+  n_qdepth: 2
+  ansatz_cls: src.models.quantum.ansatzs.BasicEntanglingAnsatz
