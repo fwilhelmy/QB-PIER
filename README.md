@@ -6,8 +6,8 @@ QB-PIER provides a set of tools to evaluate how robust classical and quantum neu
 - [Overview](#overview)
 - [Installation](#installation)
 - [Project Structure](#project-structure)
-- [Running Experiments](#hydra)
-- [Training Pipeline](#pytorch-lightning)
+- [Running Experiments](#running-experiments)
+- [Training Pipeline](#training-pipeline)
 - [Metrics & Logging](#metrics-storage)
 - [Running Tests](#tests)
 - [Documentation](#documentation)
@@ -47,7 +47,7 @@ Results (checkpoints, figures and TensorBoard logs) are saved under a timestampe
 └── HELPER                # Convenience scripts for remote runs
 ```
 
-## Hydra
+## Running Experiments
 Experiments are orchestrated with [Hydra](https://github.com/facebookresearch/hydra).
 The entry point [`main.py`](src/main.py) is decorated with `@hydra.main` and reads
 defaults from [`conf/`](conf/). Any parameter can be overridden on the command line
@@ -69,10 +69,10 @@ python src/main.py device=local
 To sweep over multiple values you can enable Hydra's multi-run mode:
 
 ```bash
-python src/main.py -m seed=0,1 optimizer.lr=0.001,0.0001
+python src/main.py -m model=ampvqc optimizer.lr=0.001,0.0001
 ```
 
-## PyTorch Lightning
+## Training Pipeline
 All models inherit from [`BaseModel`](src/models/BaseModel.py), a thin wrapper
 around `LightningModule` that configures optimizers, callbacks and logging.
 `configure_training()` builds a `Trainer` with the desired devices and
