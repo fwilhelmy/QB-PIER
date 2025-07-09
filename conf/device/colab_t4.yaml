@@ -1,0 +1,5 @@
+device: cuda
+accelerator: gpu
+devices: 1
+num_workers: 2
+num_threads:
