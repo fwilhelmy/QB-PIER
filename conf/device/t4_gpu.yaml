@@ -1,0 +1,7 @@
+# Classical models (ConvNet, ResNet18, LeNet, MLP, MLPMixer) benefit the most because their convolution and matrix operations are GPU‑accelerated.
+
+device: cuda
+accelerator: gpu
+devices: 1
+num_workers: 2
+num_threads:
