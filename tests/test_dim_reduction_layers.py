@@ -2,7 +2,7 @@ import pytest
 import torch
 
 sklearn = pytest.importorskip("sklearn")
-from src.models.DimensionalityReductionLayer import (
+from src.models.classical.DimensionalityReductionLayer import (
     PCALayer,
     KernelPCALayer,
     RandomProjectionLayer,

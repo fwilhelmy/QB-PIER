@@ -1,8 +1,7 @@
 import torch
-from torch import nn
 from torch.nn import LogSoftmax
 
-from models.DimensionalityReductionLayer import DimensionalityReductionLayer
+from models.classical.DimensionalityReductionLayer import DimensionalityReductionLayer
 from models.quantum.VQC import VQC
 from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 from models.BaseModel import BaseModel
