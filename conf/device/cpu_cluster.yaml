@@ -1,5 +1,5 @@
 device: cpu
 accelerator: cpu
-devices: 64
-num_workers: 64
-num_threads: 64
+devices: 60
+num_workers: 60
+num_threads: 60
