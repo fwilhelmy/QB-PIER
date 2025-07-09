@@ -21,6 +21,7 @@ seaborn
 psutil
 tqdm
 scipy
+hydra-core
 
 # Testing libraries
 pytest

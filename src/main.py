@@ -1,25 +1,20 @@
-import argparse
-import torch
+import importlib
 from collections import defaultdict
-import pandas as pd
 from typing import List, Dict, Any
+
+import torch
+import pandas as pd
+import hydra
+from omegaconf import DictConfig
 
 from visualisation.AttacksVisualisation import (
     plot_transfer_attack_effects,
 )
 from visualisation.TrainingVisualisation import (
-    plot_models_together,
     plot_training_curves,
     generate_gradient_flow_plots,
 )
-from arguments import Arguments
-from models.hybrid import (
-    AmpVQC,
-)
-
-from models.quantum.ansatzs import (
-    StrongEntanglingAnsatz
-)
+from arguments import Arguments, arguments_from_config
 
 import json
 import time
@@ -201,121 +196,29 @@ def run_attacks(trained_models, args):
 
     return pd.DataFrame(records)
 
-def main(args: Arguments | None = None):
-    """Run the experiment with the provided configuration.
 
-    Parameters
-    ----------
-    args : Arguments | None
-        Configuration object. When ``None`` a new :class:`Arguments` instance
-        with default values is created.
-    """
-    # Define arguments and set global defaults
+@hydra.main(config_path="../conf", config_name="config", version_base=None)
+def main(cfg: DictConfig) -> None:
+    """Run an experiment using a Hydra configuration."""
+
+    # Load model class from dotted path
+    module_path, cls_name = cfg.model.class_path.rsplit(".", 1)
+    model_module = importlib.import_module(module_path)
+    cfg.model.class_obj = getattr(model_module, cls_name)
+
+    # Resolve any dotted path parameters
+    for key, val in list(cfg.model.params.items()):
+        if isinstance(val, str) and "." in val:
+            m_path, c_name = val.rsplit(".", 1)
+            mod = importlib.import_module(m_path)
+            cfg.model.params[key] = getattr(mod, c_name)
+
+    args = arguments_from_config(cfg)
+    seeds = cfg.get("seeds", [0, 42])
+
     LoggingService("test_models")
-    seeds = [0, 42]
-    args = args or Arguments()
-    args.verbose = False
-    args.n_steps = 10000
-    
-    if getattr(args, "num_threads", None) is not None:
-        torch.set_num_threads(args.num_threads)
+    trained = train_model(args, seeds)
+    plot_training_curves(args.exp_name, trained)
+    generate_gradient_flow_plots(list(trained.values())[0])
 
-    args.train_ratio = 0.6
-    args.eval_ratio = 0.4
-
-    args.train_batch_size = 2**8
-    args.eval_batch_size = 2**11
-
-    args.train_log_interval = 1.0
-    args.eval_log_interval = 1.0
-
-    # 2) Define your list of model‐configurations: (name, class, kwargs)
-    model_specs = [
-        # ("AmpVQC_Basic", AmpVQC, {
-        #     "input_size": 28 * 28,
-        #     "n_qdepth": 4,
-        #     "ansatz_cls": BasicEntanglingAnsatz,
-        ("AmpVQC_Strong_depth_3", AmpVQC, {
-            "input_size": 28 * 28,
-            "n_qdepth": 3,
-            "ansatz_cls": StrongEntanglingAnsatz,
-        }),
-        ("AmpVQC_Strong_depth_4", AmpVQC, {
-            "input_size": 28 * 28,
-            "n_qdepth": 4,
-            "ansatz_cls": StrongEntanglingAnsatz,
-        }),
-        ("AmpVQC_Strong_depth_5", AmpVQC, {
-            "input_size": 28 * 28,
-            "n_qdepth": 5,
-            "ansatz_cls": StrongEntanglingAnsatz,
-        }),
-        ("AmpVQC_Strong_depth_6", AmpVQC, {
-            "input_size": 28 * 28,
-            "n_qdepth": 6,
-            "ansatz_cls": StrongEntanglingAnsatz,
-        }),
-        # ("AmpVQC_Random", AmpVQC, {
-        #     "input_size": 28 * 28,
-        #     "n_qdepth": 4,
-        #     "ansatz_cls": RandomStructureAnsatz,
-        # }),
-        # ("AmpVQC_NoEntangling", AmpVQC, {
-        #     "input_size": 28 * 28,
-        #     "n_qdepth": 4,
-        #     "ansatz_cls": NoEntanglingAnsatz,
-        # }),
-        # ("AmpVQC_Residual_Basic", AmpVQC, {
-        #     "input_size": 28 * 28,
-        #     "n_qdepth": 2,
-        #     "ansatz_cls": ResidualAnsatzWrapper(BasicEntanglingAnsatz),
-        # }),
-        # ("AmpVQC_Residual_Strong", AmpVQC, {
-        #     "input_size": 28 * 28,
-        #     "n_qdepth": 2,
-        #     "ansatz_cls": ResidualAnsatzWrapper(StrongEntanglingAnsatz),
-        # }),
-    ]
-
-    # Train each model spec across all seeds, collect results as (model, seed)
-    trained_models = {}
-    for (model_name, model_cls, config) in model_specs:
-        args.exp_name = model_name
-        args.model = model_cls
-        args.model_config = config
-
-        trained_models[model_name] = train_model(args, seeds)
-        plot_training_curves(model_name, trained_models[model_name])
-        generate_gradient_flow_plots(list(trained_models[model_name].values())[0])
-
-    plot_models_together(trained_models)  
-
-    # Run transfer attacks
-    attacks_metrics = run_attacks(trained_models, args)
-    plot_transfer_attack_effects(attacks_metrics,
-                                title_prefix="transfer")
-    # from pprint import pprint
-    # pprint(trained_models['HQNN_Parallel_1'][0].all_metrics, depth=2)
-    # metrics = trained_models['HQNN_Parallel_1'][0].all_metrics
-
-def _parse_cli() -> Arguments:
-    """Parse a minimal set of command line options for experimentation."""
-    parser = argparse.ArgumentParser(description="Run QB-PIER main entry point")
-    parser.add_argument("--device", type=str, help="torch device, e.g. 'cpu' or 'cuda'")
-    parser.add_argument("--accelerator", type=str, help="accelerator backend for lightning")
-    parser.add_argument("--devices", type=int, help="number of devices to use")
-    parser.add_argument("--num_workers", type=int, help="dataloader worker count")
-    parser.add_argument("--num_threads", type=int, help="override torch num threads")
-
-    cli_args = parser.parse_args()
-
-    args = Arguments()
-    for field in ["device", "accelerator", "devices", "num_workers", "num_threads"]:
-        value = getattr(cli_args, field)
-        if value is not None:
-            setattr(args, field, value)
-    return args
-
-if __name__ == "__main__":
-    cli_args = _parse_cli()
-    main(cli_args)
+if __name__ == "__main__":    main()
