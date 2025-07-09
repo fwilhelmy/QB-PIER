@@ -1,4 +1,4 @@
-exp_name: AmpVQC_Strong_depth_4
+exp_name: AmpVQC
 class_path: src.models.hybrid.AmpVQC
 params:
   input_size: 784
