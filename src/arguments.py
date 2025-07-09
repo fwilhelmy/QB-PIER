@@ -46,7 +46,7 @@ def arguments_from_config(cfg) -> "Arguments":
     args = Arguments()
 
     # Basic experiment
-    args.exp_name = cfg.model.exp_name
+    args.exp_name = cfg.model.model_name
     args.verbose = cfg.get("verbose", False)
 
     # Device

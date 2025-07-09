@@ -1,4 +1,4 @@
-exp_name: HQuanv
+model_name: HQuanv
 class_path: src.models.hybrid.HQuanv
 params:
   img_size: 28

@@ -1,4 +1,4 @@
-exp_name: HQNN
+model_name: HQNN
 class_path: src.models.hybrid.HQNN
 params:
   n_qubits: 5
