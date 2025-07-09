@@ -1,5 +1,2 @@
-exp_name: MLP
-class_path: src.models.classical.MLP
-params:
-  hidden_sizes: [1024, 512, 64, 64]
-  activation: relu
+defaults:
+  - mlp/baseline
