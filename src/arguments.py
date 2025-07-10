@@ -21,6 +21,7 @@ class Arguments:
 
     # Data
     dataset: str = "MNIST"  # [MNIST, FMNIST] only for now..
+    dataset_root: str = "./data/processed"
 
     train_ratio: float = 0.6
     eval_ratio: float = 0.4
@@ -58,6 +59,7 @@ def arguments_from_config(cfg: dict) -> "Arguments":
 
     # Dataset
     args.dataset = cfg["dataset"]["dataset"]
+    args.dataset_root = cfg["dataset"].get("root", cfg.get("DATA_DIR", args.dataset_root))
     args.train_ratio = cfg["dataset"]["train_ratio"]
     args.eval_ratio = cfg["dataset"]["eval_ratio"]
     args.train_batch_size = cfg["dataset"]["train_batch_size"]

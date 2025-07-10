@@ -49,7 +49,7 @@ def train_model(args, seeds=[0, 42]):
             torch.set_num_threads(args.num_threads)
 
         # 2) Prepare data
-        dm = DatasetManagerFactory(args.dataset)
+        dm = DatasetManagerFactory(args.dataset, root=args.dataset_root)
         train_split, eval_split = dm.calculate_split_sizes(
             args.train_ratio, args.eval_ratio
         )
@@ -158,7 +158,7 @@ def run_attacks(trained_models, args):
         seed_experiment(seed)
         
         # Prepare dataset and gradients once for efficiency
-        dm = DatasetManagerFactory(args.dataset)
+        dm = DatasetManagerFactory(args.dataset, root=args.dataset_root)
         dataset = dm.load_dataset(train=False)
         dm.dataset = dataset
         data = dataset.data.unsqueeze(1).to(torch.float)
@@ -220,7 +220,7 @@ def main(cfg: DictConfig) -> None:
     args = arguments_from_config(cfg)
     seeds = cfg.get("seeds", [0, 42])
 
-    LoggingService(cfg["experiment_name"])
+    LoggingService(cfg["experiment_name"], logs_dir=cfg.get("LOGS_DIR"))
     trained = train_model(args, seeds)
     plot_training_curves(args.exp_name, trained)
     generate_gradient_flow_plots(list(trained.values())[0])

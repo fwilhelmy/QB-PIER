@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch
-import Configuration as cfg
+from .qdevice import QDEVICE, INTERFACE, QDIFF
 import pennylane as qml
 
 def seed_experiment(seed):
@@ -16,8 +16,8 @@ def seed_experiment(seed):
     torch.backends.cudnn.benchmark = False
 
 def get_qnode(circuit, n_qubits):
-    dev = qml.device(cfg.QDEVICE, wires=n_qubits)
-    return qml.QNode(circuit, dev, interface=cfg.INTERFACE, diff_method=cfg.QDIFF)
+    dev = qml.device(QDEVICE, wires=n_qubits)
+    return qml.QNode(circuit, dev, interface=INTERFACE, diff_method=QDIFF)
 
 # Helper functions for creating circuits
 def create_qtorchlayer(n_qubits, circuit, weight_shapes, init_vals=None):

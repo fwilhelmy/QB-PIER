@@ -8,6 +8,9 @@ defaults:
 
 seeds: [0, 42]
 verbose: false
+debug: true
+DATA_DIR: "./data/processed"
+LOGS_DIR: "./logs"
 train_log_interval: 0.5
 eval_log_interval: 0.5
 experiment_name: test_models
@@ -15,7 +18,7 @@ n_steps: 10001
 
 hydra:
   run:
-    dir: logs/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${hydra:runtime.choices.model}/${model.ampvqc.model_name}
+    dir: ${LOGS_DIR}/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${hydra:runtime.choices.model}/${model.ampvqc.model_name}
   sweep:
-    dir: logs/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${hydra:runtime.choices.model}/${model.ampvqc.model_name}
+    dir: ${LOGS_DIR}/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${hydra:runtime.choices.model}/${model.ampvqc.model_name}
     subdir: ${hydra.job.num}
