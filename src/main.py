@@ -200,6 +200,7 @@ def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
 
     # Load model class from dotted path
+    cfg.model = cfg.model[dir(cfg.model)[0]]
     module_path, cls_name = cfg.model.class_path.rsplit(".", 1)
     model_module = importlib.import_module(module_path)
     cfg.model.class_obj = getattr(model_module, cls_name)
