@@ -9,4 +9,12 @@ seeds: [0, 42]
 verbose: false
 train_log_interval: 0.5
 eval_log_interval: 0.5
+experiment_name: test_models
 n_steps: 10001
+
+hydra:
+  run:
+    dir: logs/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${hydra:runtime.choices.model}/${model.exp_name}
+  sweep:
+    dir: multirun/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${hydra:runtime.choices.model}/${model.exp_name}
+    subdir: ${hydra.job.num}
