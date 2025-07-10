@@ -5,7 +5,7 @@ class RandomStructureAnsatz(BaseAnsatz):
     def __init__(
         self,
         input_size: int,
-        n_layers: int = 1,
+        n_layers: int,
         embedding: str = "angle",
         ratio_imprim: float = 0.75, # Ratio of rotation 1 qubit gates to cnots
     ):
