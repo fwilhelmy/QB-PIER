@@ -4,16 +4,19 @@ from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
 class NoEntanglingAnsatz(BaseAnsatz):
     def __init__(
         self,
-        n_qubits: int,
-        n_layers: int = 0,
-        embedding: str = "angle",
-        rotation: str = "X",
+        input_size: int,
+        n_layers: int,
+        embedding: str = "angle"
     ):
-        super().__init__(n_qubits, n_layers, embedding, rotation)
-        # Single-qubit rotations only: one parameter per qubit
-        self.weight_shapes = {"weights": (n_qubits,)}
+        super().__init__(input_size, n_layers, embedding)
+
+    @property
+    def weight_shapes(self) -> dict:
+        return {"weights": (self.n_layers, self.n_qubits)}  # One weight per qubit in each layer
 
     def ansatz(self, weights):
-        # Apply a rotation on each qubit with its corresponding weight
-        for i in range(self.n_qubits):
-            qml.RY(weights[i], wires=i) # TODO CHANGE TO ROTATION TYPE
+        # Apply rotations layer by layer
+        for layer in range(self.n_layers):
+            for i in range(self.n_qubits):
+                qml.RX(weights[layer, i], wires=i)
+                # TODO Should be rot or configurable...
