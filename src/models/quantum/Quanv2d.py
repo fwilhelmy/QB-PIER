@@ -4,8 +4,8 @@ import torch.nn.functional as F
 from typing import Type
 
 from models.quantum.VQC import VQC
-from models.quantum.ansatzs.RandomStructureAnsatz import RandomStructureAnsatz
-from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
+from models.quantum.ansatz.RandomStructureAnsatz import RandomStructureAnsatz
+from models.quantum.ansatz.BaseAnsatz import BaseAnsatz
 
 class Quanv2d(nn.Module):
     """Quantum 2D convolution layer using a VQC on image patches."""
@@ -20,8 +20,7 @@ class Quanv2d(nn.Module):
         dilation: int = 1,
         n_layers: int = 1,
         ansatz_cls: Type[BaseAnsatz] = RandomStructureAnsatz,
-        embedding: str = "angle",
-        rotation: str = "X",
+        embedding: str = "angle"
     ) -> None:
         super().__init__()
         self.in_channels = in_channels
@@ -31,14 +30,13 @@ class Quanv2d(nn.Module):
         self.padding = padding
         self.dilation = dilation
 
-        self.n_qubits = in_channels * kernel_size * kernel_size
+        self.input_size = in_channels * kernel_size * kernel_size
 
         self.vqc = VQC(
-            n_qubits=self.n_qubits,
+            input_size=self.input_size,
             n_layers=n_layers,
             ansatz_cls=ansatz_cls,
-            embedding=embedding,
-            rotation=rotation,
+            embedding=embedding
         )
         self.readout = nn.Linear(self.n_qubits, out_channels)
 
