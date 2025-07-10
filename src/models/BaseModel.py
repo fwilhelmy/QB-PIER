@@ -57,8 +57,7 @@ class BaseModel(LightningModule):
             'optimizer': config.get("optimizer", "adam").lower(),
             'max_steps': config.get("max_steps", 1000),
             'learning_rate': config.get("learning_rate", 1e-3),
-            'weight_decay': config.get("weight_decay", 1.0),
-            'momentum': config.get("momentum", 0.9),
+            'optimiser_config': config.get("optimiser_config", {}),
             'accelerator': config.get("accelerator", "auto"),
             'devices': config.get("devices", 1),
             'train_log_interval': config.get("train_log_interval", 0.5),
@@ -119,9 +118,8 @@ class BaseModel(LightningModule):
         return OptimiserFactory.create(
             self.hparams["optimizer"],
             self.parameters(),
-            lr=self.hparams["learning_rate"],
-            weight_decay=self.hparams["weight_decay"],
-            momentum=self.hparams["momentum"],
+            self.hparams["learning_rate"],
+            **self.hparams.get("optimiser_config", {}),
         )
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
