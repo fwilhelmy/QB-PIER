@@ -214,7 +214,7 @@ def main(cfg: DictConfig) -> None:
     args = arguments_from_config(cfg)
     seeds = cfg.get("seeds", [0, 42])
 
-    LoggingService("test_models")
+    LoggingService(cfg.experiment_name)
     trained = train_model(args, seeds)
     plot_training_curves(args.exp_name, trained)
     generate_gradient_flow_plots(list(trained.values())[0])
