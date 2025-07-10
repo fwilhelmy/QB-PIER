@@ -1,4 +1,4 @@
-exp_name: AmpVQC
+model_name: AmpVQC
 class_path: models.hybrid.AmpVQC
 params:
   n_qdepth: 4

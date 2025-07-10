@@ -1,4 +1,4 @@
-exp_name: ConvNet
+model_name: ConvNet
 class_path: src.models.classical.ConvNet
 params:
   conv_channels: [32, 64]
