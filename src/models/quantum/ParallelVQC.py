@@ -1,4 +1,3 @@
-import pennylane as qml
 from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
 import torch
@@ -13,28 +12,26 @@ class ParallelVQC(nn.Module):
     """
     def __init__(
         self,
-        size_in: int,
-        n_qubits: int,
+        input_size: int,
+        block_size: int,
         n_layers: int,
         ansatz_cls: Type[BaseAnsatz] = BasicEntanglingAnsatz,
-        embedding: str = "angle",
-        rotation: str = "X"
+        embedding: str = "angle"
     ):
         super().__init__()
-        self.size_in = size_in
-        self.n_qubits = n_qubits
+
+        self.input_size = input_size
+        self.block_size = block_size
+        self.num_blocks = int(np.ceil(input_size / block_size))
         self.n_layers = n_layers
-        # Number of VQC blocks needed
-        self.num_blocks = int(np.ceil(size_in / n_qubits))
 
         # Create VQC for each block
         self.blocks = nn.ModuleList([
             VQC(
-                n_qubits=n_qubits,
+                input_size=block_size,
                 n_layers=n_layers,
                 ansatz_cls=ansatz_cls,
                 embedding=embedding,
-                rotation=rotation
             ) for _ in range(self.num_blocks)
         ])
 

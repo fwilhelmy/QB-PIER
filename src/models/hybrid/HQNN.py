@@ -1,6 +1,6 @@
 """Hybrid parallel CNN combined with a quantum layer."""
 
-from typing import Optional, Type
+from typing import Type
 
 import torch
 from torch import flatten
@@ -12,9 +12,6 @@ from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
 from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 from metrics import LoggingService
 
-from torch.optim import Adam
-from torch import nn
-import time
 
 
 class HQNN(BaseModel):
@@ -45,17 +42,17 @@ class HQNN(BaseModel):
 
     def __init__(
         self,
-        n_qubits: int = 5,
-        in_qlayer: int = 20,
-        n_qdepth: int = (3),
+        qinput_size: int,
+        qblock_size: int,
+        n_qdepth: int = 3,
         ansatz_cls: Type[BaseAnsatz] = BasicEntanglingAnsatz,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters("n_qubits", "in_qlayer", "n_qdepth", "ansatz_cls")
+        self.save_hyperparameters("qinput_size", "qblock_size", "n_qdepth", "ansatz_cls")
 
-        self.in_qlayer = in_qlayer
-        self.n_qubits = n_qubits or in_qlayer
+        self.qinput_size = qinput_size
+        self.qblock_size = min(qblock_size, qinput_size)
         self.n_qdepth = n_qdepth
 
         # Convolutional feature extractor
@@ -84,14 +81,15 @@ class HQNN(BaseModel):
 
         # Quantum layer configuration
         self.qlayer1 = ParallelVQC(
-            size_in=self.in_qlayer,
-            n_qubits=self.n_qubits,
+            input_size=self.qinput_size,
+            block_size=self.qblock_size,
             n_layers=self.n_qdepth,
             ansatz_cls=ansatz_cls,
+            embedding="angle",
         )
 
         # Initialize our softmax classifier
-        self.fc2 = Linear(in_features=self.in_qlayer, out_features=self.output_size)
+        self.fc2 = Linear(in_features=self.qinput_size, out_features=self.output_size)
         self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
