@@ -27,12 +27,29 @@ class BaseModel(LightningModule):
     def __init__(
         self,
         model_name: str,
-        seed: int
+        seed: int,
+        input_size: Any,
+        output_size: Any,
     ):
+        """Initialize the base model.
+
+        Parameters
+        ----------
+        model_name: str
+            Name identifying the model instance.
+        seed: int
+            Random seed used for the experiment.
+        input_size: Any
+            Shape or dimensionality of the model input.
+        output_size: Any
+            Number of outputs produced by the model.
+        """
         super().__init__()
-        self.save_hyperparameters("model_name", "seed")
+        self.save_hyperparameters("model_name", "seed", "input_size", "output_size")
         self.model_name = model_name
         self.seed = seed
+        self.input_size = input_size
+        self.output_size = output_size
 
         self.configure_directories()
         self.metrics = MetricsContainer(self.log_dir)

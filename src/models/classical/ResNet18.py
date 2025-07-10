@@ -47,17 +47,16 @@ class BasicBlock(nn.Module):
 
 
 class ResNet18(BaseModel):
-    def __init__(self, input_size: Tuple[int, int], num_classes=10, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.save_hyperparameters("input_size", "num_classes")
-        in_channels, _ = input_size
+        in_channels, _ = self.input_size
         self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.layer1 = self._make_layer(64, 64, stride=1)
         self.layer2 = self._make_layer(64, 128, stride=2)
         self.layer3 = self._make_layer(128, 256, stride=2)
         self.layer4 = self._make_layer(256, 512, stride=2)
-        self.linear = nn.Linear(512, num_classes)
+        self.linear = nn.Linear(512, self.output_size)
         self.relu = nn.ReLU(inplace=True)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 

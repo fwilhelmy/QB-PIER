@@ -36,30 +36,27 @@ class MLP(BaseModel):
     SUPPORTED_ACTIVATION_FN = {'relu': torch.relu, 'tanh': torch.tanh, 'sigmoid': torch.sigmoid}
 
     # 20 points
-    def __init__(self, input_size: Tuple[int, int], hidden_sizes: List[int], num_classes: int,
-                 activation: str = "relu", **kwargs) -> None:
+    def __init__(self, hidden_sizes: List[int], activation: str = "relu", **kwargs) -> None:
         """Initialize a fully connected network.
 
         Args:
-            input_size: Tuple of (channels, image_size).
             hidden_sizes: Sizes of the hidden layers.
-            num_classes: Number of output classes.
             activation: Activation function to use.
+            **kwargs: Should contain ``input_size`` and ``output_size`` forwarded to :class:`BaseModel`.
         """
         super().__init__(**kwargs)
-        self.save_hyperparameters("input_size", "hidden_sizes", "num_classes", "activation")
-        channels, img_size = input_size
+        self.save_hyperparameters("hidden_sizes", "activation")
+        channels, img_size = self.input_size
         assert channels > 0 and img_size > 0, "Invalid input_size provided"
         flattened = channels * img_size * img_size
-        self.input_size = flattened
+        self.flat_input_size = flattened
         self.hidden_sizes = hidden_sizes
         assert len(hidden_sizes) > 1, "You should at least have one hidden layer"
         assert all([hidden_size > 0 for hidden_size in hidden_sizes]), "The number of neurons in each layer should be positive"
-        self.num_classes = num_classes
-        assert num_classes > 1, "The number of classes should be at least 2"
+        assert self.output_size > 1, "The number of classes should be at least 2"
         self.activation = activation
         assert activation in self.SUPPORTED_ACTIVATION_FN.keys(), "Invalid choice of activation"
-        self.hidden_layers, self.output_layer = self._build_layers(flattened, hidden_sizes, num_classes)
+        self.hidden_layers, self.output_layer = self._build_layers(flattened, hidden_sizes, self.output_size)
         
         # Initializaton
         for layer in self.hidden_layers:
@@ -68,12 +65,12 @@ class MLP(BaseModel):
     
     def _build_layers(self, input_size: int,
                         hidden_sizes: List[int],
-                        num_classes: int) -> Tuple[nn.ModuleList, nn.Module]:
+                        output_size: int) -> Tuple[nn.ModuleList, nn.Module]:
         """
         Build the layers for MLP.
         :param input_size: Flattened input dimension
         :param hidden_sizes: A list of ints. E.g., for [32, 32] means two hidden layers with 32 each.
-        :param num_classes: An int
+        :param output_size: An int
         :Return:
             hidden_layers: nn.ModuleList. Within the list, each item has type nn.Module
             output_layer: nn.Module
@@ -82,7 +79,7 @@ class MLP(BaseModel):
         hidden_layers = nn.ModuleList(
             [Linear(input_size, hidden_sizes[0])] + 
             [Linear(hidden_sizes[i], hidden_sizes[i+1]) for i in range(len(hidden_sizes)-1)])
-        output_layer = Linear(hidden_sizes[-1], num_classes)
+        output_layer = Linear(hidden_sizes[-1], output_size)
         return hidden_layers, output_layer
     
     def activation_fn(self, activation, inputs: torch.Tensor) -> torch.Tensor:
@@ -101,7 +98,7 @@ class MLP(BaseModel):
         3. Finally forward the result to the output_layer.
         
         :param images: [batch, channels, width, height]
-        :return logits: [batch, num_classes]
+        :return logits: [batch, output_size]
         """
         
         logits = inputs.view(inputs.size(0), -1)
