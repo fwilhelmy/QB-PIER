@@ -1,6 +1,6 @@
 model_name: HQNN
-module_path: models.hybrid
-class_name: HQNN
+model_type: hybrid
+model_class: HQNN
 params:
   n_qubits: 5
   in_qlayer: 20

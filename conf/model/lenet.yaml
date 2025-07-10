@@ -1,4 +1,4 @@
 model_name: LeNet
-module_path: models.classical
-class_name: LeNet
+model_type: classical
+model_class: LeNet
 params:

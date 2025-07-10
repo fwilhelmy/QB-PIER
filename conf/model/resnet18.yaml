@@ -1,4 +1,4 @@
 model_name: ResNet18
-module_path: models.classical
-class_name: ResNet18
+model_type: classical
+model_class: ResNet18
 params:

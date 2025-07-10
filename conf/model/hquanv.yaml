@@ -1,6 +1,6 @@
 model_name: HQuanv
-module_path: models.hybrid
-class_name: HQuanv
+model_type: hybrid
+model_class: HQuanv
 params:
   img_size: 28
   patch_size: 2
