@@ -3,11 +3,11 @@ from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
 class IdentityAnsatz(BaseAnsatz):
     def __init__(
         self,
-        n_qubits: int,
+        input_size: int,
         n_layers: int,
         embedding: str = "angle"
     ):
-        super().__init__(n_qubits, n_layers, embedding)
+        super().__init__(input_size, n_layers, embedding)
 
     @property
     def weight_shapes(self) -> dict:
