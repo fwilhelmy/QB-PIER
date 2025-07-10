@@ -2,41 +2,33 @@ import pennylane as qml
 import numpy as np
 from utils import get_qnode, create_qtorchlayer
 from ...qdevice import CIRCUIT_STYLE
+from Configuration import CIRCUIT_STYLE
+from abc import ABC, abstractmethod
 
-class BaseAnsatz:
-    """
-    Base class for all quantum Ansatz circuits.
-    Handles embedding; subclasses must override `ansatz()` to define gate structure.
-    """
-    weight_shapes: dict
-    # TODO pass to constructor the weight shapes
+class BaseAnsatz(ABC):
+    """Base class for all quantum Ansatz circuits."""
+
     def __init__(
         self,
-        n_qubits: int,
+        input_size: int,
         n_layers: int,
-        embedding: str = "angle", # 'angle' or 'amplitude' or 'none'
-        rotation: str = "X",
+        embedding: str = "angle",
     ):
-        self.n_qubits = n_qubits
         self.n_layers = n_layers
-        self.embedding = embedding.lower()
-        self.rotation = rotation
-
-    def _embed(self, inputs):
+        self.embedding, self.n_qubits = EmbeddingFactory(embedding, input_size)
+    
+    @property
+    @abstractmethod
+    def weight_shapes(self) -> dict:
         """
-        Apply the input embedding onto the wires.
-        Supports 'angle' and 'amplitude'.
+        Define the shape of the weights for the Ansatz.
         """
-        if self.embedding == "angle":
-            qml.AngleEmbedding(inputs, wires=range(self.n_qubits), rotation=self.rotation)
-        elif self.embedding == "amplitude":
-            qml.AmplitudeEmbedding(inputs, wires=range(self.n_qubits), normalize=True, pad_with=0.0)
-        elif self.embedding != "none":
-            raise ValueError(f"Unknown embedding method: {self.embedding}")
+        raise NotImplementedError("Subclasses must implement the weight_shapes property.")
 
+    @abstractmethod
     def ansatz(self, weights):
         """
-        Override in subclasses to implement the gate structure.
+        Define the Ansatz circuit.
         """
         raise NotImplementedError("Subclasses must implement the ansatz() method.")
 
@@ -44,7 +36,7 @@ class BaseAnsatz:
         """
         Full QNode circuit: embedding + ansatz + measurements.
         """
-        self._embed(inputs)
+        if self.embedding: self.embedding(inputs)
         self.ansatz(weights)
         return [qml.expval(qml.PauliZ(wires=i)) for i in range(self.n_qubits)]
 

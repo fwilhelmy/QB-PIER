@@ -1,18 +1,22 @@
 import pennylane as qml
 from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
-import numpy as np
 
 class StrongEntanglingAnsatz(BaseAnsatz):
     def __init__(
         self,
-        n_qubits: int,
+        input_size: int,
         n_layers: int,
-        embedding: str = "angle",
-        rotation: str = "X",
+        embedding: str = "angle"
     ):
-        super().__init__(n_qubits, n_layers, embedding, rotation)
+        super().__init__(input_size, n_layers, embedding)
         
-        self.weight_shapes = {"weights": qml.StronglyEntanglingLayers.shape(n_layers=n_layers, n_wires=n_qubits)}
+    @property
+    def weight_shapes(self) -> dict:
+        """
+        Define the shape of the weights for the Strongly Entangling Ansatz.
+        Returns a dictionary with weight names and their shapes.
+        """
+        return {"weights": qml.StronglyEntanglingLayers.shape(n_layers=self.n_layers, n_wires=self.n_qubits)}
 
     def ansatz(self, weights):
         qml.StronglyEntanglingLayers(weights, wires=range(self.n_qubits))
