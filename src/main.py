@@ -20,6 +20,7 @@ from utils import seed_experiment, calculate_accuracy
 from data.DatasetManagerFactory import DatasetManagerFactory
 from attacks import FGSMAttack
 from metrics.LoggingService import LoggingService
+from omegaconf import OmegaConf
 
 
 def train_model(args, seeds=[0, 42]):
@@ -44,7 +45,7 @@ def train_model(args, seeds=[0, 42]):
         args.seed = seed
         seed_experiment(seed)
         
-        if hasattr(args, "num_threads"):
+        if hasattr(args, "num_threads") and args.num_threads is not None:
             torch.set_num_threads(args.num_threads)
 
         # 2) Prepare data
@@ -198,24 +199,28 @@ def run_attacks(trained_models, args):
 @hydra.main(config_path="../conf", config_name="config", version_base=None)
 def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
+    cfg = OmegaConf.to_container(cfg, resolve=True)
 
     # Load model class from dotted path
-    cfg.model = cfg.model[dir(cfg.model)[0]]
-    module_path, cls_name = cfg.model.class_path.rsplit(".", 1)
+    model_key = list(cfg["model"].keys())[0]
+    model_cfg = cfg["model"][model_key]
+    module_path, cls_name = model_cfg["class_path"].rsplit(".", 1)
     model_module = importlib.import_module(module_path)
-    cfg.model.class_obj = getattr(model_module, cls_name)
+    model_cfg["class_obj"] = getattr(model_module, cls_name)
 
     # Resolve any dotted path parameters
-    for key, val in list(cfg.model.params.items()):
+    for key, val in list(model_cfg["params"].items()):
         if isinstance(val, str) and "." in val:
             m_path, c_name = val.rsplit(".", 1)
             mod = importlib.import_module(m_path)
-            cfg.model.params[key] = getattr(mod, c_name)
+            model_cfg["params"][key] = getattr(mod, c_name)
+
+    cfg["model"] = model_cfg
 
     args = arguments_from_config(cfg)
     seeds = cfg.get("seeds", [0, 42])
 
-    LoggingService(cfg.experiment_name)
+    LoggingService(cfg["experiment_name"])
     trained = train_model(args, seeds)
     plot_training_curves(args.exp_name, trained)
     generate_gradient_flow_plots(list(trained.values())[0])
