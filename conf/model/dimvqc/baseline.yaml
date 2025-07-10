@@ -1,8 +1,0 @@
-model_name: DimVQC
-class_path: src.models.hybrid.DimVQC
-params:
-  reduced_dim: 1024
-  reduction_method: pca
-  n_qdepth: 2
-  ansatz_cls: src.models.quantum.ansatzs.BasicEntanglingAnsatz
-  embedding: amplitude

@@ -1,2 +1,4 @@
-defaults:
-  - resnet18/baseline
+model_name: ResNet18
+module_path: models.classical
+class_name: ResNet18
+params:

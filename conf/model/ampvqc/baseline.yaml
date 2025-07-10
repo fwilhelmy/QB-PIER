@@ -1,5 +1,0 @@
-model_name: AmpVQC
-class_path: models.hybrid.AmpVQC
-params:
-  n_qdepth: 4
-  ansatz_cls: models.quantum.ansatzs.StrongEntanglingAnsatz

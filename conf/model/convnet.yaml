@@ -1,2 +1,6 @@
-defaults:
-  - convnet/baseline
+model_name: ConvNet
+module_path: models.classical
+class_name: ConvNet
+params:
+  conv_channels: [32, 64]
+  fc_sizes: [128]

@@ -1,2 +1,6 @@
-defaults:
-  - mlp/baseline
+model_name: MLP
+module_path: models.classical
+class_name: MLP
+params:
+  hidden_sizes: [1024, 512, 64, 64]
+  activation: relu

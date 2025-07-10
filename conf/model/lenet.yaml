@@ -1,2 +1,4 @@
-defaults:
-  - lenet/baseline
+model_name: LeNet
+module_path: models.classical
+class_name: LeNet
+params:

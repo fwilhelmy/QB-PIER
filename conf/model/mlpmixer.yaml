@@ -1,2 +1,10 @@
-defaults:
-  - mlpmixer/baseline
+model_name: MLPMixer
+module_path: models.classical
+class_name: MLPMixer
+params:
+  patch_size: 4
+  embed_dim: 256
+  num_blocks: 4
+  drop_rate: 0.0
+  activation: gelu
+  mlp_ratio: [0.5, 4.0]

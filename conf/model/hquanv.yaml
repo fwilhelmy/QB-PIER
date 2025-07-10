@@ -1,2 +1,9 @@
-defaults:
-  - hquanv/baseline
+model_name: HQuanv
+module_path: models.hybrid
+class_name: HQuanv
+params:
+  img_size: 28
+  patch_size: 2
+  n_qdepth: 2
+  ansatz_cls: models.quantum.ansatzs.RandomStructureAnsatz
+  embedding: angle

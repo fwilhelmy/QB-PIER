@@ -1,7 +1,0 @@
-model_name: HQNN
-class_path: src.models.hybrid.HQNN
-params:
-  n_qubits: 5
-  in_qlayer: 20
-  n_qdepth: 3
-  ansatz_cls: src.models.quantum.ansatzs.BasicEntanglingAnsatz

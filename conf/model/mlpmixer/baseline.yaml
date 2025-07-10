@@ -1,9 +1,0 @@
-model_name: MLPMixer
-class_path: src.models.classical.MLPMixer
-params:
-  patch_size: 4
-  embed_dim: 256
-  num_blocks: 4
-  drop_rate: 0.0
-  activation: gelu
-  mlp_ratio: [0.5, 4.0]
