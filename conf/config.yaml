@@ -1,9 +1,10 @@
 defaults:
   - training: default
-  - device: local
+  - device: cpu
   - qdevice: sim_backprop
   - dataset: mnist
-  - model: ???
+  - model: ampvqc
+  - _self_
 
 seeds: [0, 42]
 verbose: false
@@ -14,7 +15,7 @@ n_steps: 10001
 
 hydra:
   run:
-    dir: logs/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${hydra:runtime.choices.model}/${model.exp_name}
+    dir: logs/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${hydra:runtime.choices.model}/${model.ampvqc.model_name}
   sweep:
-    dir: multirun/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${hydra:runtime.choices.model}/${model.exp_name}
+    dir: logs/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${hydra:runtime.choices.model}/${model.ampvqc.model_name}
     subdir: ${hydra.job.num}
