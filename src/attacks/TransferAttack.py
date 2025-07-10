@@ -16,6 +16,7 @@ def transfer_attack(
     attacker_model,
     victim_model,
     dataset_name: str,
+    root: str | None = None,
     device: torch.device | str = "cpu",
     epsilons: Iterable[float] | None = None,
 ) -> pd.DataFrame:
@@ -40,7 +41,7 @@ def transfer_attack(
     """
 
     # Prepare dataset and gradients once for efficiency
-    dm = DatasetManagerFactory(dataset_name)
+    dm = DatasetManagerFactory(dataset_name, root=root) if root else DatasetManagerFactory(dataset_name)
     dataset = dm.load_dataset(train=False)
     dm.dataset = dataset
     data = dataset.data.unsqueeze(1).to(torch.float)

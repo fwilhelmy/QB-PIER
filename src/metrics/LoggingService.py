@@ -1,13 +1,12 @@
 import os
 import json
 import atexit
-import inspect
 from datetime import datetime
 
 import matplotlib.pyplot as plt
 import torch
 
-from Configuration import LOGS_DIR
+DEFAULT_LOGS_DIR = "./logs"
 from pytorch_lightning.utilities import rank_zero_only
 from . import __version__
 
@@ -19,19 +18,19 @@ class LoggingService:
             cls._instance = super().__new__(cls)
         return cls._instance
     
-    def __init__(self, exp_dir=None):
+    def __init__(self, exp_dir=None, logs_dir: str | None = None):
         if not hasattr(self, 'initialized'):
             self.initialized = True
 
+            logs_base = logs_dir or DEFAULT_LOGS_DIR
             timestring = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
-            self._root_dir = os.path.join(LOGS_DIR, exp_dir, timestring) if exp_dir else os.path.join(LOGS_DIR, timestring)
+            self._root_dir = os.path.join(logs_base, exp_dir, timestring) if exp_dir else os.path.join(logs_base, timestring)
             self._start_time = datetime.now()
             self._info = {
                 "pipeline_version": __version__,
                 "start_time": self._start_time.isoformat(),
                 "cuda_available": torch.cuda.is_available(),
             }
-            self._capture_configuration()
             self._init_root_dir()
             atexit.register(self.finalize)
         elif exp_dir is not None:
@@ -41,27 +40,6 @@ class LoggingService:
     def _init_root_dir(self):
         os.makedirs(self._root_dir, exist_ok=True)
 
-    def _capture_configuration(self):
-        try:
-            import Configuration as cfg
-        except Exception:
-            return
-
-        cfg_dict = {}
-        for name in dir(cfg):
-            if name.startswith("_"):
-                continue
-            value = getattr(cfg, name)
-            if inspect.isfunction(value) or inspect.ismodule(value):
-                continue
-            try:
-                json.dumps(value)
-                cfg_dict[name] = value
-            except TypeError:
-                cfg_dict[name] = str(value)
-
-        self._info["configuration"] = cfg_dict
-        
     def get_root_dir(self):
         """Return the root directory of the logs."""
         return self._root_dir
