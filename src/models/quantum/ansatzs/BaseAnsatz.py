@@ -2,6 +2,7 @@ import pennylane as qml
 import numpy as np
 from utils import get_qnode, create_qtorchlayer
 from Configuration import CIRCUIT_STYLE
+from models.quantum.embeddings import BaseEmbedding, EmbeddingFactory
 
 class BaseAnsatz:
     """
@@ -14,12 +15,15 @@ class BaseAnsatz:
         self,
         n_qubits: int,
         n_layers: int,
-        embedding: str = "angle", # 'angle' or 'amplitude' or 'none'
+        embedding: str | BaseEmbedding = "angle",  # 'angle', 'amplitude' or 'none'
         rotation: str = "X",
     ):
         self.n_qubits = n_qubits
         self.n_layers = n_layers
-        self.embedding = embedding.lower()
+        if isinstance(embedding, BaseEmbedding):
+            self.embedding = embedding
+        else:
+            self.embedding = EmbeddingFactory.create(embedding, n_qubits, rotation)
         self.rotation = rotation
 
     def _embed(self, inputs):
@@ -27,12 +31,7 @@ class BaseAnsatz:
         Apply the input embedding onto the wires.
         Supports 'angle' and 'amplitude'.
         """
-        if self.embedding == "angle":
-            qml.AngleEmbedding(inputs, wires=range(self.n_qubits), rotation=self.rotation)
-        elif self.embedding == "amplitude":
-            qml.AmplitudeEmbedding(inputs, wires=range(self.n_qubits), normalize=True, pad_with=0.0)
-        elif self.embedding != "none":
-            raise ValueError(f"Unknown embedding method: {self.embedding}")
+        self.embedding(inputs)
 
     def ansatz(self, weights):
         """
