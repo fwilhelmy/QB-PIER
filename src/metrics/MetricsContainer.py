@@ -16,7 +16,7 @@ class MetricsContainer():
         log_dir: str,
     ):
         self._raw: Dict[str, Any] = {}
-        self.log_dir = os.path.join(self.log_dir, "metrics")
+        self.log_dir = os.path.join(log_dir, "metrics")
         self._init_directories()
 
     @rank_zero_only
