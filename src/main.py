@@ -70,10 +70,9 @@ def train_model(args, seeds=[0, 42]):
         model.configure_training({
             "optimizer": args.optimizer,
             "loss_fn": args.loss_fn,
-            "learning_rate": args.lr,
+            "learning_rate": args.learning_rate,
             "max_steps": args.n_steps,
-            "weight_decay": args.weight_decay,
-            "momentum": args.momentum,
+            "optimiser_config": args.optimiser_config,
             "accelerator": args.accelerator,
             "devices": args.devices,
             "train_log_interval": args.train_log_interval,

@@ -37,9 +37,8 @@ class Arguments:
     optimizer: str = 'adamw'  # [sgd, momentum, adam, adamw]
     scheduler: str = 'dummy'  # [dummy, step, cosine, plateau]
     loss_fn: str = 'cross_entropy'  # [cross_entropy, mse]
-    lr: float = 1e-3
-    momentum: float = 0.9
-    weight_decay: float = 1.0
+    learning_rate: float = 1e-3
+    optimiser_config: dict = {}
 
 
 def arguments_from_config(cfg: dict) -> "Arguments":
@@ -69,9 +68,8 @@ def arguments_from_config(cfg: dict) -> "Arguments":
     args.optimizer = cfg["training"]["optimizer"]
     args.scheduler = cfg["training"]["scheduler"]
     args.loss_fn = cfg["training"]["loss_fn"]
-    args.lr = cfg["training"]["lr"]
-    args.momentum = cfg["training"]["momentum"]
-    args.weight_decay = cfg["training"]["weight_decay"]
+    args.learning_rate = cfg["training"]["learning_rate"]
+    args.optimiser_config = cfg["training"].get("optimiser_config", {})
     args.n_steps = cfg.get("n_steps", args.n_steps)
     args.train_log_interval = cfg.get("train_log_interval", args.train_log_interval)
     args.eval_log_interval = cfg.get("eval_log_interval", args.eval_log_interval)
