@@ -2,13 +2,14 @@ from typing import Any, Dict, Union
 import os
 
 import torch
-import torch.optim as optim
 from torch.nn import CrossEntropyLoss, MSELoss
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities import rank_zero_only
+
+from .OptimiserFactory import OptimiserFactory
 
 from utils import calculate_accuracy
 from metrics.LoggingService import LoggingService
@@ -113,32 +114,15 @@ class BaseModel(LightningModule):
         self.metrics.load_metrics(checkpoint['log_dir'])
     
     def configure_optimizers(self) -> Any:
-        if self.hparams["optimizer"] == "adamw":
-            return optim.AdamW(
-                self.parameters(),
-                lr=self.hparams["learning_rate"],
-                weight_decay=self.hparams["weight_decay"]
-            )
-        elif self.hparams["optimizer"] == "adam":
-            return optim.Adam(
-                self.parameters(),
-                lr=self.hparams["learning_rate"],
-                weight_decay=self.hparams["weight_decay"]
-            )
-        elif self.hparams["optimizer"] == "sgd":
-            return optim.SGD(
-                self.parameters(),
-                lr=self.hparams["learning_rate"],
-                weight_decay=self.hparams["weight_decay"]
-            )
-        elif self.hparams["optimizer"] == "momentum":
-            return optim.SGD(
-                self.parameters(),
-                lr=self.hparams["learning_rate"],
-                momentum=self.hparams["momentum"],
-                weight_decay=self.hparams["weight_decay"]
-            )
-        else: raise ValueError(f"Unknown optimizer: {self.hparams['optimizer']}")
+        """Create the optimiser using :class:`OptimiserFactory`."""
+
+        return OptimiserFactory.create(
+            self.hparams["optimizer"],
+            self.parameters(),
+            lr=self.hparams["learning_rate"],
+            weight_decay=self.hparams["weight_decay"],
+            momentum=self.hparams["momentum"],
+        )
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError # must be implemented by each subclass
