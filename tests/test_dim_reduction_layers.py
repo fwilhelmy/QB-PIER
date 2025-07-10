@@ -1,5 +1,6 @@
 import pytest
-import torch
+
+torch = pytest.importorskip("torch")
 
 sklearn = pytest.importorskip("sklearn")
 from src.models.classical.DimensionalityReductionLayer import (
