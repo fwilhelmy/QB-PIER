@@ -2,7 +2,7 @@
 
 from .VQC import VQC
 from .ParallelVQC import ParallelVQC
-from .Quanvolution import Quanvolution
+from .Quanv2d import Quanv2d
 
 from .ansatzs import (
     BaseAnsatz,
@@ -18,7 +18,7 @@ from .ansatzs import (
 __all__ = [
     "VQC",
     "ParallelVQC",
-    "Quanvolution",
+    "Quanv2d",
     "BaseAnsatz",
     "BasicEntanglingAnsatz",
     "StrongEntanglingAnsatz",

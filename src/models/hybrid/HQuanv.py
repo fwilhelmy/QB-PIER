@@ -8,7 +8,7 @@ from torch.nn import Linear, LogSoftmax, ReLU
 from metrics import LoggingService
 
 from models.BaseModel import BaseModel
-from models.quantum.Quanvolution import Quanvolution
+from models.quantum.Quanv2d import Quanv2d
 from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
 from models.quantum.ansatzs.RandomStructureAnsatz import RandomStructureAnsatz
 
@@ -36,9 +36,13 @@ class HQuanv(BaseModel):
         self.stride = stride or patch_size
 
         # Quantum convolution layer
-        self.quanv = Quanvolution(
-            patch_size=self.patch_size,
+        self.quanv = Quanv2d(
+            in_channels=1,
+            out_channels=self.patch_size * self.patch_size,
+            kernel_size=self.patch_size,
             stride=self.stride,
+            padding=0,
+            dilation=1,
             n_layers=n_qdepth,
             ansatz_cls=ansatz_cls,
             embedding=embedding,
@@ -46,7 +50,7 @@ class HQuanv(BaseModel):
         )
 
         n_patches = (self.img_size - self.patch_size) // self.stride + 1
-        self.fc_input_dim = fc_size or self.quanv.n_qubits * n_patches * n_patches
+        self.fc_input_dim = fc_size or self.quanv.out_channels * n_patches * n_patches
 
         # Classical fully connected layers
         self.fc1 = Linear(in_features=self.fc_input_dim, out_features=self.fc_input_dim)
