@@ -1,7 +1,6 @@
 # Some of the code taken from
 # https://pyimagesearch.com/2021/07/19/pytorch-training-your-first-convolutional-neural-network-cnn/
 
-from torch.nn import Module
 from torch.nn import Conv2d
 from torch.nn import Linear
 from torch.nn import MaxPool2d
@@ -11,10 +10,10 @@ from torch import flatten
 from models.BaseModel import BaseModel
 
 class LeNet(BaseModel):
-        def __init__(self, **kwargs):
-                # Call the parent constructor
-                super().__init__(**kwargs)
-                in_channels = self.input_size[0] if isinstance(self.input_size, (tuple, list)) else self.input_size
+	def __init__(self, **kwargs):
+		# Call the parent constructor
+		super().__init__(**kwargs)
+		in_channels = self.input_size[0] if isinstance(self.input_size, (tuple, list)) else self.input_size
 
 		# Initialize first set of CONV => RELU => POOL layers
 		self.conv1 = Conv2d(in_channels=in_channels, out_channels=16, kernel_size=(5, 5), padding=2)
@@ -31,7 +30,7 @@ class LeNet(BaseModel):
 		self.relu3 = ReLU()
 
 		# Initialize our softmax classifier
-                self.fc2 = Linear(in_features=500, out_features=self.output_size)
+		self.fc2 = Linear(in_features=500, out_features=self.output_size)
 		self.logSoftmax = LogSoftmax(dim=1)
 
 	def forward(self, inputs):
