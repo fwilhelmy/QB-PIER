@@ -1,7 +1,7 @@
 import pennylane as qml
 import numpy as np
 from utils import get_qnode, create_qtorchlayer
-from Configuration import CIRCUIT_STYLE
+from ...qdevice import CIRCUIT_STYLE
 
 class BaseAnsatz:
     """
