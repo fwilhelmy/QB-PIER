@@ -9,8 +9,8 @@ from metrics import LoggingService
 
 from models.BaseModel import BaseModel
 from models.quantum.Quanv2d import Quanv2d
-from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
-from models.quantum.ansatzs.RandomStructureAnsatz import RandomStructureAnsatz
+from models.quantum.ansatz.BaseAnsatz import BaseAnsatz
+from models.quantum.ansatz.RandomStructureAnsatz import RandomStructureAnsatz
 
 class HQuanv(BaseModel):
     """Hybrid Quanvolutional Neural Network."""
@@ -45,8 +45,7 @@ class HQuanv(BaseModel):
             dilation=1,
             n_layers=n_qdepth,
             ansatz_cls=ansatz_cls,
-            embedding=embedding,
-            rotation=rotation,
+            embedding=embedding
         )
 
         n_patches = (self.img_size - self.patch_size) // self.stride + 1

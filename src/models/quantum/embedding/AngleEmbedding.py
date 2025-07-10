@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 import pennylane as qml
-from models.quantum.embeddings import BaseEmbedding
+from models.quantum.embedding import BaseEmbedding
 
 class AngleEmbedding(BaseEmbedding):
     """Embed inputs as rotation angles."""

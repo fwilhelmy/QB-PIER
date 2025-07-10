@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from models.quantum.embeddings import BaseEmbedding, AngleEmbedding, AmplitudeEmbedding
+from models.quantum.embedding import BaseEmbedding, AngleEmbedding, AmplitudeEmbedding
 
 
 def EmbeddingFactory(name: str, input_size: int, rotation: str = "X") -> tuple[BaseEmbedding | None, int]:

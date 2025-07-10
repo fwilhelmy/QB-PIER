@@ -8,8 +8,8 @@ from torch.nn import BatchNorm2d, Conv2d, Linear, LogSoftmax, MaxPool2d, ReLU
 
 from models.BaseModel import BaseModel
 from models.quantum.ParallelVQC import ParallelVQC
-from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
-from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from models.quantum.ansatz.BaseAnsatz import BaseAnsatz
+from models.quantum.ansatz.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 from metrics import LoggingService
 
 

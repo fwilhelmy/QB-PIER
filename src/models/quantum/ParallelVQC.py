@@ -1,5 +1,5 @@
-from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
-from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
+from models.quantum.ansatz.BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from models.quantum.ansatz.BaseAnsatz import BaseAnsatz
 import torch
 import torch.nn as nn
 from typing import Type

@@ -2,7 +2,7 @@
 # This is more an epic than anything else, but I want to keep it here for now.
 
 from __future__ import annotations
-from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
+from models.quantum.ansatz.BaseAnsatz import BaseAnsatz
 
 class ReUpAnsatzWrapper(BaseAnsatz):
     """Wrapper for the ReUp Ansatz to be used in a VQC."""

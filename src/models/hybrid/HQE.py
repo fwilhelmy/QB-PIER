@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.nn import LogSoftmax
 from models.quantum.VQC import VQC
-from models.quantum.ansatzs.BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from models.quantum.ansatz.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 from models.BaseModel import BaseModel
 from metrics import LoggingService
 

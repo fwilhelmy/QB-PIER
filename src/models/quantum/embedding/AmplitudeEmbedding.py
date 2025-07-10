@@ -5,7 +5,7 @@ from __future__ import annotations
 import pennylane as qml
 import math
 
-from models.quantum.embeddings import BaseEmbedding
+from models.quantum.embedding import BaseEmbedding
 
 
 class AmplitudeEmbedding(BaseEmbedding):

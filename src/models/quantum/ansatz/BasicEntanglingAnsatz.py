@@ -1,6 +1,7 @@
-from models.quantum.ansatzs.BaseAnsatz import BaseAnsatz
+import pennylane as qml
+from models.quantum.ansatz.BaseAnsatz import BaseAnsatz
 
-class IdentityAnsatz(BaseAnsatz):
+class BasicEntanglingAnsatz(BaseAnsatz):
     def __init__(
         self,
         input_size: int,
@@ -15,7 +16,7 @@ class IdentityAnsatz(BaseAnsatz):
         Define the shape of the weights for the Basic Entangling Ansatz.
         Returns a dictionary with weight names and their shapes.
         """
-        return {"weights": (0,)} # No trainable parameters
+        return {"weights": qml.BasicEntanglerLayers.shape(n_layers=self.n_layers, n_wires=self.n_qubits)}
 
     def ansatz(self, weights):
-        pass # Intentionally no entangling layers
+        qml.BasicEntanglerLayers(weights, wires=range(self.n_qubits))

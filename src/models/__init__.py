@@ -8,8 +8,8 @@ from . import quantum
 
 __all__ = [
     "BaseModel",
+    "OptimiserFactory",
     "classical",
     "hybrid",
     "quantum",
-    "OptimiserFactory",
 ]
