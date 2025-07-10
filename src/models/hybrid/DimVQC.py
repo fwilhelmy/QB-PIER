@@ -15,23 +15,21 @@ class DimVQC(BaseModel):
 
     def __init__(
         self,
-        input_size: tuple[int, int],
         reduced_dim: int,
         reduction_method: str = "pca",
         n_qdepth: int = 1,
         ansatz_cls: Type[BasicEntanglingAnsatz] = BasicEntanglingAnsatz,
         embedding: str = "amplitude",
-        classes: int = 10,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters("input_size", "reduction_method", "reduced_dim", "n_qdepth", "ansatz_cls")
+        self.save_hyperparameters("reduction_method", "reduced_dim", "n_qdepth", "ansatz_cls")
 
         n_qubits = math.ceil(math.log2(reduced_dim))
 
         self.reducer = DimensionalityReductionLayer(reduction_method, reduced_dim)
         self.vqc = VQC(n_qubits=n_qubits, n_layers=n_qdepth, ansatz_cls=ansatz_cls, embedding=embedding)
-        self.logSoftmax = LogSoftmax(dim=input_size[0])
+        self.logSoftmax = LogSoftmax(dim=self.input_size[0])
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         x = inputs.view(inputs.size(0), -1)

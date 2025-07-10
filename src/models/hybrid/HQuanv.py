@@ -17,8 +17,6 @@ class HQuanv(BaseModel):
 
     def __init__(
         self,
-        in_channels: int,
-        classes: int,
         img_size: int = 28,
         patch_size: int = 2,
         stride: Optional[int] = None,
@@ -30,7 +28,7 @@ class HQuanv(BaseModel):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters("in_channels", "classes", "img_size", "patch_size", "stride",
+        self.save_hyperparameters("img_size", "patch_size", "stride",
                                   "n_qdepth", "ansatz_cls", "embedding", "rotation", "fc_size")
 
         self.img_size = img_size
@@ -54,7 +52,7 @@ class HQuanv(BaseModel):
         self.fc1 = Linear(in_features=self.fc_input_dim, out_features=self.fc_input_dim)
         self.relu3 = ReLU()
 
-        self.fc2 = Linear(in_features=self.fc_input_dim, out_features=classes)
+        self.fc2 = Linear(in_features=self.fc_input_dim, out_features=self.output_size)
         self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:

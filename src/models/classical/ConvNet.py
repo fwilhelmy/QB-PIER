@@ -5,10 +5,10 @@ from typing import Tuple
 
 class ConvNet(BaseModel):
     """Simple configurable convolutional network."""
-    def __init__(self, input_size: Tuple[int, int], conv_channels=(32, 64), fc_sizes=(128,), num_classes=10, **kwargs):
+    def __init__(self, conv_channels=(32, 64), fc_sizes=(128,), **kwargs):
         super().__init__(**kwargs)
-        self.save_hyperparameters("input_size", "conv_channels", "fc_sizes", "num_classes")
-        in_channels, img_size = input_size
+        self.save_hyperparameters("conv_channels", "fc_sizes")
+        in_channels, img_size = self.input_size
         layers = []
         for out_ch in conv_channels:
             layers.append(nn.Conv2d(in_channels, out_ch, kernel_size=3, padding=1))
@@ -25,7 +25,7 @@ class ConvNet(BaseModel):
             fc_layers.append(nn.Linear(prev, hidden))
             fc_layers.append(nn.ReLU())
             prev = hidden
-        fc_layers.append(nn.Linear(prev, num_classes))
+        fc_layers.append(nn.Linear(prev, self.output_size))
         self.classifier = nn.Sequential(*fc_layers)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:

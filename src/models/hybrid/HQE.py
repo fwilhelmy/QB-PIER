@@ -15,14 +15,10 @@ class HQE(BaseModel):
     of output classes.
     """
 
-    def __init__(self, input_size: int, hidden_sizes, classes: int,
-                 n_qdepth: int = 1,
-                 ansatz_cls=BasicEntanglingAnsatz,
-                 **kwargs) -> None:
+    def __init__(self, hidden_sizes, n_qdepth: int = 1,
+                 ansatz_cls=BasicEntanglingAnsatz, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters("input_size", "hidden_sizes", "classes", "n_qdepth", "ansatz_cls")
-        self.input_size = input_size
-        self.classes = classes
+        self.save_hyperparameters("hidden_sizes", "n_qdepth", "ansatz_cls")
         if isinstance(hidden_sizes, int):
             hidden_sizes = [hidden_sizes]
 
@@ -35,10 +31,10 @@ class HQE(BaseModel):
         self.encoder = nn.Sequential(*layers)
 
         # Compress to dimension equal to number of qubits/classes
-        self.bottleneck = nn.Linear(prev, classes)
+        self.bottleneck = nn.Linear(prev, self.output_size)
         self.bottleneck_act = nn.ReLU()
 
-        self.vqc = VQC(n_qubits=classes, n_layers=n_qdepth, ansatz_cls=ansatz_cls)
+        self.vqc = VQC(n_qubits=self.output_size, n_layers=n_qdepth, ansatz_cls=ansatz_cls)
         self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:

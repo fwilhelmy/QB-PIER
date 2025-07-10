@@ -78,6 +78,6 @@ def arguments_from_config(cfg: dict) -> "Arguments":
     args.model = cfg["model"]["class_obj"]
     args.model_config = dict(cfg["model"]["params"])
     args.model_config["input_size"] = cfg["dataset"]["input_shape"]
-    args.model_config["classes"] = cfg["dataset"]["classes"]
+    args.model_config["output_size"] = cfg["dataset"]["output_size"]
 
     return args

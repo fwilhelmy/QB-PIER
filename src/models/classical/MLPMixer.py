@@ -95,12 +95,12 @@ class MixerBlock(nn.Module):
     
 
 class MLPMixer(BaseModel):
-    def __init__(self, num_classes, input_size: Tuple[int, int], patch_size, embed_dim, num_blocks, 
+    def __init__(self, patch_size, embed_dim, num_blocks,
                  drop_rate=0., activation='gelu', mlp_ratio=(0.5, 4.0), **kwargs):
         super().__init__(**kwargs)
-        self.save_hyperparameters("num_classes", "input_size", "patch_size", "embed_dim",
+        self.save_hyperparameters("patch_size", "embed_dim",
                                  "num_blocks", "drop_rate", "activation", "mlp_ratio")
-        in_chans, img_size = input_size
+        in_chans, img_size = self.input_size
         self.patchemb = PatchEmbed(img_size=img_size, 
                                    patch_size=patch_size, 
                                    in_chans=in_chans,
@@ -111,8 +111,7 @@ class MLPMixer(BaseModel):
                 mlp_ratio=mlp_ratio, activation=activation, drop=drop_rate)
             for _ in range(num_blocks)])
         self.norm = nn.LayerNorm(embed_dim)
-        self.head = nn.Linear(embed_dim, num_classes)
-        self.num_classes = num_classes
+        self.head = nn.Linear(embed_dim, self.output_size)
         self.apply(self.init_weights)
     
     def init_weights(self, module):
@@ -140,7 +139,7 @@ class MLPMixer(BaseModel):
         # Step 4 : Global average pooling over the patch (token) dimension
         output = output.mean(dim=1) # [batch, embed_dim]
         # Step 5 : Final classification head
-        output = self.head(output) # [batch, num_classes]
+        output = self.head(output) # [batch, output_size]
 
         return output
 

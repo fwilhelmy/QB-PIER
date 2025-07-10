@@ -26,9 +26,9 @@ class HQNN(BaseModel):
 
     Parameters
     ----------
-    in_channels: int
-        Number of input channels of the image.
-    classes: int
+    input_size: int | tuple[int, int] | tuple[int, int, int]
+        Shape of the input. The first element denotes the number of channels.
+    output_size: int
         Number of output classes.
     in_qlayer: int, optional
         Size of the feature vector fed into the quantum layer.
@@ -45,8 +45,6 @@ class HQNN(BaseModel):
 
     def __init__(
         self,
-        in_channels: int,
-        classes: int,
         n_qubits: int = 5,
         in_qlayer: int = 20,
         n_qdepth: int = (3),
@@ -54,13 +52,14 @@ class HQNN(BaseModel):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters("in_channels", "classes", "n_qubits", "in_qlayer", "n_qdepth", "ansatz_cls")
-        
+        self.save_hyperparameters("n_qubits", "in_qlayer", "n_qdepth", "ansatz_cls")
+
         self.in_qlayer = in_qlayer
         self.n_qubits = n_qubits or in_qlayer
         self.n_qdepth = n_qdepth
 
         # Convolutional feature extractor
+        in_channels = self.input_size[0] if isinstance(self.input_size, (tuple, list)) else self.input_size
         self.conv1 = Conv2d(
             in_channels=in_channels,
             out_channels=16,
@@ -92,7 +91,7 @@ class HQNN(BaseModel):
         )
 
         # Initialize our softmax classifier
-        self.fc2 = Linear(in_features=self.in_qlayer, out_features=classes)
+        self.fc2 = Linear(in_features=self.in_qlayer, out_features=self.output_size)
         self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
