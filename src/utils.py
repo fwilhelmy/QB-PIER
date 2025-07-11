@@ -1,9 +1,8 @@
 import random
 import numpy as np
 import torch
-import torch.nn.functional as F
 import torch
-from .qdevice import QDEVICE, INTERFACE, QDIFF
+from qdevice import QDEVICE, INTERFACE, QDIFF
 import pennylane as qml
 
 def seed_experiment(seed):
