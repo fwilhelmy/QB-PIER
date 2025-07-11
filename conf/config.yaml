@@ -18,7 +18,7 @@ n_steps: 10001
 
 hydra:
   run:
-    dir: ${LOGS_DIR}/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${hydra:runtime.choices.model}/${model.ampvqc.model_name}
+    dir: ${LOGS_DIR}/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${model.model_class}/${model.model_name}
   sweep:
-    dir: ${LOGS_DIR}/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${hydra:runtime.choices.model}/${model.ampvqc.model_name}
-    subdir: ${hydra.job.num}
+    dir: ${LOGS_DIR}/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${model.model_class}
+    subdir: ${model.model_name}
