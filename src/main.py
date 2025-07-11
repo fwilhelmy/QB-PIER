@@ -200,12 +200,11 @@ def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
     cfg = OmegaConf.to_container(cfg, resolve=True)
 
-    # Load model class from dotted path
-    model_key = list(cfg["model"].keys())[0]
-    model_cfg = cfg["model"][model_key]
-    module_path, cls_name = model_cfg["class_path"].rsplit(".", 1)
+    # Load model class using the new Hydra configuration fields
+    model_cfg = cfg["model"]
+    module_path = f"models.{model_cfg['model_type']}"
     model_module = importlib.import_module(module_path)
-    model_cfg["class_obj"] = getattr(model_module, cls_name)
+    model_cfg["class_obj"] = getattr(model_module, model_cfg["model_class"])
 
     # Resolve any dotted path parameters
     for key, val in list(model_cfg["params"].items()):

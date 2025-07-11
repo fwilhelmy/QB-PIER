@@ -16,6 +16,9 @@ class Arguments:
     num_threads: int | None = None
 
     # Model
+    model_name: str = ""
+    model_type: str = ""
+    model_class: str = ""
     model: BaseModel
     model_config: dict
 
@@ -47,6 +50,9 @@ def arguments_from_config(cfg: dict) -> "Arguments":
 
     # Basic experiment
     args.exp_name = cfg["model"]["model_name"]
+    args.model_name = cfg["model"]["model_name"]
+    args.model_type = cfg["model"]["model_type"]
+    args.model_class = cfg["model"]["model_class"]
     args.verbose = cfg.get("verbose", False)
 
     # Device
