@@ -1,9 +1,10 @@
 # Fashion-MNIST dataset configuration
 dataset: FMNIST
 input_shape: [1, 28, 28]
-output_size: 10
+classes: 10
 train_ratio: 0.6
 eval_ratio: 0.4
+n_steps: 10001
 train_batch_size: 512
 eval_batch_size: 4096
 root: ${DATA_DIR}
