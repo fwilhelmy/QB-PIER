@@ -13,7 +13,7 @@ class ParallelVQC(nn.Module):
         block_size: int,
         n_layers: int,
         embedding: str = "angle",
-        ansatz_kwargs: dict | None = None,
+        ansatz: dict | None = None,
     ):
         super().__init__()
 
@@ -23,8 +23,8 @@ class ParallelVQC(nn.Module):
         self.num_blocks = int(np.ceil(input_size / block_size))
         self.n_layers = n_layers
 
-        if ansatz_kwargs is None:
-            ansatz_kwargs = {}
+        if ansatz is None:
+            ansatz = {}
 
         # Create VQC for each block
         self.blocks = nn.ModuleList([
@@ -32,7 +32,7 @@ class ParallelVQC(nn.Module):
                 input_size=block_size,
                 n_layers=n_layers,
                 embedding=embedding,
-                ansatz_kwargs=ansatz_kwargs,
+                ansatz=ansatz,
             ) for _ in range(self.num_blocks)
         ])
 
