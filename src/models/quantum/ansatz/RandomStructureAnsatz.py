@@ -8,9 +8,11 @@ class RandomStructureAnsatz(BaseAnsatz):
         n_layers: int,
         embedding: str = "angle",
         ratio_imprim: float = 0.75, # Ratio of rotation 1 qubit gates to cnots
+        seed: int = 42,
     ):
         super().__init__(input_size, n_layers, embedding)
         self.ratio_imprim = ratio_imprim
+        self.seed = seed
 
     @property
     def weight_shapes(self) -> dict:
@@ -21,4 +23,5 @@ class RandomStructureAnsatz(BaseAnsatz):
             weights,
             wires=range(self.n_qubits),
             ratio_imprim=self.ratio_imprim,
+            seed=self.seed,
         )
