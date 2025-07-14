@@ -173,7 +173,7 @@ def main(cfg: DictConfig) -> None:
             mod = importlib.import_module(m_path)
             model_cfg["params"][key] = getattr(mod, c_name)
 
-    LoggingService(cfg["experiment_name"], logs_dir=cfg.get("LOGS_DIR"))
+    LoggingService()
     trained = train_model(cfg)
     plot_training_curves(cfg["model"]["model_name"], trained)
     generate_gradient_flow_plots(list(trained.values())[0])

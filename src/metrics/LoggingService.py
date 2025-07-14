@@ -3,6 +3,8 @@ import json
 import atexit
 from datetime import datetime
 
+from hydra.core.hydra_config import HydraConfig
+
 import matplotlib.pyplot as plt
 import torch
 
@@ -18,13 +20,11 @@ class LoggingService:
             cls._instance = super().__new__(cls)
         return cls._instance
     
-    def __init__(self, exp_dir=None, logs_dir: str | None = None):
+    def __init__(self, *_args, **_kwargs):
         if not hasattr(self, 'initialized'):
             self.initialized = True
 
-            logs_base = logs_dir or DEFAULT_LOGS_DIR
-            timestring = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
-            self._root_dir = os.path.join(logs_base, exp_dir, timestring) if exp_dir else os.path.join(logs_base, timestring)
+            self._root_dir = HydraConfig.get().run.dir
             self._start_time = datetime.now()
             self._info = {
                 "pipeline_version": __version__,
@@ -33,8 +33,6 @@ class LoggingService:
             }
             self._init_root_dir()
             atexit.register(self.finalize)
-        elif exp_dir is not None:
-            print(f"[Warning] Cannot change the experiment directory after initialization. Current root directory: {self._root_dir}")
 
     @rank_zero_only
     def _init_root_dir(self):
