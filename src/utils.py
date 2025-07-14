@@ -2,8 +2,7 @@ import random
 import numpy as np
 import torch
 import torch
-from qdevice import QDEVICE, INTERFACE, QDIFF
-import pennylane as qml
+
 
 def seed_experiment(seed):
     random.seed(seed)
@@ -14,19 +13,10 @@ def seed_experiment(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-def get_qnode(circuit, n_qubits):
-    dev = qml.device(QDEVICE, wires=n_qubits)
-    return qml.QNode(circuit, dev, interface=INTERFACE, diff_method=QDIFF)
-
-# Helper functions for creating circuits
-def create_qtorchlayer(n_qubits, circuit, weight_shapes, init_vals=None):
-    return qml.qnn.TorchLayer(
-        qnode=get_qnode(circuit, n_qubits),
-        weight_shapes=weight_shapes,
-        init_method=init_vals)
 
 def get_device():
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 def calculate_accuracy(y_hat, y):
     _, predicted = torch.max(y_hat, dim=1)
@@ -34,10 +24,12 @@ def calculate_accuracy(y_hat, y):
     accuracy = correct.sum() / len(correct)
     return accuracy
 
+
 def new_accuracy(labels, predictions):
     acc = sum(abs(l - p) < 1e-5 for l, p in zip(labels, predictions))
     acc = acc / len(labels)
     return acc
+
 
 @torch.no_grad()
 def evaluate_attack(self, classifier, dataset, adv_examples):
@@ -52,17 +44,20 @@ def evaluate_attack(self, classifier, dataset, adv_examples):
 
     return accuracy_difference
 
+
 # Calcul de la précision
-def precision(y,y_gt):
-    return (y.argmax(0)==y_gt.argmax(0)).mean()
+def precision(y, y_gt):
+    return (y.argmax(0) == y_gt.argmax(0)).mean()
+
 
 # Conversion de la classe en représentation one hot
 def one_hot(y, num_classes=10):
-  # Crée une matrice de zéros de taille (nombre d'échantillons, nombre de classes)
+    # Crée une matrice de zéros de taille (nombre d'échantillons, nombre de classes)
     z = np.zeros((y.shape[0], num_classes), dtype=np.float32)
-    z[np.arange(y.shape[0]), y] = 1.
+    z[np.arange(y.shape[0]), y] = 1.0
     return z
 
+
 def to_tensor(x):
-  # Normalise les valeurs de pixel entre 0 et 1 et redimensionne l'image en un vecteur
-    return x.reshape((x.shape[0], -1)).astype(np.float32) / 255.
+    # Normalise les valeurs de pixel entre 0 et 1 et redimensionne l'image en un vecteur
+    return x.reshape((x.shape[0], -1)).astype(np.float32) / 255.0

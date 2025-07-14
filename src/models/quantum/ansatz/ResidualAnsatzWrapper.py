@@ -1,8 +1,9 @@
 from overrides import override
 import torch, pennylane as qml
-from utils import create_qtorchlayer
+
 
 # TODO layer(template, depth, *args, **kwargs)
+
 
 def ResidualAnsatzWrapper(ansatz_cls):
     class ResidualAnsatz(ansatz_cls):
@@ -25,8 +26,12 @@ def ResidualAnsatzWrapper(ansatz_cls):
         @override
         def circuit(self, inputs, weights, bias):
             # Tile once per layer
-            stacked = torch.hstack([inputs] * self.n_layers) # (batch_size, in_dim * in_dim * n_reup)
-            tiled  = stacked.reshape(self.weight_shapes["weights"]) # (num_layers, n_qubits, n_rotations)
+            stacked = torch.hstack(
+                [inputs] * self.n_layers
+            )  # (batch_size, in_dim * in_dim * n_reup)
+            tiled = stacked.reshape(
+                self.weight_shapes["weights"]
+            )  # (num_layers, n_qubits, n_rotations)
 
             # Apply the ansatz with modulated weights
             ansatz_cls.ansatz(self, weights * tiled + bias)
@@ -38,9 +43,11 @@ def ResidualAnsatzWrapper(ansatz_cls):
             # same as before, but fix the bias key
             init = {
                 "weights": 0.1 * torch.rand(self.weight_shapes["weights"]),
-                "bias":    0.1 * torch.rand(self.weight_shapes["bias"]),
+                "bias": 0.1 * torch.rand(self.weight_shapes["bias"]),
             }
-            return create_qtorchlayer(self.n_qubits, self.circuit, self.weight_shapes, init)
+            return self.create_qtorchlayer(
+                self.n_qubits, self.circuit, self.weight_shapes, init
+            )
 
     ResidualAnsatz.__name__ = f"Residual{ansatz_cls.__name__}"
     return ResidualAnsatz
