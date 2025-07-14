@@ -12,25 +12,25 @@ class AmpVQC(BaseModel):
     def __init__(
         self,
         n_qdepth: int = 1,
-        ansatz_kwargs: dict | None = None,
+        ansatz: dict | None = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters("n_qdepth", "ansatz_kwargs")
+        self.save_hyperparameters("n_qdepth", "ansatz")
         # flatten input size to a single dimension
         self.flat_input_dim = self.input_size[0] * self.input_size[1] * self.input_size[2]
-        ansatz_cls = BasicEntanglingAnsatz
-        if ansatz_kwargs is not None:
-            ansatz_cls = ansatz_kwargs.get("ansatz_cls", BasicEntanglingAnsatz)
-        assert "ResidualAnsatz" not in ansatz_cls.__name__, "Amplitude encoding does not support residual ansatzes."
+        ansatz_cls_name = (ansatz or {}).get("class", "BasicEntanglingAnsatz")
+        assert "ResidualAnsatz" not in ansatz_cls_name, (
+            "Amplitude encoding does not support residual ansatzes."
+        )
         n_qubits = math.ceil(math.log2(self.flat_input_dim))
-        if ansatz_kwargs is None:
-            ansatz_kwargs = {}
+        if ansatz is None:
+            ansatz = {}
         self.vqc = VQC(
             input_size=n_qubits,
             n_layers=n_qdepth,
             embedding="amplitude",
-            ansatz_kwargs=ansatz_kwargs,
+            ansatz=ansatz,
         )
         self.logSoftmax = LogSoftmax(dim=1)
 

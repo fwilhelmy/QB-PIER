@@ -43,11 +43,11 @@ class HQNN(BaseModel):
         qinput_size: int,
         qblock_size: int,
         n_qdepth: int = 3,
-        ansatz_kwargs: dict | None = None,
+        ansatz: dict | None = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters("qinput_size", "qblock_size", "n_qdepth", "ansatz_kwargs")
+        self.save_hyperparameters("qinput_size", "qblock_size", "n_qdepth", "ansatz")
 
         self.qinput_size = qinput_size
         self.qblock_size = min(qblock_size, qinput_size)
@@ -78,14 +78,14 @@ class HQNN(BaseModel):
         self.relu3 = ReLU()
 
         # Quantum layer configuration
-        if ansatz_kwargs is None:
-            ansatz_kwargs = {}
+        if ansatz is None:
+            ansatz = {}
         self.qlayer1 = ParallelVQC(
             input_size=self.qinput_size,
             block_size=self.qblock_size,
             n_layers=self.n_qdepth,
             embedding="angle",
-            ansatz_kwargs=ansatz_kwargs,
+            ansatz=ansatz,
         )
 
         # Initialize our softmax classifier

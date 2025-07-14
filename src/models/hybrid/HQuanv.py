@@ -21,7 +21,7 @@ class HQuanv(BaseModel):
         patch_size: int = 2,
         stride: Optional[int] = None,
         n_qdepth: int = 1,
-        ansatz_kwargs: dict | None = None,
+        ansatz: dict | None = None,
         embedding: str = "angle",
         rotation: str = "X",
         fc_size: Optional[int] = None,
@@ -33,7 +33,7 @@ class HQuanv(BaseModel):
             "patch_size",
             "stride",
             "n_qdepth",
-            "ansatz_kwargs",
+            "ansatz",
             "embedding",
             "rotation",
             "fc_size",
@@ -44,8 +44,8 @@ class HQuanv(BaseModel):
         self.stride = stride or patch_size
 
         # Quantum convolution layer
-        if ansatz_kwargs is None:
-            ansatz_kwargs = {}
+        if ansatz is None:
+            ansatz = {}
         self.quanv = Quanv2d(
             in_channels=1,
             out_channels=self.patch_size * self.patch_size,
@@ -55,7 +55,7 @@ class HQuanv(BaseModel):
             dilation=1,
             n_layers=n_qdepth,
             embedding=embedding,
-            ansatz_kwargs=ansatz_kwargs,
+            ansatz=ansatz,
         )
 
         n_patches = (self.img_size - self.patch_size) // self.stride + 1

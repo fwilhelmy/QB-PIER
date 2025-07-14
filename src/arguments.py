@@ -90,13 +90,7 @@ def arguments_from_config(cfg: dict) -> "Arguments":
     args.model_config["input_size"] = cfg["dataset"]["input_shape"]
     args.model_config["output_size"] = cfg["dataset"]["output_size"]
 
-    ansatz_cfg = cfg["model"].get("ansatz", {})
-    ansatz_path = ansatz_cfg.get("class")
-    ansatz_kwargs = dict(ansatz_cfg.get("params", {}))
-    if ansatz_path is not None:
-        m_path, c_name = ansatz_path.rsplit(".", 1)
-        mod = importlib.import_module(m_path)
-        ansatz_kwargs["ansatz_cls"] = getattr(mod, c_name)
-    args.model_config["ansatz_kwargs"] = ansatz_kwargs
+    ansatz_cfg = cfg["model"]["params"].get("ansatz", {})
+    args.model_config["ansatz"] = ansatz_cfg
 
     return args
