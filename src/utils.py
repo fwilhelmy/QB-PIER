@@ -25,9 +25,6 @@ def create_qtorchlayer(n_qubits, circuit, weight_shapes, init_vals=None):
         weight_shapes=weight_shapes,
         init_method=init_vals)
 
-def get_device():
-    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 def calculate_accuracy(y_hat, y):
     _, predicted = torch.max(y_hat, dim=1)
     correct = (predicted == y).float()
