@@ -1,6 +1,6 @@
 import importlib
 from collections import defaultdict
-from typing import List, Dict, Any
+from typing import List, Dict
 
 import torch
 import pandas as pd
@@ -21,7 +21,7 @@ from attacks import FGSMAttack
 from metrics.LoggingService import LoggingService
 
 
-def train_model(cfg: dict, seeds=[0, 42]):
+def train_model(cfg: dict):
     """
     Runs a full training pipeline once per seed and returns all trained models.
     
@@ -35,7 +35,14 @@ def train_model(cfg: dict, seeds=[0, 42]):
     trained = {}
     seed_times = {}
 
+    seeds = cfg.get("seeds", [0, 42])
+    
+    module_path = f"models.{cfg['model']['model_type']}"
+    model_module = importlib.import_module(module_path)
+    model_class = getattr(model_module, cfg["model"]["model_class"])
     model_name = cfg["model"]["model_name"]
+    model_dir = f"{model_class.__name__}/{str(model_name)}"
+
     print(f">>> Starting experiment '{model_name}' over seeds {seeds}")
     for idx, seed in enumerate(seeds, start=1):
         print(f"({idx}/{len(seeds)}); Seed = {seed}  ...")
@@ -61,8 +68,7 @@ def train_model(cfg: dict, seeds=[0, 42]):
         )
 
         # 3) Instantiate & configure the model
-        model_cls = cfg["model"]["class_obj"]
-        model = model_cls(
+        model = model_class(
             model_name=model_name,
             seed=seed,
             **cfg["model"]["params"]
@@ -80,20 +86,6 @@ def train_model(cfg: dict, seeds=[0, 42]):
         })
         model = model.to(cfg["device"]["device"])
 
-        # 4) Print configuration
-        if cfg.get("verbose", False):
-            print("=" * 40)
-            print(OmegaConf.to_yaml(OmegaConf.create(cfg)))
-            print(f" rootdir      : {model.log_dir}")
-            print(f" train_size: {len(train_loader.dataset)}")
-            print(f" eval_size: {len(eval_loader.dataset)}")
-            print(f"accelerator: {cfg['device']['accelerator']}")
-            print(f"devices: {cfg['device']['devices']}")
-            print(f"num_workers: {cfg['device']['num_workers']}")
-            print(f"num_threads: {cfg['device'].get('num_threads', 'N/A')}")
-            print(f"device: {cfg['device']['device']}")
-            print("=" * 40)
-
         # 5) Training
         start_time = time.time()
         model.fit(train_loader, eval_loader)
@@ -101,39 +93,11 @@ def train_model(cfg: dict, seeds=[0, 42]):
         seed_times[seed] = elapsed
         trained[seed] = model
 
-    first_model = trained[seeds[0]]
-    model_dir = f"{first_model.__class__.__name__}/{str(first_model.model_name)}"
-
     avg_time = sum(seed_times.values()) / len(seed_times) if seed_times else 0.0
     performance = {"seed_times": seed_times, "average": avg_time}
     LoggingService().save_file(
         content=json.dumps(performance, indent=2),
         title=f"performance.json",
-        log_dir=model_dir)
-    
-    summary: Dict[str, Any] = {k: str(v) for k, v in cfg.items() if not k.startswith("_")}
-    summary['seeds'] = seeds
-    total = 0
-    layers_params = {}
-    for name, param in first_model.named_parameters():
-        n = param.numel()
-        layers_params[name] = n
-        total += n
-    layers_params['total'] = total
-    summary['layers_params'] = layers_params
-    summary['dataset'] = {
-        "name": cfg["dataset"]["dataset"],
-        "dataset_size": len(dm.dataset),
-        "train_size": len(train_loader.dataset),
-        "eval_size": len(eval_loader.dataset),
-        "train_ratio": cfg["dataset"]["train_ratio"],
-        "eval_ratio": cfg["dataset"]["eval_ratio"],
-        "train_batch_size": cfg["dataset"]["train_batch_size"],
-        "eval_batch_size": cfg["dataset"]["eval_batch_size"],
-    }
-    LoggingService().save_file(
-        content=json.dumps(summary, indent=2),
-        title=f"summary.json",
         log_dir=model_dir)
 
     return trained
@@ -195,12 +159,6 @@ def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
     cfg = OmegaConf.to_container(cfg, resolve=True)
 
-    # Load model class using the new Hydra configuration fields
-    model_cfg = cfg["model"]
-    module_path = f"models.{model_cfg['model_type']}"
-    model_module = importlib.import_module(module_path)
-    model_cfg["class_obj"] = getattr(model_module, model_cfg["model_class"])
-
     # Resolve any dotted path parameters
     for key, val in list(model_cfg["params"].items()):
         if isinstance(val, str) and "." in val:
@@ -208,13 +166,10 @@ def main(cfg: DictConfig) -> None:
             mod = importlib.import_module(m_path)
             model_cfg["params"][key] = getattr(mod, c_name)
 
-    cfg["model"] = model_cfg
-
-    seeds = cfg.get("seeds", [0, 42])
-
     LoggingService(cfg["experiment_name"], logs_dir=cfg.get("LOGS_DIR"))
-    trained = train_model(cfg, seeds)
+    trained = train_model(cfg)
     plot_training_curves(cfg["model"]["model_name"], trained)
     generate_gradient_flow_plots(list(trained.values())[0])
 
-if __name__ == "__main__":    main()
+if __name__ == "__main__":
+    main()
