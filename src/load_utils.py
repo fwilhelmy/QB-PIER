@@ -13,15 +13,11 @@ from metrics import MetricsContainer
 
 def _resolve_class(name: str) -> LightningModule:
     """Dynamically import a model class from the package."""
-    modules = [
-        "src.models.classical",
-        "src.models.hybrid",
-        "src.models.quantum",
-    ]
-    for mod in modules:
-        module = import_module(mod)
-        if hasattr(module, name):
-            return getattr(module, name)
+    name = name.rsplit("\'")[1]
+    model_mod, model_cls, _ = name.rsplit(".",2)
+    module = import_module(model_mod)
+    if hasattr(module, model_cls):
+        return getattr(module, model_cls)
     raise ValueError(f"Unknown model class '{name}'")
 
 
@@ -32,7 +28,7 @@ def _best_checkpoint(ckpt_dir: str) -> str:
         raise FileNotFoundError("No checkpoint files found")
 
     def score(name: str) -> float:
-        m = re.search(r"loss=([0-9.]+)", name)
+        m = re.search(r"loss=(\d+.\d+)", name)
         return float(m.group(1)) if m else float("inf")
 
     ckpts.sort(key=score)
