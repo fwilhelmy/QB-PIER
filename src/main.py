@@ -20,7 +20,6 @@ from data.DatasetManagerFactory import DatasetManagerFactory
 from attacks import FGSMAttack
 from metrics.LoggingService import LoggingService
 
-
 def train_model(cfg: dict):
     """
     Runs a full training pipeline once per seed and returns all trained models.
@@ -40,13 +39,15 @@ def train_model(cfg: dict):
     module_path = f"models.{cfg['model']['model_type']}"
     model_module = importlib.import_module(module_path)
     model_class = getattr(model_module, cfg["model"]["model_class"])
-    ansatz_cfg = cfg["model"]["ansatz"]
-    a_path, a_class = ansatz_cfg["class"].rsplit(".", 1)
-    ansatz_mod = importlib.import_module(a_path)
-    ansatz_kwargs = dict(ansatz_cfg.get("params", {}))
-    ansatz_kwargs["ansatz_cls"] = getattr(ansatz_mod, a_class)
     model_name = cfg["model"]["model_name"]
     model_dir = f"{model_class.__name__}/{str(model_name)}"
+
+    if "ansatz" in cfg["model"]:
+        ansatz_cfg = cfg["model"]["ansatz"]
+        a_path, a_class = ansatz_cfg["class"].rsplit(".", 1)
+        ansatz_mod = importlib.import_module(a_path)
+        cfg["model"]["params"]["ansatz_config"] = dict(ansatz_cfg.get("params", {}))
+        cfg["model"]["params"]["ansatz_config"]["ansatz_cls"] = getattr(ansatz_mod, a_class)
 
     print(f">>> Starting experiment '{model_name}' over seeds {seeds}")
     for idx, seed in enumerate(seeds, start=1):
@@ -76,7 +77,6 @@ def train_model(cfg: dict):
         model = model_class(
             model_name=model_name,
             seed=seed,
-            ansatz_kwargs=ansatz_kwargs,
             **cfg["model"]["params"]
         )
         model.configure_training({
@@ -158,7 +158,6 @@ def run_attacks(trained_models, cfg: dict):
                     )
 
     return pd.DataFrame(records)
-
 
 @hydra.main(config_path="../conf", config_name="config", version_base=None)
 def main(cfg: DictConfig) -> None:
