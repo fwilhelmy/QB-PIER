@@ -1,5 +1,5 @@
 defaults:
-  - ansatz: random
+  - params.ansatz: random
 model_name: HQuanv
 model_type: hybrid
 model_class: HQuanv

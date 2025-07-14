@@ -1,5 +1,5 @@
 defaults:
-  - ansatz: basic
+  - params.ansatz: basic
 model_name: HQNN
 model_type: hybrid
 model_class: HQNN

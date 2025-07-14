@@ -1,2 +1,2 @@
-class: models.quantum.ansatz.BasicEntanglingAnsatz
+class: BasicEntanglingAnsatz
 params: {}

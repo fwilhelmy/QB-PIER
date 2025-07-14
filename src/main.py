@@ -42,13 +42,6 @@ def train_model(cfg: dict):
     model_name = cfg["model"]["model_name"]
     model_dir = f"{model_class.__name__}/{str(model_name)}"
 
-    if "ansatz" in cfg["model"]:
-        ansatz_cfg = cfg["model"]["ansatz"]
-        a_path, a_class = ansatz_cfg["class"].rsplit(".", 1)
-        ansatz_mod = importlib.import_module(a_path)
-        cfg["model"]["params"]["ansatz_config"] = dict(ansatz_cfg.get("params", {}))
-        cfg["model"]["params"]["ansatz_config"]["ansatz_cls"] = getattr(ansatz_mod, a_class)
-
     print(f">>> Starting experiment '{model_name}' over seeds {seeds}")
     for idx, seed in enumerate(seeds, start=1):
         print(f"({idx}/{len(seeds)}); Seed = {seed}  ...")

@@ -1,8 +1,5 @@
-from models.quantum.ansatz.BasicEntanglingAnsatz import BasicEntanglingAnsatz
-from models.quantum.ansatz.BaseAnsatz import BaseAnsatz
 import torch
 import torch.nn as nn
-from typing import Type
 import numpy as np
 from models.quantum.VQC import VQC
 

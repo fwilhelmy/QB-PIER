@@ -1,2 +1,2 @@
-class: models.quantum.ansatz.StrongEntanglingAnsatz
+class: StrongEntanglingAnsatz
 params: {}

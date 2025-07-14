@@ -1,11 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Type
 
 from models.quantum.VQC import VQC
-from models.quantum.ansatz.RandomStructureAnsatz import RandomStructureAnsatz
-from models.quantum.ansatz.BaseAnsatz import BaseAnsatz
 
 class Quanv2d(nn.Module):
     """Quantum 2D convolution layer using a VQC on image patches."""

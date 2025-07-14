@@ -2,17 +2,52 @@ from __future__ import annotations
 
 from typing import Type
 
+
 from .BaseAnsatz import BaseAnsatz
-from .BasicEntanglingAnsatz import BasicEntanglingAnsatz
+from . import (
+    BaseAnsatz,
+    BasicEntanglingAnsatz,
+    IdentityAnsatz,
+    NoEntanglingAnsatz,
+    RandomStructureAnsatz,
+    ResidualAnsatzWrapper,
+    ReUpAnsatzWrapper,
+    StrongEntanglingAnsatz,
+)
 
+ansatz_classes: dict[str, Type[BaseAnsatz]] = {
+    "BasicEntanglingAnsatz": BasicEntanglingAnsatz,
+    "IdentityAnsatz": IdentityAnsatz,
+    "NoEntanglingAnsatz": NoEntanglingAnsatz,
+    "RandomStructureAnsatz": RandomStructureAnsatz,
+    "ResidualAnsatzWrapper": ResidualAnsatzWrapper,
+    "ReUpAnsatzWrapper": ReUpAnsatzWrapper,
+    "StrongEntanglingAnsatz": StrongEntanglingAnsatz,
+}
+    
 
-class AnsatzFactory:
-    """Instantiate ansatz circuits from configuration parameters."""
+def AnsatzFactory(input_size, n_layers, embedding, ansatz_class, ansatz_config):
+    """
+    Factory function to create an Ansatz instance based on the provided class and configuration.
+    
+    Args:
+        input_size (int): Size of the input.
+        n_layers (int): Number of layers in the ansatz.
+        embedding (str): Type of embedding to use.
+        ansatz_class (str): Name of the ansatz class to instantiate.
+        ansatz_config (dict): Configuration parameters for the ansatz.
+    Returns:
+        BaseAnsatz: An instance of the specified ansatz class.
+    """
+    if ansatz_class not in ansatz_classes:
+        raise ValueError(f"Unsupported ansatz class: {ansatz_class}")
+    
+    ansatz_cls = ansatz_classes[ansatz_class]
+    return ansatz_cls(
+        input_size=input_size,
+        n_layers=n_layers,
+        embedding=embedding,
+        **ansatz_config
+    )
+    
 
-    def __init__(self, ansatz_cls: Type[BaseAnsatz] = BasicEntanglingAnsatz, **params) -> None:
-        self.ansatz_cls = ansatz_cls
-        self.params = params
-
-    def build(self, input_size: int, n_layers: int, embedding: str):
-        """Return an initialized ansatz instance."""
-        return self.ansatz_cls(input_size, n_layers, embedding, **self.params)
