@@ -132,7 +132,7 @@ class BaseModel(LightningModule):
     def configure_optimizers(self) -> Any:
         """Create the optimiser using :class:`OptimiserFactory`."""
 
-        return OptimiserFactory.create(
+        return OptimiserFactory(
             self.hparams["optimizer"],
             self.parameters(),
             self.hparams["learning_rate"],
