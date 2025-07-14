@@ -25,4 +25,16 @@ hydra:
     config:
       override_dirname:
         exclude_keys:
+          # Keys excluded from Hydra's output directory structure
           - model
+          - training
+          - device
+          - qdevice
+          - dataset
+          - experiment_name
+          - seeds
+          - train_log_interval
+          - eval_log_interval
+          - n_steps
+          - DATA_DIR
+          - LOGS_DIR
