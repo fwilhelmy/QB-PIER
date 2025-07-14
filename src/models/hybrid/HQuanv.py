@@ -21,21 +21,31 @@ class HQuanv(BaseModel):
         patch_size: int = 2,
         stride: Optional[int] = None,
         n_qdepth: int = 1,
-        ansatz_cls: Type[BaseAnsatz] = RandomStructureAnsatz,
+        ansatz_kwargs: dict | None = None,
         embedding: str = "angle",
         rotation: str = "X",
         fc_size: Optional[int] = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters("img_size", "patch_size", "stride",
-                                  "n_qdepth", "ansatz_cls", "embedding", "rotation", "fc_size")
+        self.save_hyperparameters(
+            "img_size",
+            "patch_size",
+            "stride",
+            "n_qdepth",
+            "ansatz_kwargs",
+            "embedding",
+            "rotation",
+            "fc_size",
+        )
 
         self.img_size = img_size
         self.patch_size = patch_size
         self.stride = stride or patch_size
 
         # Quantum convolution layer
+        if ansatz_kwargs is None:
+            ansatz_kwargs = {}
         self.quanv = Quanv2d(
             in_channels=1,
             out_channels=self.patch_size * self.patch_size,
@@ -44,8 +54,8 @@ class HQuanv(BaseModel):
             padding=0,
             dilation=1,
             n_layers=n_qdepth,
-            ansatz_cls=ansatz_cls,
-            embedding=embedding
+            embedding=embedding,
+            ansatz_kwargs=ansatz_kwargs,
         )
 
         n_patches = (self.img_size - self.patch_size) // self.stride + 1

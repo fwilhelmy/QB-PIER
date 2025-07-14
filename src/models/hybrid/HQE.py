@@ -16,9 +16,10 @@ class HQE(BaseModel):
     """
 
     def __init__(self, hidden_sizes, n_qdepth: int = 1,
-                 ansatz_cls=BasicEntanglingAnsatz, **kwargs) -> None:
+                 ansatz_kwargs: dict | None = None,
+                 **kwargs) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters("hidden_sizes", "n_qdepth", "ansatz_cls")
+        self.save_hyperparameters("hidden_sizes", "n_qdepth", "ansatz_kwargs")
         if isinstance(hidden_sizes, int):
             hidden_sizes = [hidden_sizes]
 
@@ -34,7 +35,13 @@ class HQE(BaseModel):
         self.bottleneck = nn.Linear(prev, self.output_size)
         self.bottleneck_act = nn.ReLU()
 
-        self.vqc = VQC(n_qubits=self.output_size, n_layers=n_qdepth, ansatz_cls=ansatz_cls)
+        if ansatz_kwargs is None:
+            ansatz_kwargs = {}
+        self.vqc = VQC(
+            input_size=self.output_size,
+            n_layers=n_qdepth,
+            ansatz_kwargs=ansatz_kwargs,
+        )
         self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:

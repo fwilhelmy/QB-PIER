@@ -40,6 +40,11 @@ def train_model(cfg: dict):
     module_path = f"models.{cfg['model']['model_type']}"
     model_module = importlib.import_module(module_path)
     model_class = getattr(model_module, cfg["model"]["model_class"])
+    ansatz_cfg = cfg["model"]["ansatz"]
+    a_path, a_class = ansatz_cfg["class"].rsplit(".", 1)
+    ansatz_mod = importlib.import_module(a_path)
+    ansatz_kwargs = dict(ansatz_cfg.get("params", {}))
+    ansatz_kwargs["ansatz_cls"] = getattr(ansatz_mod, a_class)
     model_name = cfg["model"]["model_name"]
     model_dir = f"{model_class.__name__}/{str(model_name)}"
 
@@ -71,6 +76,7 @@ def train_model(cfg: dict):
         model = model_class(
             model_name=model_name,
             seed=seed,
+            ansatz_kwargs=ansatz_kwargs,
             **cfg["model"]["params"]
         )
         model.configure_training({
@@ -158,6 +164,7 @@ def run_attacks(trained_models, cfg: dict):
 def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
     cfg = OmegaConf.to_container(cfg, resolve=True)
+    model_cfg = cfg["model"]
 
     # Resolve any dotted path parameters
     for key, val in list(model_cfg["params"].items()):

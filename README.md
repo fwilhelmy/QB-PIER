@@ -66,6 +66,11 @@ python src/main.py device=cpu_cluster
 python src/main.py device=local
 ```
 
+Quantum circuit layouts are configured through ansatz files under
+`conf/model/ansatz/`. Each YAML specifies the ansatz class and optional
+parameters. Models include a `defaults` entry like `- ansatz: strong` to select
+the desired circuit.
+
 To sweep over multiple values you can enable Hydra's multi-run mode:
 
 ```bash

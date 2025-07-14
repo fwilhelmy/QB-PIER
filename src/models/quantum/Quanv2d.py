@@ -19,8 +19,8 @@ class Quanv2d(nn.Module):
         padding: int = 0,
         dilation: int = 1,
         n_layers: int = 1,
-        ansatz_cls: Type[BaseAnsatz] = RandomStructureAnsatz,
-        embedding: str = "angle"
+        embedding: str = "angle",
+        ansatz_kwargs: dict | None = None,
     ) -> None:
         super().__init__()
         self.in_channels = in_channels
@@ -31,12 +31,16 @@ class Quanv2d(nn.Module):
         self.dilation = dilation
 
         self.input_size = in_channels * kernel_size * kernel_size
+        self.n_qubits = self.input_size
+
+        if ansatz_kwargs is None:
+            ansatz_kwargs = {}
 
         self.vqc = VQC(
             input_size=self.input_size,
             n_layers=n_layers,
-            ansatz_cls=ansatz_cls,
-            embedding=embedding
+            embedding=embedding,
+            ansatz_kwargs=ansatz_kwargs
         )
         self.readout = nn.Linear(self.n_qubits, out_channels)
 

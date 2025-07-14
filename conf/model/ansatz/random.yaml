@@ -1,0 +1,4 @@
+class: models.quantum.ansatz.RandomStructureAnsatz
+params:
+  ratio_imprim: 0.75
+  seed: 42
