@@ -1,16 +1,15 @@
 defaults:
-  - training: default
-  - device: cpu
-  - qdevice: sim_backprop
+  - training: adamw
+  - device: local
+  - qdevice: sim
   - dataset: mnist
-  - model: ampvqc
+  - model: lenet
   - _self_
 
 experiment_name: test_time
 seeds: [0, 42]
 train_log_interval: 0.5
 eval_log_interval: 0.5
-n_steps: 10001
 
 DATA_DIR: "./data/processed"
 LOGS_DIR: "./logs"

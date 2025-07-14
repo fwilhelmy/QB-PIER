@@ -13,7 +13,7 @@ class LeNet(BaseModel):
 	def __init__(self, **kwargs):
 		# Call the parent constructor
 		super().__init__(**kwargs)
-		in_channels = self.input_size[0] if isinstance(self.input_size, (tuple, list)) else self.input_size
+		in_channels = self.input_size[0]
 
 		# Initialize first set of CONV => RELU => POOL layers
 		self.conv1 = Conv2d(in_channels=in_channels, out_channels=16, kernel_size=(5, 5), padding=2)

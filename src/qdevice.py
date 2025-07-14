@@ -14,7 +14,7 @@ def _load_simple_yaml(path: Path) -> dict:
     return cfg
 
 # Determine which qdevice config to load
-_config_name = os.environ.get("QB_QDEVICE", "sim_backprop")
+_config_name = os.environ.get("QB_QDEVICE", "sim")
 _conf_path = Path(__file__).resolve().parents[1] / "conf" / "qdevice" / f"{_config_name}.yaml"
 
 try:

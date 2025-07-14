@@ -5,7 +5,7 @@ from typing import List, Dict
 import torch
 import pandas as pd
 import hydra
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 from visualisation.TrainingVisualisation import (
     plot_training_curves,
@@ -19,6 +19,7 @@ from utils import seed_experiment, calculate_accuracy
 from data.DatasetManagerFactory import DatasetManagerFactory
 from attacks import FGSMAttack
 from metrics.LoggingService import LoggingService
+from hydra.core.hydra_config import HydraConfig
 
 def train_model(cfg: dict):
     """
@@ -40,7 +41,8 @@ def train_model(cfg: dict):
     model_module = importlib.import_module(module_path)
     model_class = getattr(model_module, cfg["model"]["model_class"])
     model_name = cfg["model"]["model_name"]
-    model_dir = f"{model_class.__name__}/{str(model_name)}"
+    model_dir = HydraConfig.get().run.dir
+    model_config = cfg["model"]["params"] or {}
 
     print(f">>> Starting experiment '{model_name}' over seeds {seeds}")
     for idx, seed in enumerate(seeds, start=1):
@@ -70,13 +72,15 @@ def train_model(cfg: dict):
         model = model_class(
             model_name=model_name,
             seed=seed,
-            **cfg["model"]["params"]
+            input_size=cfg["dataset"]["input_shape"],
+            output_size=cfg["dataset"]["classes"],
+            **model_config
         )
         model.configure_training({
             "optimizer": cfg["training"]["optimizer"],
             "loss_fn": cfg["training"]["loss_fn"],
             "learning_rate": cfg["training"]["learning_rate"],
-            "max_steps": cfg["n_steps"],
+            "max_steps": cfg["dataset"]["n_steps"],
             "optimiser_config": cfg["training"].get("optimiser_config", {}),
             "accelerator": cfg["device"]["accelerator"],
             "devices": cfg["device"]["devices"],
@@ -155,16 +159,6 @@ def run_attacks(trained_models, cfg: dict):
 @hydra.main(config_path="../conf", config_name="config", version_base=None)
 def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
-    cfg = OmegaConf.to_container(cfg, resolve=True)
-    model_cfg = cfg["model"]
-
-    # Resolve any dotted path parameters
-    for key, val in list(model_cfg["params"].items()):
-        if isinstance(val, str) and "." in val:
-            m_path, c_name = val.rsplit(".", 1)
-            mod = importlib.import_module(m_path)
-            model_cfg["params"][key] = getattr(mod, c_name)
-
     LoggingService()
     trained = train_model(cfg)
     plot_training_curves(cfg["model"]["model_name"], trained)
