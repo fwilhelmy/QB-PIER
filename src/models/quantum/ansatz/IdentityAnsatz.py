@@ -19,3 +19,4 @@ class IdentityAnsatz(BaseAnsatz):
 
     def ansatz(self, weights):
         pass # Intentionally no entangling layers
+    

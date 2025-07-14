@@ -25,3 +25,4 @@ class ReUpAnsatzWrapper(BaseAnsatz):
         # The actual implementation of the ReUp Ansatz would go here.
         # This is a placeholder for the actual quantum circuit definition.
         pass
+    

@@ -25,3 +25,4 @@ class RandomStructureAnsatz(BaseAnsatz):
             ratio_imprim=self.ratio_imprim,
             seed=self.seed,
         )
+        

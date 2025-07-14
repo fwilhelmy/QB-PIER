@@ -68,3 +68,4 @@ class BaseAnsatz(ABC):
         # Draw and return figure
         fig, _ = mpl_drawer(default_inputs, default_weights)
         return fig
+    

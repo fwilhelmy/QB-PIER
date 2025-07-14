@@ -19,3 +19,4 @@ class NoEntanglingAnsatz(BaseAnsatz):
         for layer in range(self.n_layers):
             for i in range(self.n_qubits):
                 qml.Rot(*weights[layer, i], wires=i)
+                

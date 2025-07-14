@@ -19,3 +19,4 @@ class BaseEmbedding(ABC):
     def __call__(self, inputs) -> None:
         """Apply the embedding. Default implementation does nothing."""
         raise NotImplementedError("Subclasses must implement __call__ method.")
+    
