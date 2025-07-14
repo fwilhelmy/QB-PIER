@@ -16,7 +16,7 @@ QB-PIER provides a set of tools to evaluate how robust classical and quantum neu
 ## Overview
 The codebase focuses on benchmarking the adversarial robustness of different classifiers. The main training and attack pipelines live under `src/`. Models are written with PyTorch and PyTorch Lightning. Quantum layers rely on PennyLane. The project also includes Jupyter notebooks demonstrating training, attacks, and data exploration.
 
-Results (checkpoints, figures and TensorBoard logs) are saved under a timestamped folder in `logs/` via `LoggingService`.
+Results (checkpoints, figures and TensorBoard logs) are saved under a timestamped folder created by Hydra and consumed by `LoggingService`.
 
 ## Installation
 1. Create a Python 3 environment.
@@ -25,6 +25,7 @@ Results (checkpoints, figures and TensorBoard logs) are saved under a timestampe
    pip install -r requirements.txt
    ```
    Alternatively, run `make requirements` to verify the interpreter and install everything.
+   The pipeline requires `hydra-core` version 1.3 or newer.
 3. For a quick virtual environment setup you can run `make create_environment`.
    Use `make help` to list all available Makefile commands.
 4. Run `python test_environment.py` to confirm the Python interpreter meets the
