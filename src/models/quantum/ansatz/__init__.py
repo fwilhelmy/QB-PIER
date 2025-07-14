@@ -8,6 +8,7 @@ from .IdentityAnsatz import IdentityAnsatz
 from .RandomStructureAnsatz import RandomStructureAnsatz
 from .ReUpAnsatzWrapper import ReUpAnsatzWrapper
 from .ResidualAnsatzWrapper import ResidualAnsatzWrapper
+from .AnsatzFactory import AnsatzFactory
 
 __all__ = [
     "BaseAnsatz",
@@ -18,4 +19,5 @@ __all__ = [
     "RandomStructureAnsatz",
     "ReUpAnsatzWrapper",
     "ResidualAnsatzWrapper",
+    "AnsatzFactory",
 ]

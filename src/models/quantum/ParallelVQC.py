@@ -15,23 +15,27 @@ class ParallelVQC(nn.Module):
         input_size: int,
         block_size: int,
         n_layers: int,
-        ansatz_cls: Type[BaseAnsatz] = BasicEntanglingAnsatz,
-        embedding: str = "angle"
+        embedding: str = "angle",
+        ansatz_kwargs: dict | None = None,
     ):
         super().__init__()
 
         self.input_size = input_size
         self.block_size = block_size
+        self.n_qubits = block_size
         self.num_blocks = int(np.ceil(input_size / block_size))
         self.n_layers = n_layers
+
+        if ansatz_kwargs is None:
+            ansatz_kwargs = {}
 
         # Create VQC for each block
         self.blocks = nn.ModuleList([
             VQC(
                 input_size=block_size,
                 n_layers=n_layers,
-                ansatz_cls=ansatz_cls,
                 embedding=embedding,
+                ansatz_kwargs=ansatz_kwargs,
             ) for _ in range(self.num_blocks)
         ])
 

@@ -1,3 +1,4 @@
+import importlib
 import torch
 from models.BaseModel import BaseModel
 
@@ -81,9 +82,21 @@ def arguments_from_config(cfg: dict) -> "Arguments":
     args.eval_log_interval = cfg.get("eval_log_interval", args.eval_log_interval)
 
     # Model class and configuration
-    args.model = cfg["model"]["class_obj"]
-    args.model_config = dict(cfg["model"]["params"])
+    module_path = f"models.{cfg['model']['model_type']}"
+    model_module = importlib.import_module(module_path)
+    args.model = getattr(model_module, cfg["model"]["model_class"])
+
+    args.model_config = dict(cfg["model"].get("params", {}))
     args.model_config["input_size"] = cfg["dataset"]["input_shape"]
     args.model_config["output_size"] = cfg["dataset"]["output_size"]
+
+    ansatz_cfg = cfg["model"].get("ansatz", {})
+    ansatz_path = ansatz_cfg.get("class")
+    ansatz_kwargs = dict(ansatz_cfg.get("params", {}))
+    if ansatz_path is not None:
+        m_path, c_name = ansatz_path.rsplit(".", 1)
+        mod = importlib.import_module(m_path)
+        ansatz_kwargs["ansatz_cls"] = getattr(mod, c_name)
+    args.model_config["ansatz_kwargs"] = ansatz_kwargs
 
     return args

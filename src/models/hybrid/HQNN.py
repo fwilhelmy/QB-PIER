@@ -34,8 +34,6 @@ class HQNN(BaseModel):
         ``in_qlayer`` is used.
     n_qdepth: int, optional
         Depth (number of layers) of each quantum circuit.
-    ansatz_cls: Type[BaseAnsatz], optional
-        Ansatz class used inside the quantum circuits.
     **kwargs: Any
         Forwarded to :class:`BaseModel`.
     """
@@ -45,11 +43,11 @@ class HQNN(BaseModel):
         qinput_size: int,
         qblock_size: int,
         n_qdepth: int = 3,
-        ansatz_cls: Type[BaseAnsatz] = BasicEntanglingAnsatz,
+        ansatz_kwargs: dict | None = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters("qinput_size", "qblock_size", "n_qdepth", "ansatz_cls")
+        self.save_hyperparameters("qinput_size", "qblock_size", "n_qdepth", "ansatz_kwargs")
 
         self.qinput_size = qinput_size
         self.qblock_size = min(qblock_size, qinput_size)
@@ -80,12 +78,14 @@ class HQNN(BaseModel):
         self.relu3 = ReLU()
 
         # Quantum layer configuration
+        if ansatz_kwargs is None:
+            ansatz_kwargs = {}
         self.qlayer1 = ParallelVQC(
             input_size=self.qinput_size,
             block_size=self.qblock_size,
             n_layers=self.n_qdepth,
-            ansatz_cls=ansatz_cls,
             embedding="angle",
+            ansatz_kwargs=ansatz_kwargs,
         )
 
         # Initialize our softmax classifier

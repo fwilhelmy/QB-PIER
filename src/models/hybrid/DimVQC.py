@@ -5,7 +5,6 @@ from models.classical.DimensionalityReductionLayer import DimensionalityReductio
 from models.quantum.VQC import VQC
 from models.quantum.ansatz.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 from models.BaseModel import BaseModel
-from typing import Type
 from metrics import LoggingService
 import math
 
@@ -18,17 +17,24 @@ class DimVQC(BaseModel):
         reduced_dim: int,
         reduction_method: str = "pca",
         n_qdepth: int = 1,
-        ansatz_cls: Type[BasicEntanglingAnsatz] = BasicEntanglingAnsatz,
+        ansatz_kwargs: dict | None = None,
         embedding: str = "amplitude",
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters("reduction_method", "reduced_dim", "n_qdepth", "ansatz_cls")
+        self.save_hyperparameters("reduction_method", "reduced_dim", "n_qdepth", "ansatz_kwargs")
 
         n_qubits = math.ceil(math.log2(reduced_dim))
 
         self.reducer = DimensionalityReductionLayer(reduction_method, reduced_dim)
-        self.vqc = VQC(n_qubits=n_qubits, n_layers=n_qdepth, ansatz_cls=ansatz_cls, embedding=embedding)
+        if ansatz_kwargs is None:
+            ansatz_kwargs = {}
+        self.vqc = VQC(
+            input_size=n_qubits,
+            n_layers=n_qdepth,
+            embedding=embedding,
+            ansatz_kwargs=ansatz_kwargs,
+        )
         self.logSoftmax = LogSoftmax(dim=self.input_size[0])
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:

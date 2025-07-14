@@ -1,5 +1,6 @@
 from models.quantum.ansatz.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 from models.quantum.ansatz.BaseAnsatz import BaseAnsatz
+from models.quantum.ansatz.AnsatzFactory import AnsatzFactory
 import torch
 import torch.nn as nn
 from typing import Type
@@ -13,14 +14,21 @@ class VQC(nn.Module):
         self,
         input_size: int,
         n_layers: int,
-        ansatz_cls: Type[BaseAnsatz] = BasicEntanglingAnsatz,
-        embedding: str = "angle"
+        embedding: str = "angle",
+        ansatz_kwargs: dict | None = None,
     ):
         super().__init__()
         self.input_size = input_size
+        self.n_qubits = input_size
+
+        if ansatz_kwargs is None:
+            ansatz_kwargs = {}
+
+        ansatz_cls = ansatz_kwargs.pop("ansatz_cls", BasicEntanglingAnsatz)
+        factory = AnsatzFactory(ansatz_cls, **ansatz_kwargs)
 
         # Instantiate ansatz and create QNode layer
-        self.ansatz = ansatz_cls(input_size, n_layers, embedding)
+        self.ansatz = factory.build(input_size, n_layers, embedding)
         self.qlayer = self.ansatz.build_qlayer()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
