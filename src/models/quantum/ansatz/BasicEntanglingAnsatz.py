@@ -20,3 +20,4 @@ class BasicEntanglingAnsatz(BaseAnsatz):
 
     def ansatz(self, weights):
         qml.BasicEntanglerLayers(weights, wires=range(self.n_qubits))
+        

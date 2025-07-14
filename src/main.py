@@ -1,17 +1,16 @@
 import importlib
 from collections import defaultdict
-from typing import List, Dict, Any
+from typing import List, Dict
 
 import torch
 import pandas as pd
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from visualisation.TrainingVisualisation import (
     plot_training_curves,
     generate_gradient_flow_plots,
 )
-from arguments import arguments_from_config
 
 import json
 import time
@@ -20,15 +19,14 @@ from utils import seed_experiment, calculate_accuracy
 from data.DatasetManagerFactory import DatasetManagerFactory
 from attacks import FGSMAttack
 from metrics.LoggingService import LoggingService
-from omegaconf import OmegaConf
 
 
-def train_model(args, seeds=[0, 42]):
+def train_model(cfg: dict):
     """
     Runs a full training pipeline once per seed and returns all trained models.
     
     Args:
-        args: An object with the experiment configuration (dataset, model, optimizer, etc.).
+        cfg: Experiment configuration as a dictionary resolved from Hydra.
         seeds (list of int): Random seeds to use.
 
     Returns:
@@ -37,63 +35,56 @@ def train_model(args, seeds=[0, 42]):
     trained = {}
     seed_times = {}
 
-    print(f">>> Starting experiment '{args.exp_name}' over seeds {seeds}")
+    seeds = cfg.get("seeds", [0, 42])
+    
+    module_path = f"models.{cfg['model']['model_type']}"
+    model_module = importlib.import_module(module_path)
+    model_class = getattr(model_module, cfg["model"]["model_class"])
+    model_name = cfg["model"]["model_name"]
+    model_dir = f"{model_class.__name__}/{str(model_name)}"
+
+    print(f">>> Starting experiment '{model_name}' over seeds {seeds}")
     for idx, seed in enumerate(seeds, start=1):
         print(f"({idx}/{len(seeds)}); Seed = {seed}  ...")
 
         # Seeding (for reproducibility)
-        args.seed = seed
         seed_experiment(seed)
-        
-        if hasattr(args, "num_threads") and args.num_threads is not None:
-            torch.set_num_threads(args.num_threads)
+
+        num_threads = cfg["device"].get("num_threads")
+        if num_threads is not None:
+            torch.set_num_threads(num_threads)
 
         # 2) Prepare data
-        dm = DatasetManagerFactory(args.dataset, root=args.dataset_root)
+        dm = DatasetManagerFactory(cfg["dataset"]["dataset"], root=cfg["dataset"].get("root"))
         train_split, eval_split = dm.calculate_split_sizes(
-            args.train_ratio, args.eval_ratio
+            cfg["dataset"]["train_ratio"], cfg["dataset"]["eval_ratio"]
         )
         train_loader, eval_loader = dm.split_and_load(
             train_samples_size=train_split,
             eval_samples_size=eval_split,
-            train_batch_size=args.train_batch_size,
-            eval_batch_size=args.eval_batch_size,
-            num_workers=args.num_workers
+            train_batch_size=cfg["dataset"]["train_batch_size"],
+            eval_batch_size=cfg["dataset"]["eval_batch_size"],
+            num_workers=cfg["device"]["num_workers"]
         )
 
         # 3) Instantiate & configure the model
-        model = args.model(
-            model_name=args.exp_name,
+        model = model_class(
+            model_name=model_name,
             seed=seed,
-            **args.model_config
+            **cfg["model"]["params"]
         )
         model.configure_training({
-            "optimizer": args.optimizer,
-            "loss_fn": args.loss_fn,
-            "learning_rate": args.learning_rate,
-            "max_steps": args.n_steps,
-            "optimiser_config": args.optimiser_config,
-            "accelerator": args.accelerator,
-            "devices": args.devices,
-            "train_log_interval": args.train_log_interval,
-            "eval_log_interval": args.eval_log_interval,
+            "optimizer": cfg["training"]["optimizer"],
+            "loss_fn": cfg["training"]["loss_fn"],
+            "learning_rate": cfg["training"]["learning_rate"],
+            "max_steps": cfg["n_steps"],
+            "optimiser_config": cfg["training"].get("optimiser_config", {}),
+            "accelerator": cfg["device"]["accelerator"],
+            "devices": cfg["device"]["devices"],
+            "train_log_interval": cfg.get("train_log_interval", 0.5),
+            "eval_log_interval": cfg.get("eval_log_interval", 0.5),
         })
-        model = model.to(args.device)
-
-        # 4) Print configuration
-        if getattr(args, "verbose", False):
-            print("=" * 40)
-            for k, v in vars(args).items():
-                print(f"{k:20s}: {v}")
-            print(f" rootdir      : {model.log_dir}")
-            print(f" train_size: {len(train_loader.dataset)}")
-            print(f" eval_size: {len(eval_loader.dataset)}")
-            print(f"accelerator: {args.accelerator}")
-            print(f"devices: {args.devices}")
-            print(f"num_workers: {args.num_workers}")
-            print(f"num_threads: {args.num_threads if hasattr(args, 'num_threads') else 'N/A'}")
-            print(f"device: {args.device}")
-            print("=" * 40)
+        model = model.to(cfg["device"]["device"])
 
         # 5) Training
         start_time = time.time()
@@ -102,48 +93,16 @@ def train_model(args, seeds=[0, 42]):
         seed_times[seed] = elapsed
         trained[seed] = model
 
-    first_model = trained[seeds[0]]
-    model_dir = f"{first_model.__class__.__name__}/{str(first_model.model_name)}"
-
     avg_time = sum(seed_times.values()) / len(seed_times) if seed_times else 0.0
     performance = {"seed_times": seed_times, "average": avg_time}
     LoggingService().save_file(
         content=json.dumps(performance, indent=2),
         title=f"performance.json",
         log_dir=model_dir)
-    
-    summary: Dict[str, Any] = {
-        k: str(v)
-        for k, v in vars(args).items()
-        if k.startswith("_") is False and k != "seed"
-    }
-    summary['seeds'] = seeds
-    total = 0
-    layers_params = {}
-    for name, param in first_model.named_parameters():
-        n = param.numel()
-        layers_params[name] = n
-        total += n
-    layers_params['total'] = total
-    summary['layers_params'] = layers_params
-    summary['dataset'] = {
-        "name": args.dataset,
-        "dataset_size": len(dm.dataset),
-        "train_size": len(train_loader.dataset),
-        "eval_size": len(eval_loader.dataset),
-        "train_ratio": args.train_ratio,
-        "eval_ratio": args.eval_ratio,
-        "train_batch_size": args.train_batch_size,
-        "eval_batch_size": args.eval_batch_size,
-    }
-    LoggingService().save_file(
-        content=json.dumps(summary, indent=2),
-        title=f"summary.json",
-        log_dir=model_dir)
 
     return trained
 
-def run_attacks(trained_models, args):
+def run_attacks(trained_models, cfg: dict):
     """Run pairwise transfer attacks among the trained models."""
     records = []
 
@@ -157,7 +116,7 @@ def run_attacks(trained_models, args):
         seed_experiment(seed)
         
         # Prepare dataset and gradients once for efficiency
-        dm = DatasetManagerFactory(args.dataset, root=args.dataset_root)
+        dm = DatasetManagerFactory(cfg["dataset"]["dataset"], root=cfg["dataset"].get("root"))
         dataset = dm.load_dataset(train=False)
         dm.dataset = dataset
         data = dataset.data.unsqueeze(1).to(torch.float)
@@ -172,7 +131,7 @@ def run_attacks(trained_models, args):
                 victim_model.eval()
                 attack_results: List[Dict[str, float]] = []
                 for eps in epsilons:
-                    adv_examples = attack.attack(attacker_model, eps).to(args.device)
+                    adv_examples = attack.attack(attacker_model, eps).to(cfg["device"]["device"])
                     with torch.no_grad():
                         adv_logits = victim_model(adv_examples)
                         adv_acc = calculate_accuracy(
@@ -200,12 +159,6 @@ def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
     cfg = OmegaConf.to_container(cfg, resolve=True)
 
-    # Load model class using the new Hydra configuration fields
-    model_cfg = cfg["model"]
-    module_path = f"models.{model_cfg['model_type']}"
-    model_module = importlib.import_module(module_path)
-    model_cfg["class_obj"] = getattr(model_module, model_cfg["model_class"])
-
     # Resolve any dotted path parameters
     for key, val in list(model_cfg["params"].items()):
         if isinstance(val, str) and "." in val:
@@ -213,14 +166,10 @@ def main(cfg: DictConfig) -> None:
             mod = importlib.import_module(m_path)
             model_cfg["params"][key] = getattr(mod, c_name)
 
-    cfg["model"] = model_cfg
-
-    args = arguments_from_config(cfg)
-    seeds = cfg.get("seeds", [0, 42])
-
     LoggingService(cfg["experiment_name"], logs_dir=cfg.get("LOGS_DIR"))
-    trained = train_model(args, seeds)
-    plot_training_curves(args.exp_name, trained)
+    trained = train_model(cfg)
+    plot_training_curves(cfg["model"]["model_name"], trained)
     generate_gradient_flow_plots(list(trained.values())[0])
 
-if __name__ == "__main__":    main()
+if __name__ == "__main__":
+    main()

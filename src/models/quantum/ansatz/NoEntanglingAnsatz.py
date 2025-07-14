@@ -12,11 +12,11 @@ class NoEntanglingAnsatz(BaseAnsatz):
 
     @property
     def weight_shapes(self) -> dict:
-        return {"weights": (self.n_layers, self.n_qubits)}  # One weight per qubit in each layer
+        return {"weights": (self.n_layers, self.n_qubits, 3)}  # Three angles per qubit in each layer
 
     def ansatz(self, weights):
         # Apply rotations layer by layer
         for layer in range(self.n_layers):
             for i in range(self.n_qubits):
-                qml.RX(weights[layer, i], wires=i)
-                # TODO Should be rot or configurable...
+                qml.Rot(*weights[layer, i], wires=i)
+                
