@@ -20,7 +20,7 @@ class LoggingService:
             cls._instance = super().__new__(cls)
         return cls._instance
     
-    def __init__(self, *_args, **_kwargs):
+    def __init__(self):
         if not hasattr(self, 'initialized'):
             self.initialized = True
 
