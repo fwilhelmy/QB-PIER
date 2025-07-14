@@ -6,19 +6,23 @@ defaults:
   - model: ampvqc
   - _self_
 
+experiment_name: test_time
 seeds: [0, 42]
-verbose: false
-debug: true
-DATA_DIR: "./data/processed"
-LOGS_DIR: "./logs"
 train_log_interval: 0.5
 eval_log_interval: 0.5
-experiment_name: test_models
 n_steps: 10001
+
+DATA_DIR: "./data/processed"
+LOGS_DIR: "./logs"
 
 hydra:
   run:
     dir: ${LOGS_DIR}/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${model.model_class}/${model.model_name}
   sweep:
     dir: ${LOGS_DIR}/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${model.model_class}
-    subdir: ${model.model_name}
+    subdir: ${hydra.job.override_dirname}
+  job:
+    config:
+      override_dirname:
+        exclude_keys:
+          - model
