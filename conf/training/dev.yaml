@@ -1,0 +1,9 @@
+defaults:
+  - optimiser: adamw
+
+loss_fn: cross_entropy
+learning_rate: 0.001
+seeds: [0]
+n_steps: 142
+train_log_interval: 1
+eval_log_interval: 1
