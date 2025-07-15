@@ -15,17 +15,8 @@ class VQC(nn.Module):
         ansatz: dict | None = None,
     ):
         super().__init__()
-        self.input_size = input_size
-        self.n_qubits = input_size
-
-        if ansatz is None:
-            ansatz = {}
-
-        # Instantiate ansatz and create QNode layer
-        ansatz_class = ansatz.pop("class", "StrongEntanglingAnsatz")
-        ansatz_config = ansatz.pop("params", {})
-        self.ansatz = AnsatzFactory(input_size, n_layers, embedding, ansatz_class, ansatz_config)
-        self.qlayer = self.ansatz.build_qlayer()
+        self.ansatz = AnsatzFactory(input_size, n_layers, embedding, ansatz)
+        self.qlayer = self.ansatz.qlayer
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

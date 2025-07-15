@@ -1,3 +1,4 @@
+from typing import Tuple
 import torch
 import torch.nn as nn
 import numpy as np
@@ -9,7 +10,7 @@ class ParallelVQC(nn.Module):
     """
     def __init__(
         self,
-        input_size: int,
+        input_size: Tuple[int, int, int],
         block_size: int,
         n_layers: int,
         embedding: str = "angle",
@@ -17,14 +18,10 @@ class ParallelVQC(nn.Module):
     ):
         super().__init__()
 
-        self.input_size = input_size
-        self.block_size = block_size
-        self.n_qubits = block_size
-        self.num_blocks = int(np.ceil(input_size / block_size))
+        self.input_size = np.prod(self.input_size, dtype=int)
+        self.block_size = min(block_size, self.input_size)
+        self.n_blocks = int(np.ceil(self.input_size / self.block_size))
         self.n_layers = n_layers
-
-        if ansatz is None:
-            ansatz = {}
 
         # Create VQC for each block
         self.blocks = nn.ModuleList([
@@ -33,7 +30,7 @@ class ParallelVQC(nn.Module):
                 n_layers=n_layers,
                 embedding=embedding,
                 ansatz=ansatz,
-            ) for _ in range(self.num_blocks)
+            ) for _ in range(self.n_blocks)
         ])
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

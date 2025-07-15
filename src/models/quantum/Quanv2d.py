@@ -18,7 +18,7 @@ class Quanv2d(nn.Module):
         n_layers: int = 1,
         embedding: str = "angle",
         ansatz: dict | None = None,
-    ) -> None:
+    ):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -29,9 +29,6 @@ class Quanv2d(nn.Module):
 
         self.input_size = in_channels * kernel_size * kernel_size
         self.n_qubits = self.input_size
-
-        if ansatz is None:
-            ansatz = {}
 
         self.vqc = VQC(
             input_size=self.input_size,
