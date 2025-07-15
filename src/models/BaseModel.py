@@ -1,5 +1,6 @@
-from typing import Any, Dict, Union
+from typing import Any, Dict, Tuple, Union
 import os
+from hydra.core.hydra_config import HydraConfig
 
 import torch
 from torch.nn import CrossEntropyLoss, MSELoss
@@ -12,7 +13,6 @@ from pytorch_lightning.utilities import rank_zero_only
 from .OptimiserFactory import OptimiserFactory
 
 from utils import calculate_accuracy
-from metrics.LoggingService import LoggingService
 from metrics import TrainingLogger, MetricsContainer
 
 SUPPORTED_LOSS_FUNCTIONS = {
@@ -29,8 +29,8 @@ class BaseModel(LightningModule):
         self,
         model_name: str,
         seed: int,
-        input_size: Any,
-        output_size: Any,
+        input_size: Tuple[int, int, int],
+        output_size: int,
     ):
         """Initialize the base model.
 
@@ -57,8 +57,7 @@ class BaseModel(LightningModule):
 
     def configure_directories(self) -> None:
         # Build folder paths using class name, model_name, seed
-        relative_path = os.path.join(self.__class__.__name__, str(self.model_name), str(self.seed))
-        self.log_dir = os.path.join(LoggingService().get_root_dir(), relative_path)
+        self.log_dir = os.path.join(HydraConfig.get().run.dir, f"seed={self.seed}")
         self._init_directories()
 
     @rank_zero_only
