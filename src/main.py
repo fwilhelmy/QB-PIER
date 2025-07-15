@@ -36,7 +36,7 @@ def train_model(cfg: dict):
     trained = {}
     seed_times = {}
 
-    seeds = cfg.get("seeds", [0, 42])
+    seeds = cfg["training"].get("seeds", [0, 42])
     
     module_path = f"models.{cfg['model']['model_type']}"
     model_module = importlib.import_module(module_path)
@@ -78,15 +78,15 @@ def train_model(cfg: dict):
             **model_config
         )
         model.configure_training({
-            "optimizer": cfg["training"]["optimizer"],
+            "optimizer": cfg["training"]["optimiser"]["name"],
             "loss_fn": cfg["training"]["loss_fn"],
             "learning_rate": cfg["training"]["learning_rate"],
-            "max_steps": cfg["n_steps"],
-            "optimiser_config": cfg["training"].get("optimiser_config", {}),
+            "max_steps": cfg["training"]["n_steps"],
+            "optimiser_config": cfg["training"]["optimiser"].get("optimiser_config", {}),
             "accelerator": cfg["device"]["accelerator"],
             "devices": cfg["device"]["devices"],
-            "train_log_interval": cfg.get("train_log_interval", 0.5),
-            "eval_log_interval": cfg.get("eval_log_interval", 0.5),
+            "train_log_interval": cfg["training"].get("train_log_interval", 0.5),
+            "eval_log_interval": cfg["training"].get("eval_log_interval", 0.5),
         })
         model = model.to(cfg["device"]["device"])
 

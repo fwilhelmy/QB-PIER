@@ -1,7 +1,0 @@
-# Training configuration using the Adam optimizer
-optimizer: adam
-scheduler: dummy
-loss_fn: cross_entropy
-learning_rate: 0.001
-optimiser_config:
-  weight_decay: 1.0
