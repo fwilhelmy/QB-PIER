@@ -1,8 +1,0 @@
-# Training with plain SGD optimizer (no momentum)
-optimizer: sgd
-scheduler: dummy
-loss_fn: cross_entropy
-learning_rate: 0.001
-optimiser_config:
-  momentum: 0.0
-  weight_decay: 1.0
