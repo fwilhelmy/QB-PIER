@@ -26,7 +26,7 @@ ansatz_classes: dict[str, Type[BaseAnsatz]] = {
 }
     
 
-def AnsatzFactory(input_size, n_layers, embedding, ansatz_class, ansatz_config):
+def AnsatzFactory(input_size, n_layers, embedding, ansatz):
     """
     Factory function to create an Ansatz instance based on the provided class and configuration.
     
@@ -39,6 +39,9 @@ def AnsatzFactory(input_size, n_layers, embedding, ansatz_class, ansatz_config):
     Returns:
         BaseAnsatz: An instance of the specified ansatz class.
     """
+    if ansatz is None: ansatz = {}
+    ansatz_class = ansatz.get("class", "StrongEntanglingAnsatz")
+    ansatz_config = ansatz.get("params", {})
     if ansatz_class not in ansatz_classes:
         raise ValueError(f"Unsupported ansatz class: {ansatz_class}")
     
