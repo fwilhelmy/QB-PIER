@@ -1,32 +1,33 @@
 import torch
-from torch import nn
+from torch.nn import (
+    Conv2d, Linear, MaxPool2d, ReLU, Sequential
+)
 from models.BaseModel import BaseModel
-from typing import Tuple
 
 class ConvNet(BaseModel):
     """Simple configurable convolutional network."""
     def __init__(self, conv_channels=(32, 64), fc_sizes=(128,), **kwargs):
         super().__init__(**kwargs)
         self.save_hyperparameters("conv_channels", "fc_sizes")
-        in_channels, img_size = self.input_size
+        in_channels, img_size, _ = self.input_size
         layers = []
         for out_ch in conv_channels:
-            layers.append(nn.Conv2d(in_channels, out_ch, kernel_size=3, padding=1))
-            layers.append(nn.ReLU())
-            layers.append(nn.MaxPool2d(2))
+            layers.append(Conv2d(in_channels, out_ch, kernel_size=3, padding=1))
+            layers.append(ReLU())
+            layers.append(MaxPool2d(2))
             img_size //= 2
             in_channels = out_ch
-        self.features = nn.Sequential(*layers)
+        self.features = Sequential(*layers)
 
         flat_dim = in_channels * img_size * img_size
         fc_layers = []
         prev = flat_dim
         for hidden in fc_sizes:
-            fc_layers.append(nn.Linear(prev, hidden))
-            fc_layers.append(nn.ReLU())
+            fc_layers.append(Linear(prev, hidden))
+            fc_layers.append(ReLU())
             prev = hidden
-        fc_layers.append(nn.Linear(prev, self.output_size))
-        self.classifier = nn.Sequential(*fc_layers)
+        fc_layers.append(Linear(prev, self.output_size))
+        self.classifier = Sequential(*fc_layers)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         x = self.features(inputs)
