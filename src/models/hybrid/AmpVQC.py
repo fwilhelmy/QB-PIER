@@ -1,11 +1,10 @@
 import torch
 from torch.nn import LogSoftmax
 
+import numpy as np
 from models.quantum.VQC import VQC
-from models.quantum.ansatz.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 from models.BaseModel import BaseModel
 from metrics import LoggingService
-import math
 
 class AmpVQC(BaseModel):
 
@@ -17,21 +16,14 @@ class AmpVQC(BaseModel):
     ) -> None:
         super().__init__(**kwargs)
         self.save_hyperparameters("n_qdepth", "ansatz")
-        # flatten input size to a single dimension
-        self.flat_input_dim = self.input_size[0] * self.input_size[1] * self.input_size[2]
-        ansatz_cls_name = (ansatz or {}).get("class", "BasicEntanglingAnsatz")
-        assert "ResidualAnsatz" not in ansatz_cls_name, (
-            "Amplitude encoding does not support residual ansatzes."
-        )
-        n_qubits = math.ceil(math.log2(self.flat_input_dim))
-        if ansatz is None:
-            ansatz = {}
+
         self.vqc = VQC(
-            input_size=n_qubits,
+            input_size=np.prod(self.input_size, dtype=int),
             n_layers=n_qdepth,
             embedding="amplitude",
             ansatz=ansatz,
         )
+
         self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:

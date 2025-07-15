@@ -1,6 +1,5 @@
 """Hybrid parallel CNN combined with a quantum layer."""
 
-from typing import Type
 
 import torch
 from torch import flatten
@@ -8,8 +7,6 @@ from torch.nn import BatchNorm2d, Conv2d, Linear, LogSoftmax, MaxPool2d, ReLU
 
 from models.BaseModel import BaseModel
 from models.quantum.ParallelVQC import ParallelVQC
-from models.quantum.ansatz.BaseAnsatz import BaseAnsatz
-from models.quantum.ansatz.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 from metrics import LoggingService
 
 
@@ -40,23 +37,17 @@ class HQNN(BaseModel):
 
     def __init__(
         self,
-        qinput_size: int,
         qblock_size: int,
         n_qdepth: int = 3,
         ansatz: dict | None = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters("qinput_size", "qblock_size", "n_qdepth", "ansatz")
-
-        self.qinput_size = qinput_size
-        self.qblock_size = min(qblock_size, qinput_size)
-        self.n_qdepth = n_qdepth
+        self.save_hyperparameters("qblock_size", "n_qdepth", "ansatz")
 
         # Convolutional feature extractor
-        in_channels = self.input_size[0] if isinstance(self.input_size, (tuple, list)) else self.input_size
         self.conv1 = Conv2d(
-            in_channels=in_channels,
+            in_channels=self.input_size[0],
             out_channels=16,
             kernel_size=(5, 5),
             padding=2,
@@ -78,13 +69,10 @@ class HQNN(BaseModel):
         self.relu3 = ReLU()
 
         # Quantum layer configuration
-        if ansatz is None:
-            ansatz = {}
         self.qlayer1 = ParallelVQC(
-            input_size=self.qinput_size,
-            block_size=self.qblock_size,
-            n_layers=self.n_qdepth,
-            embedding="angle",
+            input_size=self.input_size,
+            block_size=qblock_size,
+            n_layers=n_qdepth,
             ansatz=ansatz,
         )
 
