@@ -7,8 +7,6 @@ from hydra.core.hydra_config import HydraConfig
 
 import matplotlib.pyplot as plt
 import torch
-
-DEFAULT_LOGS_DIR = "./logs"
 from pytorch_lightning.utilities import rank_zero_only
 from . import __version__
 
@@ -20,38 +18,33 @@ class LoggingService:
             cls._instance = super().__new__(cls)
         return cls._instance
     
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         if not hasattr(self, 'initialized'):
             self.initialized = True
 
-            self._root_dir = HydraConfig.get().run.dir
+            self._root_dir = HydraConfig.get().run.dir.rsplit("/",2)[0]
             self._start_time = datetime.now()
             self._info = {
                 "pipeline_version": __version__,
                 "start_time": self._start_time.isoformat(),
                 "cuda_available": torch.cuda.is_available(),
             }
-            self._init_root_dir()
             atexit.register(self.finalize)
-
-    @rank_zero_only
-    def _init_root_dir(self):
-        os.makedirs(self._root_dir, exist_ok=True)
 
     def get_root_dir(self):
         """Return the root directory of the logs."""
         return self._root_dir
     
     @rank_zero_only
-    def save_figure(self, figure, title, log_dir=None):
-        fig_dir = os.path.join(self._root_dir, log_dir) if log_dir else self._root_dir
+    def save_figure(self, figure, title, path=None):
+        fig_dir = os.path.join(self._root_dir, path) if path else self._root_dir
         os.makedirs(fig_dir, exist_ok=True)
         figure.savefig(os.path.join(fig_dir, f"{title}.png"))
         plt.close(figure)
 
     @rank_zero_only
-    def save_file(self, content, title, log_dir=None):
-        file_dir = os.path.join(self._root_dir, log_dir) if log_dir else self._root_dir
+    def save_file(self, content, title, path=None):
+        file_dir = os.path.join(self._root_dir, path) if path else self._root_dir
         os.makedirs(file_dir, exist_ok=True)
         with open(os.path.join(file_dir, title), "w") as file:
             file.write(content)
