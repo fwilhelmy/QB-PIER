@@ -7,20 +7,6 @@ from models.quantum.embedding import EmbeddingFactory
 
 class BaseAnsatz(ABC):
     """Base class for all quantum Ansatz circuits."""
-
-    def get_qnode(self, circuit, n_qubits):
-        """Construct a QNode with the project's configured device."""
-        dev = qml.device(QDEVICE, wires=n_qubits)
-        return qml.QNode(circuit, dev, interface=INTERFACE, diff_method=QDIFF)
-
-    def create_qtorchlayer(self, n_qubits, circuit, weight_shapes, init_vals=None):
-        """Create a ``TorchLayer`` for the provided circuit."""
-        return qml.qnn.TorchLayer(
-            qnode=self.get_qnode(circuit, n_qubits),
-            weight_shapes=weight_shapes,
-            init_method=init_vals,
-        )
-
     def __init__(
         self,
         input_size: int,
@@ -39,6 +25,24 @@ class BaseAnsatz(ABC):
         raise NotImplementedError(
             "Subclasses must implement the weight_shapes property."
         )
+        
+    @property
+    def qnode(self):
+        dev = qml.device(QDEVICE, wires=self.n_qubits)
+        return qml.QNode(self.circuit, dev, interface=INTERFACE, diff_method=QDIFF)
+
+    @property
+    def qlayer(self):
+        if self._qlayer is None:
+            init_vals = None
+
+            self._qlayer = qml.qnn.TorchLayer(
+                qnode=self.qnode,
+                weight_shapes=self.weight_shapes,
+                init_method=init_vals
+            )
+        
+        return self._qlayer
 
     @abstractmethod
     def ansatz(self, weights):
@@ -55,12 +59,6 @@ class BaseAnsatz(ABC):
             self.embedding(inputs)
         self.ansatz(weights)
         return [qml.expval(qml.PauliZ(wires=i)) for i in range(self.n_qubits)]
-
-    def build_qlayer(self):
-        self.qlayer = self.create_qtorchlayer(
-            self.n_qubits, self.circuit, self.weight_shapes
-        )
-        return self.qlayer
 
     def visualize(self, expanded: bool = False):
         """
@@ -82,9 +80,8 @@ class BaseAnsatz(ABC):
         weight_shape = self.weight_shapes.get("weights", ())
         default_weights = np.zeros(weight_shape)
 
-        qnode = self.get_qnode(self.circuit, self.n_qubits)
         strategy = "device" if expanded else "gradient"
-        mpl_drawer = qml.draw_mpl(qnode, style=CIRCUIT_STYLE, level=strategy)
+        mpl_drawer = qml.draw_mpl(self.qnode, style=CIRCUIT_STYLE, level=strategy)
 
         # Draw and return figure
         fig, _ = mpl_drawer(default_inputs, default_weights)
