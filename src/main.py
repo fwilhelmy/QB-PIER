@@ -1,5 +1,6 @@
 import importlib
 from collections import defaultdict
+import os
 from typing import List, Dict
 
 import torch
@@ -41,7 +42,7 @@ def train_model(cfg: dict):
     model_module = importlib.import_module(module_path)
     model_class = getattr(model_module, cfg["model"]["model_class"])
     model_name = cfg["model"]["model_name"]
-    model_dir = HydraConfig.get().run.dir
+    model_dir = os.path.join(*HydraConfig.get().run.dir.rsplit("/", 2)[1:])
     model_config = cfg["model"]["params"] or {}
 
     print(f">>> Starting experiment '{model_name}' over seeds {seeds}")
@@ -101,7 +102,7 @@ def train_model(cfg: dict):
     LoggingService().save_file(
         content=json.dumps(performance, indent=2),
         title=f"performance.json",
-        log_dir=model_dir)
+        path=model_dir)
 
     return trained
 
