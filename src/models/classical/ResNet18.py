@@ -3,9 +3,7 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import math
 import numpy as np
-from sklearn.decomposition import PCA  # Import PCA for channel reduction
 from models.BaseModel import BaseModel
-from typing import Tuple
 
 class BasicBlock(nn.Module):
     
@@ -49,7 +47,7 @@ class BasicBlock(nn.Module):
 class ResNet18(BaseModel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        in_channels, _ = self.input_size
+        in_channels = self.input_size[0]
         self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.layer1 = self._make_layer(64, 64, stride=1)

@@ -8,6 +8,7 @@ defaults:
 
 experiment_name: test_time
 seeds: [0, 42]
+n_steps: 10001
 train_log_interval: 0.5
 eval_log_interval: 0.5
 

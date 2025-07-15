@@ -1,13 +1,10 @@
 from torch import nn
-import torch
 import math
 import matplotlib.pyplot as plt
-import os
 import math
 import torch
 import matplotlib.pyplot as plt
 from models.BaseModel import BaseModel
-from typing import Tuple
 
 class PatchEmbed(nn.Module):
     """ 2D Image to Patch Embedding """
@@ -100,7 +97,7 @@ class MLPMixer(BaseModel):
         super().__init__(**kwargs)
         self.save_hyperparameters("patch_size", "embed_dim",
                                  "num_blocks", "drop_rate", "activation", "mlp_ratio")
-        in_chans, img_size = self.input_size
+        in_chans, img_size, _ = self.input_size
         self.patchemb = PatchEmbed(img_size=img_size, 
                                    patch_size=patch_size, 
                                    in_chans=in_chans,

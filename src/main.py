@@ -81,7 +81,7 @@ def train_model(cfg: dict):
             "optimizer": cfg["training"]["optimizer"],
             "loss_fn": cfg["training"]["loss_fn"],
             "learning_rate": cfg["training"]["learning_rate"],
-            "max_steps": cfg["dataset"]["n_steps"],
+            "max_steps": cfg["n_steps"],
             "optimiser_config": cfg["training"].get("optimiser_config", {}),
             "accelerator": cfg["device"]["accelerator"],
             "devices": cfg["device"]["devices"],

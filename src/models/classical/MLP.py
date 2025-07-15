@@ -46,7 +46,7 @@ class MLP(BaseModel):
         """
         super().__init__(**kwargs)
         self.save_hyperparameters("hidden_sizes", "activation")
-        channels, img_size = self.input_size
+        channels, img_size, _ = self.input_size
         assert channels > 0 and img_size > 0, "Invalid input_size provided"
         flattened = channels * img_size * img_size
         self.flat_input_size = flattened

@@ -1,8 +1,8 @@
+import numpy as np
 import torch
 from torch import nn
 from torch.nn import LogSoftmax
 from models.quantum.VQC import VQC
-from models.quantum.ansatz.BasicEntanglingAnsatz import BasicEntanglingAnsatz
 from models.BaseModel import BaseModel
 from metrics import LoggingService
 
@@ -24,7 +24,7 @@ class HQE(BaseModel):
             hidden_sizes = [hidden_sizes]
 
         layers = []
-        prev = input_size
+        prev = np.prod(self.input_size, dtype=int)
         for idx, h in enumerate(hidden_sizes):
             layers.append(nn.Linear(prev, h))
             layers.append(nn.ReLU())
@@ -35,8 +35,6 @@ class HQE(BaseModel):
         self.bottleneck = nn.Linear(prev, self.output_size)
         self.bottleneck_act = nn.ReLU()
 
-        if ansatz is None:
-            ansatz = {}
         self.vqc = VQC(
             input_size=self.output_size,
             n_layers=n_qdepth,
@@ -45,7 +43,7 @@ class HQE(BaseModel):
         self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        x = inputs.view(inputs.size(0), -1)
+        x = torch.flatten(inputs, 1)
         x = self.encoder(x)
         x = self.bottleneck_act(self.bottleneck(x))
         x = self.vqc(x)

@@ -33,7 +33,7 @@ class BaseAnsatz(ABC):
 
     @property
     def qlayer(self):
-        if self._qlayer is None:
+        if not hasattr(self, '_qlayer'):
             init_vals = None
 
             self._qlayer = qml.qnn.TorchLayer(
