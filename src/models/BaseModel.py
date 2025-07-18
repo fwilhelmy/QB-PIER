@@ -142,13 +142,15 @@ class BaseModel(LightningModule):
         
         weights_l2 = sum((p.norm(2).item() ** 2) for p in self.parameters() if p.requires_grad)
         weights_l2 = weights_l2 ** 0.5
-        grad_l2 = {name: param.grad.data.norm(2).item()
-                   for name, param in self.named_parameters() if param.grad is not None}
 
-        return {"loss": loss, "acc": acc, "weights_l2": weights_l2, "grad_l2": grad_l2}
+        return {"loss": loss, "acc": acc, "weights_l2": weights_l2}
 
     def on_train_epoch_end(self):
         self.metrics.log_epoch(self.global_step)
+
+        # TODO Right now wont work with log_interval = 1.0
+        self.metrics.log_dict("grad_l2", {name: param.grad.data.norm(2).item()
+            for name, param in self.named_parameters() if param.grad is not None})
 
     def validation_step(self, batch: Any, batch_idx: int):
         x, y = batch
