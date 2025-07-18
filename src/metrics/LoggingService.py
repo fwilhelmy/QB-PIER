@@ -3,7 +3,6 @@ import json
 import atexit
 from datetime import datetime
 
-from hydra.core.hydra_config import HydraConfig
 
 import matplotlib.pyplot as plt
 import torch
@@ -17,12 +16,13 @@ class LoggingService:
         if not cls._instance:
             cls._instance = super().__new__(cls)
         return cls._instance
-    
-    def __init__(self, *args, **kwargs):
+
+    def __init__(self, root_dir: str = "logs", *args, **kwargs):
         if not hasattr(self, 'initialized'):
             self.initialized = True
 
-            self._root_dir = HydraConfig.get().run.dir.rsplit("/",2)[0]
+            self.root_dir = root_dir
+            
             self._start_time = datetime.now()
             self._info = {
                 "pipeline_version": __version__,
@@ -31,10 +31,19 @@ class LoggingService:
             }
             atexit.register(self.finalize)
 
-    def get_root_dir(self):
-        """Return the root directory of the logs."""
+    @property
+    def root_dir(self) -> str:
         return self._root_dir
-    
+
+    @root_dir.setter
+    def root_dir(self, value: str):
+        self._root_dir = value
+        self._init_root_dir()
+
+    @rank_zero_only
+    def _init_root_dir(self):
+        os.makedirs(self._root_dir, exist_ok=True)
+
     @rank_zero_only
     def save_figure(self, figure, title, path=None):
         fig_dir = os.path.join(self._root_dir, path) if path else self._root_dir
