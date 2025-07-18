@@ -93,13 +93,10 @@ def line_with_std(ax, x, mean, std, label=None, **plot_kwargs):
 
 
 @rank_zero_only
-def plot_training_curves(model_name, seed_dict):
+def plot_training_curves(model_name, seed_dict, fig_dir=None):
     """Plot averaged loss, accuracy and weights norm over multiple seeds."""
     seeds = sorted(seed_dict.keys())
-
     first_model = seed_dict[seeds[0]]
-    model_name = first_model.model_name
-    fig_dir = f"{first_model.__class__.__name__}/{model_name}"
 
     train_loss_seeds = []
     val_loss_seeds = []
@@ -202,9 +199,8 @@ def plot_gradient_flow(grad_dict, title):
     return fig, axes
 
 @rank_zero_only
-def generate_gradient_flow_plots(model):
+def generate_gradient_flow_plots(model, fig_dir=None):
     grad_norms = model.metrics._raw['grad_l2']
-    fig_dir = f"{model.__class__.__name__}/{model.model_name}"
 
     weight_grads = {k: v for k, v in grad_norms.items() if 'weight' in k and 'bias' not in k and 'bn' not in k and 'norm' not in k}
     if weight_grads == {}: raise ValueError(f"No weight gradients found in {model.model_name}.")

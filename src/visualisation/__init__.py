@@ -1,11 +1,11 @@
 """Visualization helpers for training and attacks."""
 
-from . import AttacksVisualisation
-from . import DataVisualisation
-from . import TrainingVisualisation
+from . import attacks
+from . import data
+from . import training
 
 __all__ = [
-    "AttacksVisualisation",
-    "DataVisualisation",
-    "TrainingVisualisation",
+    "attacks",
+    "data",
+    "training",
 ]
