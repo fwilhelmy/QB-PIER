@@ -86,3 +86,29 @@ class BaseAnsatz(ABC):
         # Draw and return figure
         fig, _ = mpl_drawer(default_inputs, default_weights)
         return fig
+
+    def circuit_depth(self) -> int:
+        """Return the depth of the quantum circuit.
+
+        The depth is computed using ``qml.specs`` on the ansatz :class:`~pennylane.QNode`.
+        The method evaluates the QNode on default zero ``inputs`` and ``weights``
+        and returns the reported circuit depth.
+
+        Returns:
+            int: The depth of the quantum circuit.
+        """
+
+        assert (
+            self.weight_shapes is not None
+        ), "Weight shapes must be defined before measuring depth."
+
+        default_inputs = np.zeros(self.n_qubits)
+        weight_shape = self.weight_shapes.get("weights", ())
+        default_weights = np.zeros(weight_shape)
+
+        specs = qml.specs(self.qnode)(default_inputs, default_weights)
+
+        depth = specs.get("depth")
+        if depth is None and "resources" in specs:
+            depth = getattr(specs["resources"], "depth", 0)
+        return depth
