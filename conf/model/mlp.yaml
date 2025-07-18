@@ -1,5 +1,4 @@
 model_class: MLP
 model_type: classical
-params:
-  hidden_sizes: [1024, 512, 64, 64]
-  activation: relu
+hidden_sizes: [1024, 512, 64, 64]
+activation: relu

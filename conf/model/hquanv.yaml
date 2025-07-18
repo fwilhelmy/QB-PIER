@@ -1,9 +1,8 @@
 defaults:
-  - params.ansatz: random
+  - ansatz: random
 model_class: HQuanv
 model_type: hybrid
-params:
-  img_size: 28
-  patch_size: 2
-  n_qdepth: 2
-  embedding: angle
+img_size: 28
+patch_size: 2
+n_qdepth: 2
+embedding: angle

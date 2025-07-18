@@ -1,3 +1,2 @@
 model_class: ResNet18
 model_type: classical
-params:
