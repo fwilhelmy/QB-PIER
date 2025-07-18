@@ -204,7 +204,7 @@ def generate_gradient_flow_plots(model, fig_dir=None):
 
     weight_grads = {k: v for k, v in grad_norms.items() if 'weight' in k and 'bias' not in k and 'bn' not in k and 'norm' not in k}
     if weight_grads == {}: raise ValueError(f"No weight gradients found in {model.model_name}.")
-    weight_title = f"Gradient Flow of Weights for {model.model_name}"
+    weight_title = f"Gradient Flow of Weights"
     weight_fig, weight_axes = plot_gradient_flow(weight_grads, weight_title)
     LoggingService().save_figure(weight_fig, "gradient_flow_weight.png", fig_dir)
 
