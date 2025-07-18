@@ -5,5 +5,5 @@ loss_fn: cross_entropy
 learning_rate: 0.001
 seeds: [0, 42]
 n_steps: 10001
-train_log_interval: 1
-eval_log_interval: 1
+train_log_interval: 1.0
+eval_log_interval: 1.0
