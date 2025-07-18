@@ -4,6 +4,5 @@ model_name: HQNN
 model_type: hybrid
 model_class: HQNN
 params:
-  n_qubits: 5
-  in_qlayer: 20
+  qblock_size: 5
   n_qdepth: 3
