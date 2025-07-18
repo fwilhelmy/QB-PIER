@@ -1,8 +1,7 @@
 defaults:
   - params.ansatz: basic
-model_name: DimVQC
-model_type: hybrid
 model_class: DimVQC
+model_type: hybrid
 params:
   reduced_dim: 1024
   reduction_method: pca

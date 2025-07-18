@@ -1,6 +1,5 @@
 from typing import Any, Dict, Tuple, Union
 import os
-from hydra.core.hydra_config import HydraConfig
 
 import torch
 from torch.nn import CrossEntropyLoss, MSELoss
@@ -10,10 +9,10 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities import rank_zero_only
 
-from .OptimiserFactory import OptimiserFactory
+from models.OptimiserFactory import OptimiserFactory
 
 from utils import calculate_accuracy
-from metrics import TrainingLogger, MetricsContainer
+from metrics import TrainingLogger, MetricsContainer, LoggingService
 
 SUPPORTED_LOSS_FUNCTIONS = {
     "cross_entropy": CrossEntropyLoss,  # For classification tasks
@@ -27,8 +26,7 @@ class BaseModel(LightningModule):
 
     def __init__(
         self,
-        model_name: str,
-        seed: int,
+        model_path: str,
         input_size: Tuple[int, int, int],
         output_size: int,
     ):
@@ -36,19 +34,14 @@ class BaseModel(LightningModule):
 
         Parameters
         ----------
-        model_name: str
-            Name identifying the model instance.
-        seed: int
-            Random seed used for the experiment.
         input_size: Any
             Shape or dimensionality of the model input.
         output_size: Any
             Number of outputs produced by the model.
         """
         super().__init__()
-        self.save_hyperparameters("model_name", "seed", "input_size", "output_size")
-        self.model_name = model_name
-        self.seed = seed
+        self.save_hyperparameters("model_path", "input_size", "output_size")
+        self.model_path = model_path
         self.input_size = input_size
         self.output_size = output_size
 
@@ -57,7 +50,7 @@ class BaseModel(LightningModule):
 
     def configure_directories(self) -> None:
         # Build folder paths using class name, model_name, seed
-        self.log_dir = os.path.join(HydraConfig.get().run.dir, f"seed={self.seed}")
+        self.log_dir = os.path.join(LoggingService().root_dir, self.model_path)
         self._init_directories()
 
     @rank_zero_only
@@ -115,22 +108,23 @@ class BaseModel(LightningModule):
             default_root_dir=self.log_dir,
             callbacks=[checkpoint_cb, tr_logger],
             val_check_interval=self.hparams["eval_log_interval"],
+            enable_model_summary=False,
         )
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         checkpoint['log_dir'] = self.log_dir
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        self.model_name = self.hparams["model_name"]
+        self.model_path = self.model_path or checkpoint['model_path']
         self.seed = self.hparams["seed"]
-        
+        self.input_size = self.hparams["input_size"]
+        self.output_size = self.hparams["output_size"]
+
         self.configure_directories()
         self.configure_training(checkpoint['hyper_parameters'])
         self.metrics.load_metrics(checkpoint['log_dir'])
     
     def configure_optimizers(self) -> Any:
-        """Create the optimiser using :class:`OptimiserFactory`."""
-
         return OptimiserFactory(
             self.hparams["optimizer"],
             self.parameters(),
@@ -155,11 +149,10 @@ class BaseModel(LightningModule):
     def on_train_epoch_end(self):
         self.metrics.log_epoch(self.global_step)
 
-        with torch.no_grad():
-            grad_l2 = {name: param.grad.data.norm(2).item()
-                     for name, param in self.named_parameters()
-                     if param.grad is not None}
-            self.metrics.log_dict("grad_l2", grad_l2)
+        grad_l2 = {name: param.grad.data.norm(2).item()
+                    for name, param in self.named_parameters()
+                    if param.grad is not None}
+        self.metrics.log_dict("grad_l2", grad_l2)
 
     def validation_step(self, batch: Any, batch_idx: int):
         x, y = batch

@@ -1,8 +1,7 @@
 defaults:
   - params.ansatz: random
-model_name: HQuanv
-model_type: hybrid
 model_class: HQuanv
+model_type: hybrid
 params:
   img_size: 28
   patch_size: 2

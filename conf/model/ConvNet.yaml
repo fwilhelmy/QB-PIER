@@ -1,6 +1,5 @@
-model_name: ConvNet
-model_type: classical
 model_class: ConvNet
+model_type: classical
 params:
   conv_channels: [32, 64]
   fc_sizes: [128]

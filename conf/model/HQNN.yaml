@@ -1,8 +1,7 @@
 defaults:
   - params.ansatz: basic
-model_name: HQNN
+model_class: ${hydra.job.override_dirname}
 model_type: hybrid
-model_class: HQNN
 params:
   n_qubits: 5
   in_qlayer: 20

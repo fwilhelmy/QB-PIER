@@ -1,6 +1,5 @@
-model_name: MLP
-model_type: classical
 model_class: MLP
+model_type: classical
 params:
   hidden_sizes: [1024, 512, 64, 64]
   activation: relu

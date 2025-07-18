@@ -1,6 +1,5 @@
-model_name: MLPMixer
-model_type: classical
 model_class: MLPMixer
+model_type: classical
 params:
   patch_size: 4
   embed_dim: 256
