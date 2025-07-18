@@ -69,8 +69,7 @@ class BaseModel(LightningModule):
             'optimiser_config': config.get("optimiser_config", {}),
             'accelerator': config.get("accelerator", "auto"),
             'devices': config.get("devices", 1),
-            'train_log_interval': config.get("train_log_interval", 0.5),
-            'eval_log_interval': config.get("eval_log_interval", 0.5)
+            'log_interval': config.get("log_interval", 1.0),
         })
 
         self._init_training()
@@ -85,7 +84,7 @@ class BaseModel(LightningModule):
 
         # Create loggers
         tb_logger = TensorBoardLogger(save_dir=self.log_dir, name=None, version="tensorboard")
-        tr_logger = TrainingLogger(ratio=self.hparams["train_log_interval"])
+        tr_logger = TrainingLogger(ratio=self.hparams["log_interval"])
         
         # Checkpoint callback
         ckpt_dir = os.path.join(self.log_dir, "checkpoints")
@@ -107,7 +106,7 @@ class BaseModel(LightningModule):
             logger=[tb_logger],
             default_root_dir=self.log_dir,
             callbacks=[checkpoint_cb, tr_logger],
-            val_check_interval=self.hparams["eval_log_interval"],
+            val_check_interval=self.hparams["log_interval"],
             enable_model_summary=False,
         )
 
@@ -141,18 +140,15 @@ class BaseModel(LightningModule):
         loss = self.loss_fn(y_hat, y)
         acc = calculate_accuracy(y_hat, y)
         
-        params_l2 = sum((p.norm(2).item() ** 2) for p in self.parameters() if p.requires_grad)
-        params_l2 = params_l2 ** 0.5
-        
-        return {"loss": loss, "acc": acc, "weights_l2": params_l2}
+        weights_l2 = sum((p.norm(2).item() ** 2) for p in self.parameters() if p.requires_grad)
+        weights_l2 = weights_l2 ** 0.5
+        grad_l2 = {name: param.grad.data.norm(2).item()
+                   for name, param in self.named_parameters() if param.grad is not None}
+
+        return {"loss": loss, "acc": acc, "weights_l2": weights_l2, "grad_l2": grad_l2}
 
     def on_train_epoch_end(self):
         self.metrics.log_epoch(self.global_step)
-
-        grad_l2 = {name: param.grad.data.norm(2).item()
-                    for name, param in self.named_parameters()
-                    if param.grad is not None}
-        self.metrics.log_dict("grad_l2", grad_l2)
 
     def validation_step(self, batch: Any, batch_idx: int):
         x, y = batch
