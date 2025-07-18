@@ -1,5 +1,5 @@
 defaults:
-  - training: default
+  - training: dev
   - device: local
   - qdevice: sim
   - dataset: mnist
@@ -13,7 +13,7 @@ LOGS_DIR: "./logs"
 
 hydra:
   run:
-    dir: ${LOGS_DIR}/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${model.model_class}/${model.model_name}
+    dir: ${LOGS_DIR}/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${model.model_class}
   sweep:
     dir: ${LOGS_DIR}/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${model.model_class}
     subdir: ${hydra.job.override_dirname}

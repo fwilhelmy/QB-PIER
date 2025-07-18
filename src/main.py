@@ -1,26 +1,24 @@
-import importlib
 from collections import defaultdict
+import importlib
 import os
-from typing import List, Dict
+import time
+import json
+from typing import Dict, List
 
-import torch
-import pandas as pd
 import hydra
 from omegaconf import DictConfig
+import pandas as pd
+import torch
 
-from visualisation.TrainingVisualisation import (
-    plot_training_curves,
-    generate_gradient_flow_plots,
-)
+from hydra.types import RunMode
+from hydra.core.hydra_config import HydraConfig
 
-import json
-import time
-
-from utils import seed_experiment, calculate_accuracy
+from metrics import LoggingService
+from utils import calculate_accuracy, seed_experiment
 from data.DatasetManagerFactory import DatasetManagerFactory
 from attacks import FGSMAttack
-from metrics.LoggingService import LoggingService
-from hydra.core.hydra_config import HydraConfig
+from visualisation.training import plot_training_curves, generate_gradient_flow_plots
+
 
 def train_model(cfg: dict):
     """
@@ -38,11 +36,14 @@ def train_model(cfg: dict):
 
     seeds = cfg["training"].get("seeds", [0, 42])
     
-    module_path = f"models.{cfg['model']['model_type']}"
-    model_module = importlib.import_module(module_path)
-    model_class = getattr(model_module, cfg["model"]["model_class"])
-    model_name = cfg["model"]["model_name"]
-    model_dir = os.path.join(*HydraConfig.get().run.dir.rsplit("/", 2)[1:])
+    module_dir = f"models.{cfg['model']['model_type']}"
+    model_module = importlib.import_module(module_dir)
+    model_name = log_dir = cfg["model"]["model_class"]
+    model_class = getattr(model_module, model_name)
+    if HydraConfig.get().mode  == RunMode.MULTIRUN and HydraConfig.get().job.override_dirname:
+        subdir = HydraConfig.get().job.override_dirname
+        model_name += f" ({subdir})"
+        log_dir = os.path.join(log_dir, subdir)
     model_config = cfg["model"]["params"] or {}
 
     print(f">>> Starting experiment '{model_name}' over seeds {seeds}")
@@ -71,8 +72,7 @@ def train_model(cfg: dict):
 
         # 3) Instantiate & configure the model
         model = model_class(
-            model_name=model_name,
-            seed=seed,
+            model_path=os.path.join(log_dir, str(seed)),
             input_size=cfg["dataset"]["input_shape"],
             output_size=cfg["dataset"]["classes"],
             **model_config
@@ -102,9 +102,9 @@ def train_model(cfg: dict):
     LoggingService().save_file(
         content=json.dumps(performance, indent=2),
         title=f"performance.json",
-        path=model_dir)
+        path=log_dir)
 
-    return trained
+    return log_dir, trained
 
 def run_attacks(trained_models, cfg: dict):
     """Run pairwise transfer attacks among the trained models."""
@@ -160,10 +160,12 @@ def run_attacks(trained_models, cfg: dict):
 @hydra.main(config_path="../conf", config_name="config", version_base=None)
 def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
-    LoggingService()
-    trained = train_model(cfg)
-    plot_training_curves(cfg["model"]["model_name"], trained)
-    generate_gradient_flow_plots(list(trained.values())[0])
+    slice = 2 if HydraConfig.get().mode == RunMode.MULTIRUN else 1
+    root_dir = HydraConfig.get().run.dir.rsplit("/",slice)[0]
+    LoggingService(root_dir=root_dir)
+    log_dir, trained = train_model(cfg)
+    plot_training_curves(cfg["model"]["model_class"], trained, log_dir)
+    generate_gradient_flow_plots(list(trained.values())[0], log_dir)
 
 if __name__ == "__main__":
     main()
