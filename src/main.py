@@ -46,16 +46,16 @@ def train_model(cfg: dict):
         log_dir = os.path.join(log_dir, subdir)
     model_config = cfg["model"]["params"] or {}
 
+    num_threads = cfg["device"].get("num_threads")
+    if num_threads is not None:
+        torch.set_num_threads(num_threads)
+
     print(f">>> Starting experiment '{model_name}' over seeds {seeds}")
     for idx, seed in enumerate(seeds, start=1):
         print(f"({idx}/{len(seeds)}); Seed = {seed}  ...")
 
-        # Seeding (for reproducibility)
+        # 1) Seeding
         seed_experiment(seed)
-
-        num_threads = cfg["device"].get("num_threads")
-        if num_threads is not None:
-            torch.set_num_threads(num_threads)
 
         # 2) Prepare data
         dm = DatasetManagerFactory(cfg["dataset"]["dataset"], root=cfg["dataset"].get("root"))
@@ -85,8 +85,7 @@ def train_model(cfg: dict):
             "optimiser_config": cfg["training"]["optimiser"].get("optimiser_config", {}),
             "accelerator": cfg["device"]["accelerator"],
             "devices": cfg["device"]["devices"],
-            "train_log_interval": cfg["training"].get("train_log_interval", 0.5),
-            "eval_log_interval": cfg["training"].get("eval_log_interval", 0.5),
+            "log_interval": cfg["training"]["log_interval"],
         })
         model = model.to(cfg["device"]["device"])
 
