@@ -1,4 +1,4 @@
-name: momentum
+name: sgd
 optimiser_config:
   momentum: 0.9
   weight_decay: 1.0

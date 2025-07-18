@@ -22,6 +22,6 @@ def OptimiserFactory(optimiser_name: str, parameters, learning_rate: float, **op
         return optim.AdamW(parameters, lr=learning_rate, **optimiser_config)
     if name == "adam":
         return optim.Adam(parameters, lr=learning_rate, **optimiser_config)
-    if name in {"sgd", "momentum"}:
+    if name in {"sgd"}:
         return optim.SGD(parameters, lr=learning_rate, **optimiser_config)
     raise ValueError(f"Unknown optimizer: {optimiser_name}")
