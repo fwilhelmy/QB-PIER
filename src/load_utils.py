@@ -81,13 +81,41 @@ def load_metrics(path: str) -> Dict[Any, MetricsContainer]:
     return metrics
 
 def load_experiment(path: str, best: bool = True) -> Dict[str, Dict[Any, Any]]:
-    """Load every model in an experiment directory."""
+    """Recursively load every model under ``path`` that contains a ``.model``
+    anchor file.
+
+    The returned dictionary is keyed by the relative directory of each model
+    with respect to ``path``.
+    """
     experiment = {}
-    for model_cls in os.listdir(path):
-        cls_dir = os.path.join(path, model_cls)
-        if not os.path.isdir(cls_dir): continue
-        for config in os.listdir(cls_dir):
-            config_dir = os.path.join(cls_dir, config)
-            if not os.path.isdir(config_dir): continue
-            experiment[config] = load_model(config_dir, best=best)
+    for root, _, files in os.walk(path):
+        if ".model" in files:
+            name = os.path.relpath(root, path)
+            experiment[name] = load_model(root, best=best)
     return experiment
+
+
+def load_from_dict(models: Dict[str, str], *, best: bool = True,
+                    map_location: str = "cpu") -> Dict[str, Dict[Any, Any]]:
+    """Load multiple models from a mapping of names to paths.
+
+    Parameters
+    ----------
+    models:
+        Mapping of the desired name to the directory containing the model.
+    best:
+        When ``True`` the best checkpoint for each model is loaded, otherwise
+        ``final.ckpt`` is used.
+    map_location:
+        Device mapping for ``Lightning`` when loading the checkpoints.
+
+    Returns
+    -------
+    Dict[str, Dict[Any, LightningModule]]
+        Dictionary keyed by the provided names with the loaded models per seed
+        as values.
+    """
+    loaded = {}
+    for name, path in models.items():
+        loaded[name] = load_model(path, best=best, map_location=map_location)
+    return loaded

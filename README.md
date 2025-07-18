@@ -108,6 +108,11 @@ experiment_dir/
          └─ final.ckpt
 ```
 
+An empty `.model` file is created inside each configuration directory to mark it
+as a loadable model. Utilities can scan the project and load any directory
+containing this anchor file. In particular `load_utils.load_experiment()` now
+recursively searches a folder for these anchors and loads every matching model.
+
 The experiment root contains an `experiment_info.json` similar to:
 
 ```json
@@ -124,6 +129,9 @@ Metrics can be accessed via `model.metrics`, loaded with
 `tensorboard --logdir logs`.
 Model checkpoints can be reloaded with `load_utils.load_model(path, best=True)`
 where the `best` flag selects the best checkpoint or the final one.
+Multiple directories can be loaded at once with
+`load_utils.load_from_dict({"name": "path/to/model"})` which returns a mapping of
+the provided names to the loaded models.
 
 <a id="tests"></a>
 ## Running Tests

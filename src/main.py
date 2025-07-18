@@ -48,6 +48,9 @@ def train_model(cfg: dict):
         log_dir = os.path.join(log_dir, subdir)
     model_config = cfg["model"]["params"] or {}
 
+    # Create an anchor file for later discovery
+    LoggingService().save_file("", ".model", path=log_dir)
+
     num_threads = cfg["device"].get("num_threads")
     if num_threads is not None:
         torch.set_num_threads(num_threads)
