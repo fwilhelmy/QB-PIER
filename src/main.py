@@ -46,7 +46,10 @@ def train_model(cfg: dict):
         #     subdir = subdir.split(".")[-1].split("/")[-1]
         model_name += f" ({subdir})"
         log_dir = os.path.join(log_dir, subdir)
-    model_config = cfg["model"]["params"] or {}
+    model_config = {
+        k: v for k, v in cfg["model"].items()
+        if k not in {"model_class", "model_type"}
+    }
 
     num_threads = cfg["device"].get("num_threads")
     if num_threads is not None:

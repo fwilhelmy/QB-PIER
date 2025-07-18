@@ -1,7 +1,6 @@
 defaults:
-  - params.ansatz: basic
+  - ansatz: basic
 model_class: ${hydra.job.override_dirname}
 model_type: hybrid
-params:
-  qblock_size: 5
-  n_qdepth: 3
+qblock_size: 5
+n_qdepth: 3

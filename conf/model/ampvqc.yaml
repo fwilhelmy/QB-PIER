@@ -1,6 +1,5 @@
 defaults:
-  - params.ansatz: strong
+  - ansatz: strong
 model_class: AmpVQC
 model_type: hybrid
-params:
-  n_qdepth: 4
+n_qdepth: 4

@@ -1,3 +1,2 @@
 model_class: LeNet
 model_type: classical
-params:

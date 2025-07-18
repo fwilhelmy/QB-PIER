@@ -1,7 +1,6 @@
 defaults:
-  - params.ansatz: basic
+  - ansatz: basic
 model_class: HQE
 model_type: hybrid
-params:
-  hidden_sizes: [4096, 2048, 1024]
-  n_qdepth: 2
+hidden_sizes: [4096, 2048, 1024]
+n_qdepth: 2
