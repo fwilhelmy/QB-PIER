@@ -42,6 +42,8 @@ def train_model(cfg: dict):
     model_class = getattr(model_module, model_name)
     if HydraConfig.get().mode  == RunMode.MULTIRUN and HydraConfig.get().job.override_dirname:
         subdir = HydraConfig.get().job.override_dirname
+        # if "." in subdir or "/" in subdir:
+        #     subdir = subdir.split(".")[-1].split("/")[-1]
         model_name += f" ({subdir})"
         log_dir = os.path.join(log_dir, subdir)
     model_config = cfg["model"]["params"] or {}
@@ -159,8 +161,7 @@ def run_attacks(trained_models, cfg: dict):
 @hydra.main(config_path="../conf", config_name="config", version_base=None)
 def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
-    slice = 2 if HydraConfig.get().mode == RunMode.MULTIRUN else 1
-    root_dir = HydraConfig.get().run.dir.rsplit("/",slice)[0]
+    root_dir = HydraConfig.get().run.dir.rsplit("/",1)[0]
     LoggingService(root_dir=root_dir)
     log_dir, trained = train_model(cfg)
     plot_training_curves(cfg["model"]["model_class"], trained, log_dir)
@@ -168,3 +169,4 @@ def main(cfg: DictConfig) -> None:
 
 if __name__ == "__main__":
     main()
+
