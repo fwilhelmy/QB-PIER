@@ -167,7 +167,7 @@ def plot_training_curves(model_name, seed_dict, fig_dir=None):
 
 def plot_gradient_flow(grad_dict, title):
     layers = [k.replace('.weight', '').replace('.bias', '') for k in grad_dict.keys()]
-    num_epochs = len(next(iter(grad_dict.values())))
+    num_ticks = len(next(iter(grad_dict.values())))
     data = np.array([grad_dict[k] for k in grad_dict.keys()])
 
     means = [np.mean(grad_dict[k]) for k in grad_dict.keys()]
@@ -176,8 +176,7 @@ def plot_gradient_flow(grad_dict, title):
     fig, axes = plt.subplots(1, 2, figsize=(16, len(layers) * 0.4 + 3), gridspec_kw={'width_ratios': [70, 30]})
 
     ax0 = axes[0]
-    sns.heatmap(data, ax=ax0, xticklabels=range(1, num_epochs + 1), yticklabels=layers, cmap='viridis', cbar=False)
-    ax0.set_xlabel('Epoch')
+    sns.heatmap(data, ax=ax0, xticklabels=range(1, num_ticks + 1), yticklabels=layers, cmap='viridis', cbar=False)
     ax0.set_title('Gradient Flow Heatmap')
     ax0.yaxis.tick_left()
     ax0.yaxis.set_label_position("left")
@@ -200,18 +199,21 @@ def plot_gradient_flow(grad_dict, title):
 
 @rank_zero_only
 def generate_gradient_flow_plots(model, fig_dir=None):
+    if not hasattr(model.metrics._raw, 'grad_l2'):
+        print(f"No gradient data found in model metrics. Skipping gradient flow plots.")
+        return
     grad_norms = model.metrics._raw['grad_l2']
 
     weight_grads = {k: v for k, v in grad_norms.items() if 'weight' in k and 'bias' not in k and 'bn' not in k and 'norm' not in k}
-    if weight_grads == {}: raise ValueError(f"No weight gradients found in {model.model_name}.")
+    if weight_grads == {}: raise ValueError(f"No weight gradients found.")
     weight_title = f"Gradient Flow of Weights"
     weight_fig, weight_axes = plot_gradient_flow(weight_grads, weight_title)
     LoggingService().save_figure(weight_fig, "gradient_flow_weight.png", fig_dir)
 
     bias_grads = {k: v for k, v in grad_norms.items() if 'bias' in k and 'bn' not in k and 'norm' not in k}
     if bias_grads == {}: 
-        print(f"No bias gradients found in {model.model_name}.") 
+        print(f"No bias gradients found.") 
         return
-    bias_title = f"Gradient Flow of Bias for {model.model_name}"
+    bias_title = f"Gradient Flow of Biases"
     bias_fig, bias_axes = plot_gradient_flow(bias_grads, bias_title)
     LoggingService().save_figure(bias_fig, "gradient_flow_bias", fig_dir)
