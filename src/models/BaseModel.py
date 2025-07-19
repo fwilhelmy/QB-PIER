@@ -8,7 +8,6 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities import rank_zero_only
-from overrides import override
 
 from models.OptimiserFactory import OptimiserFactory
 
@@ -111,11 +110,9 @@ class BaseModel(LightningModule):
             enable_model_summary=False,
         )
 
-    @override
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         checkpoint['log_dir'] = self.log_dir
 
-    @override
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         self.model_path = self.model_path or checkpoint['model_path']
         self.seed = self.hparams["seed"]
@@ -126,7 +123,6 @@ class BaseModel(LightningModule):
         self.configure_training(checkpoint['hyper_parameters'])
         self.metrics.load_metrics(checkpoint['log_dir'])
     
-    @override
     def configure_optimizers(self) -> Any:
         return OptimiserFactory(
             self.hparams["optimizer"],
@@ -135,11 +131,9 @@ class BaseModel(LightningModule):
             **self.hparams.get("optimiser_config", {}),
         )
 
-    @override
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError # must be implemented by each subclass
 
-    @override
     def training_step(self, batch: Any, batch_idx: int):
         x, y = batch
         y_hat = self(x)
@@ -151,7 +145,6 @@ class BaseModel(LightningModule):
 
         return {"loss": loss, "acc": acc, "weights_l2": weights_l2}
 
-    @override
     def on_train_epoch_end(self):
         self.metrics.log_epoch(self.global_step)
 
@@ -159,7 +152,6 @@ class BaseModel(LightningModule):
         self.metrics.log_dict("grad_l2", {name: param.grad.data.norm(2).item()
             for name, param in self.named_parameters() if param.grad is not None})
 
-    @override
     def validation_step(self, batch: Any, batch_idx: int):
         x, y = batch
         y_hat = self(x)
@@ -168,7 +160,6 @@ class BaseModel(LightningModule):
 
         return {"loss": loss, "acc": acc}
 
-    @override
     def test_step(self, batch: Any, batch_idx: int):
         x, y = batch
         y_hat = self(x)
