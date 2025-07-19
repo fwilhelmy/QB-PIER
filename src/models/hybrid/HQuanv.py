@@ -1,6 +1,6 @@
 """Hybrid CNN model using a quanvolution layer."""
 
-from typing import Optional, Type
+from typing import Optional
 
 import torch
 from torch import flatten, float32
@@ -9,8 +9,6 @@ from metrics import LoggingService
 
 from models.BaseModel import BaseModel
 from models.quantum.Quanv2d import Quanv2d
-from models.quantum.ansatz.BaseAnsatz import BaseAnsatz
-from models.quantum.ansatz.RandomStructureAnsatz import RandomStructureAnsatz
 
 class HQuanv(BaseModel):
     """Hybrid Quanvolutional Neural Network."""
@@ -84,9 +82,8 @@ class HQuanv(BaseModel):
     
     def on_fit_end(self) -> None:
         circuit_fig = self.quanv.vqc.ansatz.visualize(True)
-        path = f"{self.__class__.__name__}/{self.model_name}"
         LoggingService().save_figure(
             circuit_fig,
             "circuit_diagram",
-            path,
+            self.log_dir,
         )

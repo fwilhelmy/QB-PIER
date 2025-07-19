@@ -109,9 +109,8 @@ class HQNN(BaseModel):
     
     def on_fit_end(self) -> None:
         circuit_fig = self.qlayer1.blocks[0].ansatz.visualize(True)
-        path = f"{self.__class__.__name__}/{self.model_name}"
         LoggingService().save_figure(
             circuit_fig,
             "circuit_diagram",
-            path,
+            self.log_dir,
         )

@@ -33,9 +33,8 @@ class AmpVQC(BaseModel):
     
     def on_fit_end(self) -> None:
         circuit_fig = self.vqc.ansatz.visualize(True)
-        path = f"{self.__class__.__name__}/{self.model_name}"
         LoggingService().save_figure(
             circuit_fig,
             "circuit_diagram",
-            path,
+            self.log_dir,
         )
