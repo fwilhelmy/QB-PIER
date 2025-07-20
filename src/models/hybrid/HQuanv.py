@@ -85,5 +85,5 @@ class HQuanv(BaseModel):
         LoggingService().save_figure(
             circuit_fig,
             "circuit_diagram",
-            self.log_dir,
+            self.model_path,
         )
