@@ -17,5 +17,17 @@ nohup python QMLBenchmark/src/main.py > funsies.out 2> oopsies.err < /dev/null &
 == Start tailing the output of my job ==
 tail -f funsies.out
 
-== Watch Training ==
-%tensorboard --logdir=logs/test_models/2025-06-27@19-37-02/AmpVQC/AmpVQC_1
+== Local Watch Training ==
+tensorboard --logdir=.
+
+== Remote Watch Training ==
+On the remote server, start TensorBoard bound to localhost and port 6006:
+    tensorboard --logdir=. --port=6006
+
+On your local machine, open a second terminal and establish an SSH tunnel that forwards 
+a local port (say 6006) to the remote’s TensorBoard port:
+    ssh -L 6006:localhost:6006 AP09650@replica.logti.etsmtl.ca
+
+Then open your web browser and go to:
+    http://localhost:6006
+
