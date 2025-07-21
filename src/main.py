@@ -20,7 +20,7 @@ from attacks import FGSMAttack
 from visualisation.training import plot_training_curves, generate_gradient_flow_plots
 
 
-def train_model(cfg: dict):
+def train_model(cfg: DictConfig, log_dir: str):
     """
     Runs a full training pipeline once per seed and returns all trained models.
     
@@ -38,14 +38,8 @@ def train_model(cfg: dict):
     
     module_dir = f"models.{cfg['model']['model_type']}"
     model_module = importlib.import_module(module_dir)
-    model_name = log_dir = cfg["model"]["model_class"]
-    model_class = getattr(model_module, model_name)
-    if HydraConfig.get().mode  == RunMode.MULTIRUN and HydraConfig.get().job.override_dirname:
-        subdir = HydraConfig.get().job.override_dirname
-        # if "." in subdir or "/" in subdir:
-        #     subdir = subdir.split(".")[-1].split("/")[-1]
-        model_name += f" ({subdir})"
-        log_dir = os.path.join(log_dir, subdir)
+    model_class = getattr(model_module, cfg["model"]["model_class"])
+
     model_config = {
         k: v for k, v in cfg["model"].items()
         if k not in {"model_class", "model_type"}
@@ -58,7 +52,6 @@ def train_model(cfg: dict):
     if num_threads is not None:
         torch.set_num_threads(num_threads)
 
-    print(f">>> Starting experiment '{model_name}' over seeds {seeds}")
     for idx, seed in enumerate(seeds, start=1):
         print(f"({idx}/{len(seeds)}); Seed = {seed}  ...")
 
@@ -111,9 +104,9 @@ def train_model(cfg: dict):
         title=f"performance.json",
         path=log_dir)
 
-    return log_dir, trained
+    return trained
 
-def run_attacks(trained_models, cfg: dict):
+def run_attacks(trained_models, cfg: DictConfig):
     """Run pairwise transfer attacks among the trained models."""
     records = []
 
@@ -169,7 +162,15 @@ def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
     root_dir = HydraConfig.get().run.dir.rsplit("/",1)[0]
     LoggingService(root_dir=root_dir)
-    log_dir, trained = train_model(cfg)
+
+    model_name = log_dir = cfg["model"]["model_class"]
+    subdir = HydraConfig.get().job.override_dirname
+    if HydraConfig.get().mode  == RunMode.MULTIRUN and subdir:
+        model_name += f" ({subdir})"
+        log_dir = os.path.join(log_dir, subdir)
+    print(f">>> Starting experiment '{model_name}'")
+
+    trained = train_model(cfg, log_dir)
     plot_training_curves(cfg["model"]["model_class"], trained, log_dir)
     generate_gradient_flow_plots(list(trained.values())[0], log_dir)
 
