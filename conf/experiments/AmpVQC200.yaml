@@ -1,0 +1,14 @@
+# Exemple pre-configuration file for Hydra
+
+defaults:
+  - override hydra/sweeper: basic
+  - model: ampvqc
+  - override hydra/launcher: basic    # optional launcher choice
+
+# Each element is a comma-separated set of overrides
+hydra:
+  sweep:
+    params:
+      - model.params.n_qdepth=2
+      - model.params.n_qdepth=4
+      - model.params.n_qdepth=6
