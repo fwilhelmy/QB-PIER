@@ -134,8 +134,12 @@ def load_from_dict(models: Dict[str, str], *, load: str = "final",
 from main import run_attacks
 from visualisation.training import plot_training_curves, plot_models_together
 from visualisation.attacks import plot_transfer_attack_effects
+import sys
 if __name__ == "__main__":
-    root_dir = "logs\\classical\\classical_2500\\2025-07-25@15-52-21"
+    if len(sys.argv) != 2:
+        print("Usage: python loading.py <root_dir>")
+        sys.exit(1)
+    root_dir = sys.argv[1]
     ls = LoggingService(root_dir)
     models = load_experiment(root_dir, load="final", map_location="cpu")
     # for path, seeds in models.items():
