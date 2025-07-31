@@ -1,6 +1,5 @@
 import os
 import json
-import atexit
 from datetime import datetime
 
 
@@ -20,16 +19,13 @@ class LoggingService:
     def __init__(self, root_dir: str = "logs", *args, **kwargs):
         if not hasattr(self, 'initialized'):
             self.initialized = True
-
             self.root_dir = root_dir
-            
             self._start_time = datetime.now()
             self._info = {
                 "pipeline_version": __version__,
                 "start_time": self._start_time.isoformat(),
                 "cuda_available": torch.cuda.is_available(),
             }
-            atexit.register(self.finalize)
 
     @property
     def root_dir(self) -> str:
@@ -58,7 +54,8 @@ class LoggingService:
         with open(os.path.join(file_dir, title), "w") as file:
             file.write(content)
 
-    def finalize(self):
+    @rank_zero_only
+    def save_experiment(self):
         if getattr(self, "_finalized", False):
             return
         self._finalized = True
