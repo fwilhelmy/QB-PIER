@@ -39,14 +39,15 @@ def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix="transfer"):
             )
             line_with_std(plt.gca(), epsilons, stats["mean"], stats["std"], label=victim)
 
-        plt.title(f"{title_prefix.capitalize()} attack by {attacker}")
+        attacker = attacker.split('/')[0]
+        plt.title(f"Attack by {attacker}")
         plt.xlabel("ε (attack strength)")
         plt.ylabel("Accuracy on adversarial examples")
         plt.ylim(0, 1.0)
         plt.grid(True, linestyle="--", linewidth=0.5)
         plt.legend(title="Victim model", loc="best")
 
-        LoggingService().save_figure(plt.gcf(), f"{title_prefix}_{attacker}")
+        LoggingService().save_figure(plt.gcf(), f"{title_prefix}{attacker}")
 
 @rank_zero_only
 def plot_attack_effect_on_accuracy(figstr, models, epsilons, accuracies):
