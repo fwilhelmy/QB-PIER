@@ -79,11 +79,3 @@ class HQuanv(BaseModel):
         output = self.logSoftmax(x)
 
         return output
-    
-    def on_fit_end(self) -> None:
-        circuit_fig = self.quanv.vqc.ansatz.visualize(True)
-        LoggingService().save_figure(
-            circuit_fig,
-            "circuit_diagram",
-            self.model_path,
-        )

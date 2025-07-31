@@ -30,11 +30,3 @@ class AmpVQC(BaseModel):
         x = inputs.view(inputs.size(0), -1)
         x = self.vqc(x)
         return self.logSoftmax(x)
-    
-    def on_fit_end(self) -> None:
-        circuit_fig = self.vqc.ansatz.visualize(True)
-        LoggingService().save_figure(
-            circuit_fig,
-            "circuit_diagram",
-            self.model_path,
-        )
