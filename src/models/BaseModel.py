@@ -1,6 +1,7 @@
 from typing import Any, Dict, Tuple, Union
 import os
 
+from sklearn.linear_model import Log
 import torch
 from torch.nn import CrossEntropyLoss, MSELoss
 
@@ -29,6 +30,7 @@ class BaseModel(LightningModule):
         model_path: str,
         input_size: Tuple[int, int, int],
         output_size: int,
+        **kwargs
     ):
         """Initialize the base model.
 
@@ -76,11 +78,8 @@ class BaseModel(LightningModule):
 
     def _init_training(self) -> None:
         " Initializes the PyTorch Lightning Trainer with the specified hyperparameters, loggers and callbacks."
-        # Loss function
-        loss_fn = self.hparams["loss_fn"]
-        if loss_fn not in SUPPORTED_LOSS_FUNCTIONS:
-            raise ValueError(f"Unsupported loss_fn: {loss_fn}")
-        self.loss_fn = SUPPORTED_LOSS_FUNCTIONS[loss_fn]()
+        # Configure loss function
+        self.configure_loss_fn()
 
         # Create loggers
         tb_logger = TensorBoardLogger(save_dir=self.log_dir, name=None, version="tensorboard")
@@ -114,15 +113,22 @@ class BaseModel(LightningModule):
         checkpoint['log_dir'] = self.log_dir
 
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        self.model_path = self.model_path or checkpoint['model_path']
-        self.seed = self.hparams["seed"]
-        self.input_size = self.hparams["input_size"]
-        self.output_size = self.hparams["output_size"]
+        self.hparams.update(checkpoint['hyper_parameters'])
+        self.configure_loss_fn()
+        try:
+            if 'log_dir' not in checkpoint['hyper_parameters']:
+                raise ValueError("No log_dir provided in checkpoint.")
+            self.metrics.load_metrics(checkpoint['hyper_parameters']['log_dir'])
+        except Exception as e:
+            print(f"\nError loading checkpoint: {e}")
 
-        self.configure_directories()
-        self.configure_training(checkpoint['hyper_parameters'])
-        self.metrics.load_metrics(checkpoint['log_dir'])
-    
+    def configure_loss_fn(self) -> None:
+        # Loss function
+        loss_fn = self.hparams["loss_fn"]
+        if loss_fn not in SUPPORTED_LOSS_FUNCTIONS:
+            raise ValueError(f"Unsupported loss_fn: {loss_fn}")
+        self.loss_fn = SUPPORTED_LOSS_FUNCTIONS[loss_fn]()
+
     def configure_optimizers(self) -> Any:
         return OptimiserFactory(
             self.hparams["optimizer"],
@@ -177,7 +183,17 @@ class BaseModel(LightningModule):
         Thin wrapper that calls Lightning’s Trainer.fit(), then saves a final checkpoint and metrics.
         """
         with self.metrics.timeit("training_time", step=self.global_step):
-            assert hasattr(self, "trainer"), "Trainer not configured. Call configure_training() first."
-            self.trainer.fit(self, train_dataloaders, val_dataloaders)
-            self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")
-            self.metrics.save_metrics()
+            if not hasattr(self, "trainer"):
+                raise ValueError("Trainer not configured. Call configure_training() first.")
+            try:
+                self.trainer.fit(self, train_dataloaders, val_dataloaders)
+            except Exception as e:
+                print(f"Error during training: {e}")
+                LoggingService().save_file(
+                    str(e),
+                    "error_log.txt",
+                    self.log_dir,
+                )
+            finally:
+                self.metrics.save_metrics()
+                self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")
