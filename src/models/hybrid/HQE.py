@@ -17,9 +17,10 @@ class HQE(BaseModel):
 
     def __init__(self, hidden_sizes, n_qdepth: int = 1,
                  ansatz: dict | None = None,
+                embedding: str = "amplitude",
                  **kwargs) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters("hidden_sizes", "n_qdepth", "ansatz")
+        self.save_hyperparameters("hidden_sizes", "n_qdepth", "ansatz", "embedding")
         if isinstance(hidden_sizes, int):
             hidden_sizes = [hidden_sizes]
 
@@ -39,6 +40,7 @@ class HQE(BaseModel):
             input_size=self.output_size,
             n_layers=n_qdepth,
             ansatz=ansatz,
+            embedding=embedding,
         )
         self.logSoftmax = LogSoftmax(dim=1)
 
