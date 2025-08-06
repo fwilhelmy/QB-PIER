@@ -20,19 +20,16 @@ from metrics.LoggingService import LoggingService
 from visualisation.attacks import plot_transfer_attack_effects
 
 
-def main(root_dir: str) -> None:
+def main() -> None:
     """Load attack results from ``root_dir`` and regenerate plots."""
+    root_dir = "..\\GINO\\attacks\\seed0"
     ls = LoggingService(root_dir)
-    csv_path = os.path.join(ls.root_dir, "attacks", "results.csv")
+    csv_path = os.path.join(ls.root_dir, "results.csv")
     if not os.path.exists(csv_path):
         raise FileNotFoundError(f"Could not find attack results at '{csv_path}'")
 
     df = pd.read_csv(csv_path)
-    plot_transfer_attack_effects(df, title_prefix="attacks/")
-
+    plot_transfer_attack_effects(df)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python plot_transfer_from_csv.py <root_dir>")
-        sys.exit(1)
-    main(sys.argv[1])
+    main()
