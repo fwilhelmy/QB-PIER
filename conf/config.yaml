@@ -6,7 +6,7 @@ defaults:
   - model: lenet
   - _self_
 
-experiment_name: test_time
+experiment_name: default
 
 DATA_DIR: "./data/processed"
 LOGS_DIR: "./logs"
