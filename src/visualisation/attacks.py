@@ -3,14 +3,13 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import confusion_matrix
 import torch
 from lightning.pytorch.utilities import rank_zero_only
 from metrics.LoggingService import LoggingService
 from visualisation.training import line_with_std
 
 @rank_zero_only
-def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix="transfer"):
+def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix="transfer_"):
     """
     Plot transfer attack accuracy curves from a DataFrame.
 
