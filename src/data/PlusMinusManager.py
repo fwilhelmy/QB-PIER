@@ -1,3 +1,8 @@
+'''
+Dataset Source : https://pennylane.ai/datasets/plus-minus
+Some code inspired from: https://pennylane.ai/qml/demos/tutorial_adversarial_attacks_QML
+'''
+
 from torch.utils.data import TensorDataset
 from data.DatasetManager import DatasetManager
 
