@@ -191,7 +191,7 @@ class BaseModel(LightningModule):
                 LoggingService().save_file(
                     str(e),
                     "error_log.txt",
-                    self.log_dir,
+                    self.model_path,
                 )
             finally:
                 self.metrics.save_metrics()
