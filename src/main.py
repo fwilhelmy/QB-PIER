@@ -9,6 +9,7 @@ import hydra
 from omegaconf import DictConfig
 import pandas as pd
 import torch
+from tqdm import tqdm
 
 from hydra.types import RunMode
 from hydra.core.hydra_config import HydraConfig
@@ -46,7 +47,7 @@ def train_model(cfg: DictConfig, log_dir: str):
     }
 
     # Create an anchor file for later discovery
-    LoggingService().save_file("", ".model", path=log_dir)
+    LoggingService().save_file(f"{model_module}.{model_class}", ".model", path=log_dir)
 
     num_threads = cfg["device"].get("num_threads")
     if num_threads is not None:
@@ -106,7 +107,7 @@ def train_model(cfg: DictConfig, log_dir: str):
 
     return trained
 
-def run_attacks(trained_models, cfg: DictConfig):
+def run_attacks(trained_models, dataset_type: str, device):
     """Run pairwise transfer attacks among the trained models."""
     records = []
 
@@ -120,40 +121,41 @@ def run_attacks(trained_models, cfg: DictConfig):
         seed_experiment(seed)
         
         # Prepare dataset and gradients once for efficiency
-        dm = DatasetManagerFactory(cfg["dataset"]["dataset"], root=cfg["dataset"].get("root"))
+        dm = DatasetManagerFactory(dataset_type)
         dataset = dm.load_dataset(train=False)
         dm.dataset = dataset
         data = dataset.data.unsqueeze(1).to(torch.float)
         targets = dataset.targets
 
         attack = FGSMAttack(dm.dataset)
-        epsilons = [x / 100.0 for x in range(0, 102, 2)]
+        stride = 2
+        epsilons = [x / 100.0 for x in range(0, 100 + stride, stride)]
 
         for attacker_model in models:
+            print(f"Attacking with source model {attacker_model.model_path}")
             attacker_model.eval()
-            for victim_model in models:
+            attack.compute_gradients(attacker_model)
+            pbar = tqdm([(model, epsilon) for model in models for epsilon in epsilons],
+                        desc="Attacking Models")
+            for victim_model, epsilon in pbar:
+                pbar.set_postfix(info=f"victim={victim_model.model_path} epsilon={epsilon}")
                 victim_model.eval()
-                attack_results: List[Dict[str, float]] = []
-                for eps in epsilons:
-                    adv_examples = attack.attack(attacker_model, eps).to(cfg["device"]["device"])
-                    with torch.no_grad():
-                        adv_logits = victim_model(adv_examples)
-                        adv_acc = calculate_accuracy(
-                            adv_logits,
-                            targets[: adv_examples.size(0)],
-                        )
-                    attack_results.append({"epsilon": eps, "accuracy": float(adv_acc)})
-
-                for _, row in pd.DataFrame(attack_results).iterrows():
-                    records.append(
-                        {
-                            "seed": seed,
-                            "source_model": attacker_model.model_name,
-                            "target_model": victim_model.model_name,
-                            "epsilon": row["epsilon"],
-                            "accuracy": row["accuracy"],
-                        }
+                adv_examples = attack.attack(attacker_model, epsilon).to(device)
+                with torch.no_grad():
+                    adv_logits = victim_model(adv_examples)
+                    adv_acc = calculate_accuracy(
+                        adv_logits,
+                        targets[: adv_examples.size(0)],
                     )
+                records.append(
+                    {
+                        "seed": seed,
+                        "source_model": attacker_model.model_path,
+                        "target_model": victim_model.model_path,
+                        "epsilon": epsilon,
+                        "accuracy": float(adv_acc),
+                    }
+                )
 
     return pd.DataFrame(records)
 
@@ -161,7 +163,7 @@ def run_attacks(trained_models, cfg: DictConfig):
 def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
     root_dir = HydraConfig.get().run.dir.rsplit("/",1)[0]
-    LoggingService(root_dir=root_dir)
+    logging_service = LoggingService(root_dir=root_dir)
 
     model_name = log_dir = cfg["model"]["model_class"]
     subdir = HydraConfig.get().job.override_dirname
@@ -173,6 +175,7 @@ def main(cfg: DictConfig) -> None:
     trained = train_model(cfg, log_dir)
     plot_training_curves(cfg["model"]["model_class"], trained, log_dir)
     generate_gradient_flow_plots(list(trained.values())[0], log_dir)
+    logging_service.save_experiment()
 
 if __name__ == "__main__":
     main()

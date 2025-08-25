@@ -3,14 +3,13 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import confusion_matrix
 import torch
 from lightning.pytorch.utilities import rank_zero_only
 from metrics.LoggingService import LoggingService
 from visualisation.training import line_with_std
 
 @rank_zero_only
-def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix="transfer"):
+def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix="transfer_"):
     """
     Plot transfer attack accuracy curves from a DataFrame.
 
@@ -39,14 +38,15 @@ def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix="transfer"):
             )
             line_with_std(plt.gca(), epsilons, stats["mean"], stats["std"], label=victim)
 
-        plt.title(f"{title_prefix.capitalize()} attack by {attacker}")
+        attacker = attacker.split('/')[0]
+        plt.title(f"Attack by {attacker}")
         plt.xlabel("ε (attack strength)")
         plt.ylabel("Accuracy on adversarial examples")
         plt.ylim(0, 1.0)
         plt.grid(True, linestyle="--", linewidth=0.5)
         plt.legend(title="Victim model", loc="best")
 
-        LoggingService().save_figure(plt.gcf(), f"{title_prefix}_{attacker}")
+        LoggingService().save_figure(plt.gcf(), f"{title_prefix}{attacker}")
 
 @rank_zero_only
 def plot_attack_effect_on_accuracy(figstr, models, epsilons, accuracies):

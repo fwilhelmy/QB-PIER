@@ -106,11 +106,3 @@ class HQNN(BaseModel):
         output = self.logSoftmax(x)
 
         return output  # return the output predictions
-    
-    def on_fit_end(self) -> None:
-        circuit_fig = self.qlayer1.blocks[0].ansatz.visualize(True)
-        LoggingService().save_figure(
-            circuit_fig,
-            "circuit_diagram",
-            self.model_path,
-        )

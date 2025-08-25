@@ -71,9 +71,8 @@ class BaseAnsatz(ABC):
         Returns:
             fig: A matplotlib.Figure containing the circuit diagram.
         """
-        assert (
-            self.weight_shapes is not None
-        ), "Weight shapes must be defined before visualization."
+        if self.weight_shapes is None:
+            raise ValueError("Weight shapes must be defined before visualization.")
 
         # Default zero inputs and weights
         default_inputs = np.zeros(self.n_qubits)
