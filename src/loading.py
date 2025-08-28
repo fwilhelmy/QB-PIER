@@ -3,12 +3,33 @@ from __future__ import annotations
 import os
 import re
 from importlib import import_module
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from lightning import LightningModule
 
 from metrics import MetricsContainer, LoggingService
 from tqdm import tqdm
+
+
+def crawl_experiments(path: str) -> List[str]:
+    """Walk ``path`` and return directories containing a ``.model`` file.
+
+    Parameters
+    ----------
+    path:
+        Root directory to search for experiments.
+
+    Returns
+    -------
+    List[str]
+        Sorted list of absolute paths to experiment directories.
+    """
+    experiments: List[str] = []
+    for root, _, files in os.walk(path):
+        if ".model" in files:
+            experiments.append(root)
+    experiments.sort()
+    return experiments
 
 def _resolve_class(meta: str) -> LightningModule:
     """Dynamically import a model class from the package."""
@@ -78,25 +99,23 @@ def load_metrics(path: str) -> Dict[Any, MetricsContainer]:
     return metrics
 
 def load_experiment(path: str, *, load: str = "final", map_location: str = "cpu") -> Dict[str, Dict[Any, Any]]:
-    """Recursively load every model under ``path`` that contains a ``.model``
-    anchor file.
+    """Load every experiment under ``path`` discovered via ``crawl_experiments``.
 
     The returned dictionary is keyed by the relative directory of each model
     with respect to ``path``.
     """
     experiment = {}
-    for root, _, files in tqdm(list(os.walk(path)), desc="Loading experiment"):
-        if ".model" in files:
-            name = os.path.relpath(root, path)
+    for root in tqdm(crawl_experiments(path), desc="Loading experiment"):
+        name = os.path.relpath(root, path)
 
-            if load == "metrics":
-                experiment[name] = load_metrics(root)
-            elif load == "final":
-                experiment[name] = load_model(root, best=False, map_location=map_location)
-            elif load == "best":
-                experiment[name] = load_model(root, best=True, map_location=map_location)
-            else:
-                raise ValueError(f"Unknown load type '{load}'")
+        if load == "metrics":
+            experiment[name] = load_metrics(root)
+        elif load == "final":
+            experiment[name] = load_model(root, best=False, map_location=map_location)
+        elif load == "best":
+            experiment[name] = load_model(root, best=True, map_location=map_location)
+        else:
+            raise ValueError(f"Unknown load type '{load}'")
     return experiment
 
 
