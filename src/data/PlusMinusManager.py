@@ -1,47 +1,35 @@
-'''
-Dataset Source : https://pennylane.ai/datasets/plus-minus
-Some code inspired from: https://pennylane.ai/qml/demos/tutorial_adversarial_attacks_QML
-'''
+# See: PennyLane demo 'Adversarial attacks and robustness for QML'.
+# https://pennylane.ai/qml/demos/tutorial_adversarial_attacks_QML
 
+import pennylane as qml
+import torch
 from torch.utils.data import TensorDataset
-from data.DatasetManager import DatasetManager
+from DatasetManager import DatasetManager
 
 class PlusMinusManager(DatasetManager):
-    """Dataset manager for the PennyLane PlusMinus dataset."""
+    """Dataset manager for the PennyLane PlusMinus dataset.
+
+    Uses the PennyLane Datasets API as in the 'Adversarial attacks and robustness
+    for quantum machine learning' demo.
+
+    Dataset details:
+      - 4 classes: {+, −, ⟂ (right half-plus), ⊣ (left half-plus)}
+      - Images: 16x16 grayscale
+      - Train Size: 1000
+      - Test Size: 200
+    """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def load_dataset(self, train: bool):
-        """Load the PlusMinus dataset.
+        [pm] = qml.data.load("other", name="plus-minus")
 
-        The dataset is provided by PennyLane via ``pennylane.datasets``.
-        Each sample corresponds to a small image labelled as either a
-        ``+`` or ``-`` symbol.
-        """
-        try:
-            from pennylane import datasets
-            try:
-                data = datasets.load_plus_minus()
-            except AttributeError:
-                # Fallback for older PennyLane versions
-                data = datasets.load_plusminus()
-        except Exception as exc:  # pragma: no cover - dependency not installed
-            raise ImportError(
-                "PennyLane and the plus-minus dataset are required to load this dataset"
-            ) from exc
+        x_np = pm.img_train if train else pm.img_test
+        y_np = pm.labels_train if train else pm.labels_test
 
-        images = data["images"] if "images" in data else data["x"]
-        labels = data["labels"] if "labels" in data else data["y"]
-
-        if train and "train" in images:
-            x = images["train"]
-            y = labels["train"]
-        elif not train and "test" in images:
-            x = images["test"]
-            y = labels["test"]
-        else:
-            x = images
-            y = labels
+        # Convert to torch Tensors (match types the demo uses when moving to torch)
+        x = torch.from_numpy(x_np).to(dtype=torch.float32)
+        y = torch.from_numpy(y_np).to(dtype=torch.int64)
 
         return TensorDataset(x, y)
