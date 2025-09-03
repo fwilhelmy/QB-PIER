@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import os
 import re
+from datetime import datetime
 from typing import Dict, Any, List
+
 from metrics import MetricsContainer, LoggingService
 from tqdm import tqdm
 from models.ModelFactory import ModelFactory
@@ -64,7 +66,7 @@ def load_model(path: str, *, best: bool = True, map_location: str = "cpu") -> Di
     models = {}
     for seed in os.listdir(path):
         seed_dir = os.path.join(path, seed)
-        if not os.path.isdir(seed_dir) or os.path.basename(seed_dir) == ".hydra":
+        if not os.path.isdir(seed_dir) or os.path.basename(seed_dir) == ".hydra" or not seed.isdigit():
             continue
         ckpt = os.path.join(seed_dir, "final.ckpt")
         if best:
@@ -81,7 +83,8 @@ def load_metrics(path: str) -> Dict[Any, MetricsContainer]:
     metrics = {}
     for seed in sorted(os.listdir(path)):
         seed_dir = os.path.join(path, seed)
-        if not os.path.isdir(seed_dir): continue
+        if not os.path.isdir(seed_dir) or not seed.isdigit():
+            continue
         container = MetricsContainer(seed_dir)
         container.load_metrics(seed_dir)
         metrics[int(seed)] = container
@@ -91,8 +94,13 @@ def load_experiment(path: str, *, load: str = "final", map_location: str = "cpu"
     """Load every experiment under ``path`` discovered via ``crawl_experiments``.
 
     The returned dictionary is keyed by the relative directory of each model
-    with respect to ``path``.
+    with respect to ``path``. Additionally, this function configures the
+    :class:`~metrics.LoggingService` to store any logs inside a timestamped
+    subdirectory of ``path``.
     """
+    timestamp = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
+    LoggingService(os.path.join(path, timestamp))
+
     experiment = {}
     for root in tqdm(crawl_experiments(path), desc="Loading experiment"):
         name = os.path.relpath(root, path)
@@ -105,5 +113,6 @@ def load_experiment(path: str, *, load: str = "final", map_location: str = "cpu"
             experiment[name] = load_model(root, best=True, map_location=map_location)
         else:
             raise ValueError(f"Unknown load type '{load}'")
+
     return experiment
 
