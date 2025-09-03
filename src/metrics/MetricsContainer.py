@@ -9,6 +9,7 @@ import psutil
 import pandas as pd
 import torch
 from lightning.pytorch.utilities import rank_zero_only
+from .LoggingService import LoggingService
 
 class MetricsContainer():
     def __init__(
@@ -90,12 +91,14 @@ class MetricsContainer():
     @rank_zero_only
     def load_metrics(self, log_dir: str) -> None:
         pkl_path = os.path.join(log_dir, "metrics", "logger.pkl")
-        if not os.path.exists(pkl_path):
-            print(f"Metrics file not found at {pkl_path}. Skipping loading.")
-            return  
-        with open(pkl_path, "rb") as f:
-            data = pickle.load(f)
-        self._raw = data.get("_raw", {})
+        try:
+            if not os.path.exists(pkl_path):
+                raise FileNotFoundError(f"Metrics file not found at {pkl_path}")
+            with open(pkl_path, "rb") as f:
+                data = pickle.load(f)
+            self._raw = data.get("_raw", {})
+        except Exception as e:
+            LoggingService().log_error(f"Error loading metrics: {e}")
         
     @rank_zero_only
     def format_metrics(self) -> pd.DataFrame:
