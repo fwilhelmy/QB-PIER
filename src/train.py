@@ -81,7 +81,6 @@ def train_model(cfg: DictConfig, log_dir: str):
         )
         model.configure_training({
             "optimizer": cfg["training"]["optimiser"]["name"],
-            "loss_fn": cfg["training"]["loss_fn"],
             "learning_rate": cfg["training"]["learning_rate"],
             "max_steps": cfg["training"]["n_steps"],
             "optimiser_config": cfg["training"]["optimiser"].get("optimiser_config", {}),
