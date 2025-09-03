@@ -7,7 +7,7 @@ from typing import Dict, Any, List
 
 from lightning import LightningModule
 
-from metrics import MetricsContainer, LoggingService
+from metrics import MetricsContainer
 from tqdm import tqdm
 
 
@@ -118,55 +118,3 @@ def load_experiment(path: str, *, load: str = "final", map_location: str = "cpu"
             raise ValueError(f"Unknown load type '{load}'")
     return experiment
 
-
-def load_from_dict(models: Dict[str, str], *, load: str = "final",
-                   map_location: str = "cpu") -> Dict[str, Dict[Any, Any]]:
-    """Load multiple models from a mapping of names to paths using different load types.
-
-    Parameters
-    ----------
-    models:
-        Mapping of the desired name to the directory containing the model.
-    load:
-        Load type: "metrics" to load metrics, "final" to load final checkpoints,
-        or "best" to load the best checkpoint.
-    map_location:
-        Device mapping for Lightning when loading the checkpoints.
-
-    Returns
-    -------
-    Dict[str, Dict[Any, LightningModule] or MetricsContainer]
-        Dictionary keyed by the provided names with the loaded models/metrics per seed.
-    """
-    loaded = {}
-    for name, path in tqdm(models.items(), desc="Loading models"):
-        if load == "metrics":
-            loaded[name] = load_metrics(path)
-        elif load == "final":
-            loaded[name] = load_model(path, best=False, map_location=map_location)
-        elif load == "best":
-            loaded[name] = load_model(path, best=True, map_location=map_location)
-        else:
-            raise ValueError(f"Unknown load type '{load}'")
-    return loaded
-
-from main import run_attacks
-from visualisation.training import plot_training_curves, plot_models_together
-from visualisation.attacks import plot_transfer_attack_effects
-import sys
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python loading.py <root_dir>")
-        sys.exit(1)
-    root_dir = sys.argv[1]
-    ls = LoggingService(root_dir)
-    models = load_experiment(root_dir, load="final", map_location="cpu")
-    # for path, seeds in models.items():
-    #     plot_training_curves("Model", seeds, path)
-    # plot_models_together(models)
-    attack_results = run_attacks(models, "mnist", "cpu")
-    os.makedirs(os.path.join(ls.root_dir, "attacks"), exist_ok=True)
-    attack_path = os.path.join(ls.root_dir, "attacks")
-    attack_results.to_csv(os.path.join(attack_path, "results.csv"), index=False)
-    attack_results.to_json(os.path.join(attack_path, "results.json"), index=False)
-    plot_transfer_attack_effects(attack_results, title_prefix="attacks/")

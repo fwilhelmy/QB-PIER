@@ -1,4 +1,3 @@
-from collections import defaultdict
 import importlib
 import os
 import time
@@ -7,17 +6,14 @@ from typing import Dict, List
 
 import hydra
 from omegaconf import DictConfig
-import pandas as pd
 import torch
-from tqdm import tqdm
 
 from hydra.types import RunMode
 from hydra.core.hydra_config import HydraConfig
 
 from metrics import LoggingService
-from utils import calculate_accuracy, seed_experiment
+from utils import seed_experiment
 from data.DatasetManagerFactory import DatasetManagerFactory
-from attacks import FGSMAttack
 from visualisation.training import plot_training_curves, generate_gradient_flow_plots
 
 
@@ -81,7 +77,6 @@ def train_model(cfg: DictConfig, log_dir: str):
         )
         model.configure_training({
             "optimizer": cfg["training"]["optimiser"]["name"],
-            "loss_fn": cfg["training"]["loss_fn"],
             "learning_rate": cfg["training"]["learning_rate"],
             "max_steps": cfg["training"]["n_steps"],
             "optimiser_config": cfg["training"]["optimiser"].get("optimiser_config", {}),
@@ -106,58 +101,6 @@ def train_model(cfg: DictConfig, log_dir: str):
         path=log_dir)
 
     return trained
-
-def run_attacks(trained_models, dataset_type: str, device):
-    """Run pairwise transfer attacks among the trained models."""
-    records = []
-
-    models_by_seed = defaultdict(list)
-    for model_seeds in trained_models.values():
-        for seed, model in model_seeds.items():
-            models_by_seed[seed].append(model)
-
-    for seed, models in models_by_seed.items():
-        print(f"\n>>> Running attacks for seed : {seed}")
-        seed_experiment(seed)
-        
-        # Prepare dataset and gradients once for efficiency
-        dm = DatasetManagerFactory(dataset_type)
-        dataset = dm.load_dataset(train=False)
-        dm.dataset = dataset
-        data = dataset.data.unsqueeze(1).to(torch.float)
-        targets = dataset.targets
-
-        attack = FGSMAttack(dm.dataset)
-        stride = 2
-        epsilons = [x / 100.0 for x in range(0, 100 + stride, stride)]
-
-        for attacker_model in models:
-            print(f"Attacking with source model {attacker_model.model_path}")
-            attacker_model.eval()
-            attack.compute_gradients(attacker_model)
-            pbar = tqdm([(model, epsilon) for model in models for epsilon in epsilons],
-                        desc="Attacking Models")
-            for victim_model, epsilon in pbar:
-                pbar.set_postfix(info=f"victim={victim_model.model_path} epsilon={epsilon}")
-                victim_model.eval()
-                adv_examples = attack.attack(attacker_model, epsilon).to(device)
-                with torch.no_grad():
-                    adv_logits = victim_model(adv_examples)
-                    adv_acc = calculate_accuracy(
-                        adv_logits,
-                        targets[: adv_examples.size(0)],
-                    )
-                records.append(
-                    {
-                        "seed": seed,
-                        "source_model": attacker_model.model_path,
-                        "target_model": victim_model.model_path,
-                        "epsilon": epsilon,
-                        "accuracy": float(adv_acc),
-                    }
-                )
-
-    return pd.DataFrame(records)
 
 @hydra.main(config_path="../conf", config_name="config", version_base=None)
 def main(cfg: DictConfig) -> None:

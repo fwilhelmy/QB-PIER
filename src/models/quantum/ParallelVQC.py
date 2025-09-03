@@ -19,7 +19,7 @@ class ParallelVQC(nn.Module):
 
     def __init__(
         self,
-        input_size: Tuple[int, int, int] | int,
+        input_size: int,
         block_size: int,
         n_layers: int,
         embedding: str = "angle",
@@ -27,9 +27,7 @@ class ParallelVQC(nn.Module):
     ) -> None:
         super().__init__()
 
-        # Flatten the input size to a single integer representing the feature
-        # vector that will be split across the quantum blocks.
-        self.input_size = int(np.prod(input_size))
+        self.input_size = input_size
         self.block_size = min(block_size, self.input_size)
         self.n_blocks = int(np.ceil(self.input_size / self.block_size))
         self.n_layers = n_layers
