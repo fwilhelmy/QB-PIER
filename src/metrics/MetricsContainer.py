@@ -91,7 +91,8 @@ class MetricsContainer():
     def load_metrics(self, log_dir: str) -> None:
         pkl_path = os.path.join(log_dir, "metrics", "logger.pkl")
         if not os.path.exists(pkl_path):
-            raise FileNotFoundError(f"Metrics file not found at {pkl_path}")
+            print(f"Metrics file not found at {pkl_path}. Skipping loading.")
+            return  
         with open(pkl_path, "rb") as f:
             data = pickle.load(f)
         self._raw = data.get("_raw", {})
