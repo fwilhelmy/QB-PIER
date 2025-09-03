@@ -6,7 +6,7 @@ import torch
 from tqdm import tqdm
 
 class DatasetManager:
-    def __init__(self, root: str, train: bool = True):
+    def __init__(self, root: str = "./data/processed", train: bool = True):
         self.root = root
         self.dataset = self.load_dataset(train=train)
         

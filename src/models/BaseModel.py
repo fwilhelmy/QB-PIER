@@ -2,22 +2,18 @@ from typing import Any, Dict, Tuple, Union
 import os
 
 import torch
-from torch.nn import CrossEntropyLoss, MSELoss
+from torch.nn import CrossEntropyLoss
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities import rank_zero_only
 
-from models.OptimiserFactory import OptimiserFactory
+import torch.optim as optim
 
 from utils import calculate_accuracy
 from metrics import TrainingLogger, MetricsContainer, LoggingService
 
-SUPPORTED_LOSS_FUNCTIONS = {
-    "cross_entropy": CrossEntropyLoss,  # For classification tasks
-    "mse":           MSELoss             # For regression tasks
-}
 
 class BaseModel(LightningModule):
     """
@@ -63,7 +59,6 @@ class BaseModel(LightningModule):
         config: Dict[str, Any],
     ) -> None:
         self.hparams.update({
-            'loss_fn': config.get("loss_fn", "cross_entropy").lower(),
             'optimizer': config.get("optimizer", "adam").lower(),
             'max_steps': config.get("max_steps", 1000),
             'learning_rate': config.get("learning_rate", 1e-3),
@@ -122,19 +117,17 @@ class BaseModel(LightningModule):
             print(f"\nError loading checkpoint: {e}")
 
     def configure_loss_fn(self) -> None:
-        # Loss function
-        loss_fn = self.hparams["loss_fn"]
-        if loss_fn not in SUPPORTED_LOSS_FUNCTIONS:
-            raise ValueError(f"Unsupported loss_fn: {loss_fn}")
-        self.loss_fn = SUPPORTED_LOSS_FUNCTIONS[loss_fn]()
+        # Always use cross-entropy loss for classification tasks
+        self.loss_fn = CrossEntropyLoss()
 
     def configure_optimizers(self) -> Any:
-        return OptimiserFactory(
-            self.hparams["optimizer"],
-            self.parameters(),
-            self.hparams["learning_rate"],
-            **self.hparams.get("optimiser_config", {}),
-        )
+        name = self.hparams["optimizer"].lower()
+        if name == "adamw":
+            return optim.AdamW(self.parameters(), lr=self.hparams["learning_rate"], **self.hparams.get("optimiser_config", {}))
+        if name == "adam":
+            return optim.Adam(self.parameters(), lr=self.hparams["learning_rate"], **self.hparams.get("optimiser_config", {}))
+        if name == "sgd":
+            return optim.SGD(self.parameters(), lr=self.hparams["learning_rate"], **self.hparams.get("optimiser_config", {}))
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError # must be implemented by each subclass
@@ -187,12 +180,7 @@ class BaseModel(LightningModule):
             try:
                 self.trainer.fit(self, train_dataloaders, val_dataloaders)
             except Exception as e:
-                print(f"Error during training: {e}")
-                LoggingService().save_file(
-                    str(e),
-                    "error_log.txt",
-                    self.log_dir,
-                )
+                LoggingService().log_error(f"Error during training: {e}")
             finally:
                 self.metrics.save_metrics()
                 self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")

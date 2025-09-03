@@ -7,8 +7,7 @@ class MNISTManager(DatasetManager):
         super().__init__(**kwargs)
 
         # Pre-calculated mean and std for the MNIST dataset
-        self.mean = [0.1307]
-        self.std = [0.3081]
+        self.mean, self.std = [0.1307], [0.3081]
 
     def load_dataset(self, train: bool):
         return MNIST(root=self.root, train=train, download=True, transform=ToTensor())

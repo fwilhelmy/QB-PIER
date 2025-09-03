@@ -32,3 +32,8 @@ coverage
 awscli
 flake8
 python-dotenv
+
+# PlusMinus Dataset Dependencies
+aiohttp
+fsspec
+h5py

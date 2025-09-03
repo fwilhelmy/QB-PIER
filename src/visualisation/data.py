@@ -1,7 +1,6 @@
 import torch
 import matplotlib.pyplot as plt
 import random
-from sklearn.manifold import TSNE
 from lightning.pytorch.utilities import rank_zero_only
 from metrics.LoggingService import LoggingService
 

@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import confusion_matrix
 import torch
 from lightning.pytorch.utilities import rank_zero_only
 from metrics.LoggingService import LoggingService
@@ -19,7 +18,7 @@ def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix: str = "transfer
     various ``epsilon`` values that were evaluated.  For backwards
     compatibility, a *long* format with explicit ``epsilon`` and
     ``accuracy`` columns is also accepted.
-
+    
     Parameters
     ----------
     df:

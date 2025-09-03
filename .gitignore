@@ -6,6 +6,7 @@ lightning_logs/
 multirun/
 outputs/
 
+todo.txt
 changelog.txt
 
 # Byte-compiled / optimized / DLL files

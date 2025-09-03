@@ -3,7 +3,9 @@ from torch.nn import (
     Conv2d, Linear, MaxPool2d, ReLU, Sequential
 )
 from models.BaseModel import BaseModel
+from models.ModelFactory import ModelFactory
 
+@ModelFactory.model("convnet")
 class ConvNet(BaseModel):
     """Simple configurable convolutional network."""
     def __init__(self, conv_channels=(32, 64), fc_sizes=(128,), **kwargs):
