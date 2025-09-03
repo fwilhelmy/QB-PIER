@@ -2,6 +2,7 @@ import torch
 from typing import List, Tuple
 from torch import nn
 from models.BaseModel import BaseModel
+from models.ModelFactory import ModelFactory
 
 class Linear(nn.Module):
     r"""Applies a linear transformation to the incoming data: :math:`y = xA^T + b`
@@ -32,6 +33,7 @@ class Linear(nn.Module):
         """
         return input @ self.weight.t() + self.bias
 
+@ModelFactory.model("mlp")
 class MLP(BaseModel):
     SUPPORTED_ACTIVATION_FN = {'relu': torch.relu, 'tanh': torch.tanh, 'sigmoid': torch.sigmoid}
 

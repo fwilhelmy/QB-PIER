@@ -5,7 +5,9 @@ import numpy as np
 from models.quantum.VQC import VQC
 from models.BaseModel import BaseModel
 from metrics import LoggingService
+from models.ModelFactory import ModelFactory
 
+@ModelFactory.model("ampvqc")
 class AmpVQC(BaseModel):
 
     def __init__(

@@ -8,7 +8,9 @@ from torch.nn import ReLU
 from torch.nn import LogSoftmax
 from torch import flatten
 from models.BaseModel import BaseModel
+from models.ModelFactory import ModelFactory
 
+@ModelFactory.model("lenet")
 class LeNet(BaseModel):
 	def __init__(self, **kwargs):
 		# Call the parent constructor

@@ -6,8 +6,10 @@ from torch.nn import BatchNorm2d, Conv2d, Linear, LogSoftmax, MaxPool2d, ReLU
 
 from models.BaseModel import BaseModel
 from models.quantum.ParallelVQC import ParallelVQC
+from models.ModelFactory import ModelFactory
 
 
+@ModelFactory.model("hqnn")
 class HQNN(BaseModel):
     """Hybrid Quantum Neural Network (HQNN).
 

@@ -5,8 +5,10 @@ from torch.nn import LogSoftmax
 from models.quantum.VQC import VQC
 from models.BaseModel import BaseModel
 from metrics import LoggingService
+from models.ModelFactory import ModelFactory
 
 
+@ModelFactory.model("hqe")
 class HQE(BaseModel):
     """Hybrid Quantum Encoder (HQE) model
 

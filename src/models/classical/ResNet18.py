@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 from models.BaseModel import BaseModel
+from models.ModelFactory import ModelFactory
 
 class BasicBlock(nn.Module):
     
@@ -44,6 +45,7 @@ class BasicBlock(nn.Module):
         return output
 
 
+@ModelFactory.model("resnet18")
 class ResNet18(BaseModel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
