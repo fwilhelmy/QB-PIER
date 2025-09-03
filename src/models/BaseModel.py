@@ -14,7 +14,6 @@ import torch.optim as optim
 from utils import calculate_accuracy
 from metrics import TrainingLogger, MetricsContainer, LoggingService
 
-
 class BaseModel(LightningModule):
     """
     Base Model class for PyTorch Lightning models.
@@ -117,7 +116,6 @@ class BaseModel(LightningModule):
             print(f"\nError loading checkpoint: {e}")
 
     def configure_loss_fn(self) -> None:
-        # Always use cross-entropy loss for classification tasks
         self.loss_fn = CrossEntropyLoss()
 
     def configure_optimizers(self) -> Any:
