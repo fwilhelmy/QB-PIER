@@ -187,12 +187,7 @@ class BaseModel(LightningModule):
             try:
                 self.trainer.fit(self, train_dataloaders, val_dataloaders)
             except Exception as e:
-                print(f"Error during training: {e}")
-                LoggingService().save_file(
-                    str(e),
-                    "error_log.txt",
-                    self.model_path,
-                )
+                LoggingService().log_error(f"Error during training: {e}")
             finally:
                 self.metrics.save_metrics()
                 self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")
