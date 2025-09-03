@@ -2,7 +2,7 @@ from typing import Any, Dict, Tuple, Union
 import os
 
 import torch
-from torch.nn import CrossEntropyLoss, MSELoss
+from torch.nn import CrossEntropyLoss
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -14,10 +14,6 @@ from models.OptimiserFactory import OptimiserFactory
 from utils import calculate_accuracy
 from metrics import TrainingLogger, MetricsContainer, LoggingService
 
-SUPPORTED_LOSS_FUNCTIONS = {
-    "cross_entropy": CrossEntropyLoss,  # For classification tasks
-    "mse":           MSELoss             # For regression tasks
-}
 
 class BaseModel(LightningModule):
     """
@@ -63,7 +59,6 @@ class BaseModel(LightningModule):
         config: Dict[str, Any],
     ) -> None:
         self.hparams.update({
-            'loss_fn': config.get("loss_fn", "cross_entropy").lower(),
             'optimizer': config.get("optimizer", "adam").lower(),
             'max_steps': config.get("max_steps", 1000),
             'learning_rate': config.get("learning_rate", 1e-3),
@@ -122,11 +117,8 @@ class BaseModel(LightningModule):
             print(f"\nError loading checkpoint: {e}")
 
     def configure_loss_fn(self) -> None:
-        # Loss function
-        loss_fn = self.hparams["loss_fn"]
-        if loss_fn not in SUPPORTED_LOSS_FUNCTIONS:
-            raise ValueError(f"Unsupported loss_fn: {loss_fn}")
-        self.loss_fn = SUPPORTED_LOSS_FUNCTIONS[loss_fn]()
+        # Always use cross-entropy loss for classification tasks
+        self.loss_fn = CrossEntropyLoss()
 
     def configure_optimizers(self) -> Any:
         return OptimiserFactory(
@@ -187,12 +179,7 @@ class BaseModel(LightningModule):
             try:
                 self.trainer.fit(self, train_dataloaders, val_dataloaders)
             except Exception as e:
-                print(f"Error during training: {e}")
-                LoggingService().save_file(
-                    str(e),
-                    "error_log.txt",
-                    self.model_path,
-                )
+                LoggingService().log_error(f"Error during training: {e}")
             finally:
                 self.metrics.save_metrics()
                 self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")

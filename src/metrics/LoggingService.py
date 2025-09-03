@@ -1,7 +1,7 @@
 import os
 import json
 from datetime import datetime
-
+from typing import Union
 
 import matplotlib.pyplot as plt
 import torch
@@ -26,6 +26,7 @@ class LoggingService:
                 "start_time": self._start_time.isoformat(),
                 "cuda_available": torch.cuda.is_available(),
             }
+            self._errors = []
 
     @property
     def root_dir(self) -> str:
@@ -55,6 +56,12 @@ class LoggingService:
             file.write(content)
 
     @rank_zero_only
+    def log_error(self, error: Union[Exception, str]):
+        message = str(error)
+        self._errors.append(message)
+        print(message)
+
+    @rank_zero_only
     def save_experiment(self):
         if getattr(self, "_finalized", False):
             return
@@ -70,5 +77,8 @@ class LoggingService:
             self._info["git_commit"] = commit
         except Exception:
             pass
+
+        if self._errors:
+            self.save_file("\n".join(self._errors), "errors.log")
 
         self.save_file(json.dumps(self._info, indent=2), "experiment_info.json")
