@@ -4,7 +4,7 @@
 import pennylane as qml
 import torch
 from torch.utils.data import TensorDataset
-from DatasetManager import DatasetManager
+from data.DatasetManager import DatasetManager
 
 class PlusMinusManager(DatasetManager):
     """Dataset manager for the PennyLane PlusMinus dataset.
