@@ -9,7 +9,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.utilities import rank_zero_only
 
-from models.OptimiserFactory import OptimiserFactory
+import torch.optim as optim
 
 from utils import calculate_accuracy
 from metrics import TrainingLogger, MetricsContainer, LoggingService
@@ -121,12 +121,13 @@ class BaseModel(LightningModule):
         self.loss_fn = CrossEntropyLoss()
 
     def configure_optimizers(self) -> Any:
-        return OptimiserFactory(
-            self.hparams["optimizer"],
-            self.parameters(),
-            self.hparams["learning_rate"],
-            **self.hparams.get("optimiser_config", {}),
-        )
+        name = self.hparams["optimizer"].lower()
+        if name == "adamw":
+            return optim.AdamW(self.parameters(), lr=self.hparams["learning_rate"], **self.hparams.get("optimiser_config", {}))
+        if name == "adam":
+            return optim.Adam(self.parameters(), lr=self.hparams["learning_rate"], **self.hparams.get("optimiser_config", {}))
+        if name == "sgd":
+            return optim.SGD(self.parameters(), lr=self.hparams["learning_rate"], **self.hparams.get("optimiser_config", {}))
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError # must be implemented by each subclass
