@@ -7,7 +7,7 @@ from typing import Dict, Any, List
 
 from lightning import LightningModule
 
-from metrics import MetricsContainer, LoggingService
+from metrics import MetricsContainer
 from tqdm import tqdm
 
 
@@ -118,24 +118,3 @@ def load_experiment(path: str, *, load: str = "final", map_location: str = "cpu"
             raise ValueError(f"Unknown load type '{load}'")
     return experiment
 
-from train import run_attacks
-from visualisation.training import plot_training_curves, plot_models_together
-from visualisation.attacks import plot_transfer_attack_effects
-import sys
-if __name__ == "__main__":
-    # if len(sys.argv) != 2:
-    #     print("Usage: python loading.py <root_dir>")
-    #     sys.exit(1)
-    # root_dir = sys.argv[1]
-    root_dir = "C:\\Users\\fwilh\\Desktop\\Experiments\\MODELS"
-    ls = LoggingService("logs")
-    models = load_experiment(root_dir, load="final", map_location="cpu")
-    # for path, seeds in models.items():
-    #     plot_training_curves("Model", seeds, path)
-    # plot_models_together(models)
-    attack_results = run_attacks(models, "mnist", "cpu")
-    os.makedirs(os.path.join(ls.root_dir, "attacks"), exist_ok=True)
-    attack_path = os.path.join(ls.root_dir, "attacks")
-    attack_results.to_csv(os.path.join(attack_path, "results.csv"), index=False)
-    attack_results.to_json(os.path.join(attack_path, "results.json"), index=False)
-    plot_transfer_attack_effects(attack_results, title_prefix="attacks/")

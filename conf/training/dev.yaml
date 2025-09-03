@@ -1,7 +1,6 @@
 defaults:
   - optimiser: adamw
 
-loss_fn: cross_entropy
 learning_rate: 0.001
 seeds: [0]
 n_steps: 142
