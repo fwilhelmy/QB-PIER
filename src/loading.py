@@ -1,14 +1,13 @@
 from __future__ import annotations
 
+"""Utility helpers for loading models and experiment data."""
+
 import os
 import re
-from importlib import import_module
 from typing import Dict, Any, List
-
-from lightning import LightningModule
-
-from metrics import MetricsContainer
+from metrics import MetricsContainer, LoggingService
 from tqdm import tqdm
+from models.ModelFactory import ModelFactory
 
 
 def crawl_experiments(path: str) -> List[str]:
@@ -30,15 +29,6 @@ def crawl_experiments(path: str) -> List[str]:
             experiments.append(root)
     experiments.sort()
     return experiments
-
-def _resolve_class(meta: str) -> LightningModule:
-    """Dynamically import a model class from the package."""
-    model_mod, model_cls = meta.rsplit(".",1)
-    module = import_module(model_mod)
-    if hasattr(module, model_cls):
-        return getattr(module, model_cls)
-    raise ValueError(f"Unknown model class '{meta}'")
-
 
 def _best_checkpoint(ckpt_dir: str) -> str:
     """Return path to the best checkpoint inside ``ckpt_dir``."""
@@ -66,12 +56,11 @@ def load_model(path: str, *, best: bool = True, map_location: str = "cpu") -> Di
 
     Returns
     -------
-    Dict[str, LightningModule]
+    Dict[str, Any]
         Mapping of seed value to the loaded model instance.
     """
     with open(os.path.join(path, ".model"), "r") as f:
-        meta = f.read().strip()
-    model_cls = _resolve_class(meta)
+        model_name = f.read().strip()
     models = {}
     for seed in os.listdir(path):
         seed_dir = os.path.join(path, seed)
@@ -82,7 +71,7 @@ def load_model(path: str, *, best: bool = True, map_location: str = "cpu") -> Di
             candidate = _best_checkpoint(os.path.join(seed_dir, "checkpoints"))
             if candidate is not None:
                 ckpt = candidate
-        model = model_cls.load_from_checkpoint(str(ckpt), map_location, log_dir=seed_dir)
+        model = ModelFactory.load(model_name, checkpoint=str(ckpt), map_location=map_location, log_dir=seed_dir)
         models[int(seed)] = model
     return models
 

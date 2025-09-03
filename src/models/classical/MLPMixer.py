@@ -5,6 +5,7 @@ import math
 import torch
 import matplotlib.pyplot as plt
 from models.BaseModel import BaseModel
+from models.ModelFactory import ModelFactory
 
 class PatchEmbed(nn.Module):
     """ 2D Image to Patch Embedding """
@@ -91,6 +92,7 @@ class MixerBlock(nn.Module):
         return output
     
 
+@ModelFactory.model("mlpmixer")
 class MLPMixer(BaseModel):
     def __init__(self, patch_size, embed_dim, num_blocks,
                  drop_rate=0., activation='gelu', mlp_ratio=(0.5, 4.0), **kwargs):

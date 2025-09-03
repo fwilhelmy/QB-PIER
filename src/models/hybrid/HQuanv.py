@@ -9,7 +9,9 @@ from metrics import LoggingService
 
 from models.BaseModel import BaseModel
 from models.quantum.Quanv2d import Quanv2d
+from models.ModelFactory import ModelFactory
 
+@ModelFactory.model("hquanv")
 class HQuanv(BaseModel):
     """Hybrid Quanvolutional Neural Network."""
 

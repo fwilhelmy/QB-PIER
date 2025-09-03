@@ -1,4 +1,4 @@
-import importlib
+from collections import defaultdict
 import os
 import time
 import json
@@ -15,6 +15,7 @@ from metrics import LoggingService
 from utils import seed_experiment
 from data.DatasetManagerFactory import DatasetManagerFactory
 from visualisation.training import plot_training_curves, generate_gradient_flow_plots
+from models.ModelFactory import ModelFactory
 
 
 def train_model(cfg: DictConfig, log_dir: str):
@@ -33,9 +34,7 @@ def train_model(cfg: DictConfig, log_dir: str):
 
     seeds = cfg["training"].get("seeds", [0, 42])
     
-    module_dir = f"models.{cfg['model']['model_type']}"
-    model_module = importlib.import_module(module_dir)
-    model_class = getattr(model_module, cfg["model"]["model_class"])
+    model_name = cfg["model"]["model_class"].lower()
 
     model_config = {
         k: v for k, v in cfg["model"].items()
@@ -43,7 +42,7 @@ def train_model(cfg: DictConfig, log_dir: str):
     }
 
     # Create an anchor file for later discovery
-    LoggingService().save_file(f"{model_module}.{model_class}", ".model", path=log_dir)
+    LoggingService().save_file(model_name, ".model", path=log_dir)
 
     num_threads = cfg["device"].get("num_threads")
     if num_threads is not None:
@@ -69,21 +68,23 @@ def train_model(cfg: DictConfig, log_dir: str):
         )
 
         # 3) Instantiate & configure the model
-        model = model_class(
+        model = ModelFactory.create(
+            model_name,
             model_path=os.path.join(log_dir, str(seed)),
             input_size=cfg["dataset"]["input_shape"],
             output_size=cfg["dataset"]["classes"],
-            **model_config
+            **model_config,
+            configure={
+                "optimizer": cfg["training"]["optimiser"]["name"],
+                "loss_fn": cfg["training"]["loss_fn"],
+                "learning_rate": cfg["training"]["learning_rate"],
+                "max_steps": cfg["training"]["n_steps"],
+                "optimiser_config": cfg["training"]["optimiser"].get("optimiser_config", {}),
+                "accelerator": cfg["device"]["accelerator"],
+                "devices": cfg["device"]["devices"],
+                "log_interval": cfg["training"]["log_interval"],
+            }
         )
-        model.configure_training({
-            "optimizer": cfg["training"]["optimiser"]["name"],
-            "learning_rate": cfg["training"]["learning_rate"],
-            "max_steps": cfg["training"]["n_steps"],
-            "optimiser_config": cfg["training"]["optimiser"].get("optimiser_config", {}),
-            "accelerator": cfg["device"]["accelerator"],
-            "devices": cfg["device"]["devices"],
-            "log_interval": cfg["training"]["log_interval"],
-        })
         model = model.to(cfg["device"]["device"])
 
         # 5) Training
