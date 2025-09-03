@@ -9,18 +9,37 @@ from metrics.LoggingService import LoggingService
 from visualisation.training import line_with_std
 
 @rank_zero_only
-def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix="transfer_"):
-    """
-    Plot transfer attack accuracy curves from a DataFrame.
+def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix: str = "transfer"):
+    """Plot transfer-attack accuracy curves aggregated across seeds.
 
+    The :func:`~main.run_attacks` helper returns a DataFrame where each
+    row corresponds to a seed, a source model and a target model.  The
+    remaining columns represent the accuracy of the target model for the
+    various ``epsilon`` values that were evaluated.  For backwards
+    compatibility, a *long* format with explicit ``epsilon`` and
+    ``accuracy`` columns is also accepted.
+    
     Parameters
     ----------
-    df : pandas.DataFrame
-        Columns: ``seed``, ``source_model``, ``target_model``, ``epsilon``,
-        ``accuracy``.
-    title_prefix : str, optional
+    df:
+        DataFrame produced by :func:`run_attacks`.
+    title_prefix:
         Prefix for figure titles and filenames.
     """
+
+    # ``run_attacks`` now returns a wide DataFrame (one column per epsilon).
+    # If we already receive a long/tidy DataFrame, skip this step.
+    if "epsilon" not in df.columns:
+        id_cols = ["seed", "source_model", "target_model"]
+        eps_cols = [c for c in df.columns if c not in id_cols]
+        df = df.melt(
+            id_vars=id_cols,
+            value_vars=eps_cols,
+            var_name="epsilon",
+            value_name="accuracy",
+        )
+        df["epsilon"] = df["epsilon"].astype(float)
+
     attacker_names = sorted(df["source_model"].unique())
 
     for attacker in attacker_names:
@@ -32,21 +51,21 @@ def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix="transfer_"):
         for victim in victim_names:
             rec = subset[subset["target_model"] == victim]
             stats = (
-                rec.groupby("epsilon")["accuracy"]
-                .agg(["mean", "std"])
-                .reindex(epsilons)
+                rec.groupby("epsilon")["accuracy"].agg(["mean", "std"]).reindex(epsilons)
             )
-            line_with_std(plt.gca(), epsilons, stats["mean"], stats["std"], label=victim)
+            line_with_std(
+                plt.gca(), epsilons, stats["mean"], stats["std"], label=victim
+            )
 
-        attacker = attacker.split('/')[0]
-        plt.title(f"Attack by {attacker}")
+        attacker_name = attacker.split("/")[0]
+        plt.title(f"Attack by {attacker_name}")
         plt.xlabel("ε (attack strength)")
         plt.ylabel("Accuracy on adversarial examples")
         plt.ylim(0, 1.0)
         plt.grid(True, linestyle="--", linewidth=0.5)
         plt.legend(title="Victim model", loc="best")
 
-        LoggingService().save_figure(plt.gcf(), f"{title_prefix}{attacker}")
+        LoggingService().save_figure(plt.gcf(), f"{title_prefix}{attacker_name}")
 
 @rank_zero_only
 def plot_attack_effect_on_accuracy(figstr, models, epsilons, accuracies):
