@@ -51,18 +51,12 @@ def run_attacks(
         for attacker_model in models:
             print(f"Attacking with source model {attacker_model.model_path}")
             attacker_model.eval()
-            attack.compute_gradients(attacker_model)
             pbar = tqdm([(model, epsilon) for model in models for epsilon in epsilons],
                         desc="Attacking Models")
             for victim_model, epsilon in pbar:
                 pbar.set_postfix(info=victim_model.model_path)
-                victim_model.eval()
-                tgt_name = getattr(
-                    victim_model,
-                    "model_path",
-                    getattr(victim_model, "model_name", "unknown"),
-                )
                 adv_examples = attack.attack(attacker_model, epsilon).to(device)
+                victim_model.eval()
                 with torch.no_grad():
                     adv_logits = victim_model(adv_examples)
                     adv_acc = calculate_accuracy(
