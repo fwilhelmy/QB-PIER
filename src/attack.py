@@ -35,7 +35,6 @@ def run_attacks(
         for seed, model in model_seeds.items():
             models_by_seed[seed].append(model)
 
-    AttackCls = FGSMAttack if attack_name.lower() == "fgsm" else PGDAttack
     attack_args = {k: v for k, v in attack_params.items() if k != "name"}
 
     for seed, models in models_by_seed.items():
@@ -47,18 +46,15 @@ def run_attacks(
         dm.dataset = dataset
         targets = dataset.targets
 
-        attack = AttackCls(dm.dataset, **attack_args)
+        # TODO Make AttackFactory
+        attack = None
 
         for attacker_model in models:
-            src_name = getattr(attacker_model, "model_path", getattr(attacker_model, "model_name", "unknown"))
-            print(f"Attacking with source model {src_name}")
+            print(f"Attacking with source model {attacker_model.model_path}")
             attacker_model.eval()
-            if attack_name.lower() == "fgsm" and hasattr(attack, "compute_gradients"):
-                attack.compute_gradients(attacker_model)
-            pbar = tqdm(
-                [(model, epsilon) for model in models for epsilon in epsilons],
-                desc="Attacking Models",
-            )
+            attack.compute_gradients(attacker_model)
+            pbar = tqdm([(model, epsilon) for model in models for epsilon in epsilons],
+                        desc="Attacking Models")
             for victim_model, epsilon in pbar:
                 pbar.set_postfix(info=victim_model.model_path)
                 victim_model.eval()
@@ -72,15 +68,14 @@ def run_attacks(
                 records.append(
                     {
                         "seed": seed,
-                        "source_model": src_name,
-                        "target_model": tgt_name,
+                        "source_model": attacker_model.model_path,
+                        "target_model": victim_model.model_path,
                         "epsilon": epsilon,
                         "accuracy": float(adv_acc),
                     }
                 )
 
     return pd.DataFrame(records)
-
 
 @hydra.main(config_path="../conf", config_name="attack", version_base=None)
 def main(cfg: DictConfig) -> None:
