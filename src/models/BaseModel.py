@@ -47,7 +47,6 @@ class BaseModel(LightningModule):
     def configure_directories(self) -> None:
         # Build folder paths using class name, model_name, seed
         self.log_dir = os.path.join(LoggingService().root_dir, self.model_path)
-        self._init_directories()
 
     @rank_zero_only
     def _init_directories(self) -> None:
@@ -108,12 +107,10 @@ class BaseModel(LightningModule):
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         self.hparams.update(checkpoint['hyper_parameters'])
         self.configure_loss_fn()
-        try:
-            if 'log_dir' not in checkpoint['hyper_parameters']:
-                raise ValueError("No log_dir provided in checkpoint.")
+        if 'log_dir' in checkpoint['hyper_parameters']:
             self.metrics.load_metrics(checkpoint['hyper_parameters']['log_dir'])
-        except Exception as e:
-            print(f"\nError loading checkpoint: {e}")
+        else:
+            LoggingService().log_error("No log directory provided in checkpoint.")
 
     def configure_loss_fn(self) -> None:
         self.loss_fn = CrossEntropyLoss()
@@ -172,10 +169,13 @@ class BaseModel(LightningModule):
         """
         Thin wrapper that calls Lightning’s Trainer.fit(), then saves a final checkpoint and metrics.
         """
+        self._init_directories()
+        self.metrics._init_directories()
+
         with self.metrics.timeit("training_time", step=self.global_step):
-            if not hasattr(self, "trainer"):
-                raise ValueError("Trainer not configured. Call configure_training() first.")
             try:
+                if not hasattr(self, "trainer"):
+                    raise ValueError("Trainer not configured. Call configure_training() first.")
                 self.trainer.fit(self, train_dataloaders, val_dataloaders)
             except Exception as e:
                 LoggingService().log_error(f"Error during training: {e}")
