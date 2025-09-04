@@ -1,19 +1,22 @@
 defaults:
-  - paths: default
-  - dataset: mnist
   - device: local
+  - qdevice: sim
+  - dataset: mnist
   - attack: fgsm
   - _self_
 
-experiment_dir: ???
+expdir: attacks # Experiment directory
+DATA_DIR: ./data/processed
+LOGS_DIR: ./logs
+
 model_load: final
-stride: 5
+stride: 2 # Stride of the epsilons (0 to 100)
 
 hydra:
   run:
-    dir: ${LOGS_DIR}/attacks/${now:%Y-%m-%d@%H-%M-%S}
+    dir: ${LOGS_DIR}/${expdir}/${now:%Y-%m-%d@%H-%M-%S}
   sweep:
-    dir: ${LOGS_DIR}/attacks/${now:%Y-%m-%d@%H-%M-%S}
+    dir: ${LOGS_DIR}/${expdir}/${now:%Y-%m-%d@%H-%M-%S}
     subdir: ${hydra.job.override_dirname}
   job:
     config:
