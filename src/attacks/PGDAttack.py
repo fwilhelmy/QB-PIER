@@ -8,9 +8,11 @@ import torch
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 
+from attacks.AttackFactory import AttackFactory
 from attacks.BaseAttack import BaseAttack
 
 
+@AttackFactory.attack("pgd")
 class PGDAttack(BaseAttack):
     """Projected Gradient Descent adversarial attack."""
 

@@ -12,7 +12,7 @@ from hydra.core.hydra_config import HydraConfig
 from metrics import LoggingService
 from utils import calculate_accuracy, seed_experiment
 from data.DatasetManagerFactory import DatasetManagerFactory
-from attacks import FGSMAttack, PGDAttack
+from attacks import AttackFactory
 from loading import load_experiment
 from visualisation.attacks import plot_transfer_attack_effects
 
@@ -35,7 +35,6 @@ def run_attacks(
         for seed, model in model_seeds.items():
             models_by_seed[seed].append(model)
 
-    AttackCls = FGSMAttack if attack_name.lower() == "fgsm" else PGDAttack
     attack_args = {k: v for k, v in attack_params.items() if k != "name"}
 
     for seed, models in models_by_seed.items():
@@ -47,7 +46,7 @@ def run_attacks(
         dm.dataset = dataset
         targets = dataset.targets
 
-        attack = AttackCls(dm.dataset, **attack_args)
+        attack = AttackFactory.create(attack_name, dataset=dm.dataset, **attack_args)
 
         for attacker_model in models:
             src_name = getattr(attacker_model, "model_path", getattr(attacker_model, "model_name", "unknown"))
@@ -62,6 +61,11 @@ def run_attacks(
             for victim_model, epsilon in pbar:
                 pbar.set_postfix(info=victim_model.model_path)
                 victim_model.eval()
+                tgt_name = getattr(
+                    victim_model,
+                    "model_path",
+                    getattr(victim_model, "model_name", "unknown"),
+                )
                 adv_examples = attack.attack(attacker_model, epsilon).to(device)
                 with torch.no_grad():
                     adv_logits = victim_model(adv_examples)
