@@ -41,7 +41,7 @@ def run_attacks(
         print(f"\n>>> Running attacks for seed : {seed}")
         seed_experiment(seed)
 
-        dm = DatasetManagerFactory(dataset_type, root=dataset_root)
+        dm = DatasetManagerFactory.create(dataset_type, root=dataset_root)
         dataset = dm.load_dataset(train=False)
         dm.dataset = dataset
         targets = dataset.targets

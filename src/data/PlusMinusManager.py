@@ -5,7 +5,10 @@ import pennylane as qml
 import torch
 from torch.utils.data import TensorDataset
 from data.DatasetManager import DatasetManager
+from data.DatasetManagerFactory import DatasetManagerFactory
 
+
+@DatasetManagerFactory.dataset_manager("plusminus")
 class PlusMinusManager(DatasetManager):
     """Dataset manager for the PennyLane PlusMinus dataset.
 

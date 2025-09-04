@@ -55,7 +55,9 @@ def train_model(cfg: DictConfig, log_dir: str):
         seed_experiment(seed)
 
         # 2) Prepare data
-        dm = DatasetManagerFactory(cfg["dataset"]["dataset"], root=cfg["dataset"].get("root"))
+        dm = DatasetManagerFactory.create(
+            cfg["dataset"]["dataset"], root=cfg["dataset"].get("root")
+        )
         train_split, eval_split = dm.calculate_split_sizes(
             cfg["dataset"]["train_ratio"], cfg["dataset"]["eval_ratio"]
         )

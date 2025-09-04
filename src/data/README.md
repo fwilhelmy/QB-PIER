@@ -6,6 +6,6 @@ The `data` module centralises dataset loading and preprocessing utilities for ex
 - `FMNISTManager.py` – handles the Fashion-MNIST clothing dataset.
 - `PlusMinusManager.py` – generates a simple two-class synthetic dataset.
 - `DatasetManager.py` – base class offering shared functionality like splits and transforms.
-- `DatasetManagerFactory.py` – factory to create dataset managers by name.
+- `DatasetManagerFactory.py` – HydraFactory-based registry to create dataset managers by name.
 
 These managers provide train/validation/test splits and normalisation used across the training and attack pipelines.
