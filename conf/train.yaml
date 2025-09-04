@@ -1,19 +1,20 @@
 defaults:
-  - paths: default
-  - training: dev
   - device: local
   - qdevice: sim
   - dataset: mnist
   - model: lenet
+  - training: dev
   - _self_
 
-experiment_name: default
+expdir: training # Experiment directory
+DATA_DIR: ./data/processed
+LOGS_DIR: ./logs
 
 hydra:
   run:
-    dir: ${LOGS_DIR}/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}/${model.model_class}
+    dir: ${LOGS_DIR}/${expdir}/${now:%Y-%m-%d@%H-%M-%S}/${model.model_class}
   sweep:
-    dir: ${LOGS_DIR}/${experiment_name}/${now:%Y-%m-%d@%H-%M-%S}
+    dir: ${LOGS_DIR}/${expdir}/${now:%Y-%m-%d@%H-%M-%S}
     subdir: ${model.model_class}/${hydra.job.override_dirname}
   job:
     config:
@@ -25,7 +26,7 @@ hydra:
           - device
           - qdevice
           - dataset
-          - experiment_name
+          - expdir
           - DATA_DIR
           - LOGS_DIR
           - training.seeds
