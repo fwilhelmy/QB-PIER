@@ -1,5 +1,6 @@
 from overrides import override
 import torch, pennylane as qml
+from models.quantum.ansatz.AnsatzFactory import AnsatzFactory
 
 
 # TODO layer(template, depth, *args, **kwargs)
@@ -51,3 +52,6 @@ def ResidualAnsatzWrapper(ansatz_cls):
 
     ResidualAnsatz.__name__ = f"Residual{ansatz_cls.__name__}"
     return ResidualAnsatz
+
+
+AnsatzFactory.register("ResidualAnsatzWrapper", ResidualAnsatzWrapper)

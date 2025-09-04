@@ -1,6 +1,8 @@
 import pennylane as qml
 from models.quantum.ansatz.BaseAnsatz import BaseAnsatz
+from models.quantum.ansatz.AnsatzFactory import AnsatzFactory
 
+@AnsatzFactory.ansatz("NoEntanglingAnsatz")
 class NoEntanglingAnsatz(BaseAnsatz):
     def __init__(
         self,
@@ -19,4 +21,3 @@ class NoEntanglingAnsatz(BaseAnsatz):
         for layer in range(self.n_layers):
             for i in range(self.n_qubits):
                 qml.Rot(*weights[layer, i], wires=i)
-                

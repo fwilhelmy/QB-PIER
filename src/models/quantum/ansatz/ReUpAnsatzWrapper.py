@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 from models.quantum.ansatz.BaseAnsatz import BaseAnsatz
+from models.quantum.ansatz.AnsatzFactory import AnsatzFactory
 
+@AnsatzFactory.ansatz("ReUpAnsatzWrapper")
 class ReUpAnsatzWrapper(BaseAnsatz):
     """Wrapper for the ReUp Ansatz to be used in a VQC."""
 
@@ -25,4 +27,3 @@ class ReUpAnsatzWrapper(BaseAnsatz):
         # The actual implementation of the ReUp Ansatz would go here.
         # This is a placeholder for the actual quantum circuit definition.
         pass
-    

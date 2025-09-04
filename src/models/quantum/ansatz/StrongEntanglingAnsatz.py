@@ -1,6 +1,8 @@
 import pennylane as qml
 from models.quantum.ansatz.BaseAnsatz import BaseAnsatz
+from models.quantum.ansatz.AnsatzFactory import AnsatzFactory
 
+@AnsatzFactory.ansatz("StrongEntanglingAnsatz")
 class StrongEntanglingAnsatz(BaseAnsatz):
     def __init__(
         self,
@@ -20,4 +22,3 @@ class StrongEntanglingAnsatz(BaseAnsatz):
 
     def ansatz(self, weights):
         qml.StronglyEntanglingLayers(weights, wires=range(self.n_qubits))
-        
