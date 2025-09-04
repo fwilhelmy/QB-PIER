@@ -1,12 +1,6 @@
-<<<<<<< ours
-from typing import Callable, Dict, Type
-=======
-from typing import Any, Callable, Dict, Optional, Type
->>>>>>> theirs
-
+from typing import Callable, Dict, Type, Optional, Any
 from HydraFactory import HydraFactory
-
-from .BaseModel import BaseModel
+from models import BaseModel
 
 
 class ModelFactory(HydraFactory[BaseModel]):
