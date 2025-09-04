@@ -4,9 +4,7 @@
 import pennylane as qml
 import torch
 from torch.utils.data import TensorDataset
-from src.datasets.BaseDataset import BaseDataset
-from src.datasets.DatasetFactory import DatasetFactory
-
+from datasets import BaseDataset, DatasetFactory
 
 @DatasetFactory.dataset("plusminus")
 class PlusMinus(BaseDataset):

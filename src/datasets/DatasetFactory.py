@@ -3,7 +3,7 @@
 from typing import Callable, Dict, Type
 
 from HydraFactory import HydraFactory
-from .BaseDataset import BaseDataset
+from datasets import BaseDataset
 
 
 class DatasetFactory(HydraFactory[BaseDataset]):

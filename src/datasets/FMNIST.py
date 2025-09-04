@@ -1,7 +1,6 @@
 from torchvision.datasets import FashionMNIST
 from torchvision.transforms import ToTensor
-from src.datasets.BaseDataset import BaseDataset
-from src.datasets.DatasetFactory import DatasetFactory
+from datasets import BaseDataset, DatasetFactory
 
 
 @DatasetFactory.dataset("fmnist")
