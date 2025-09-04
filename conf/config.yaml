@@ -30,3 +30,4 @@ hydra:
           - experiment_name
           - DATA_DIR
           - LOGS_DIR
+          - training.seeds
