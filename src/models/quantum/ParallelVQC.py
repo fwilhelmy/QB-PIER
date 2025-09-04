@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from models.quantum.VQC import VQC
+from models.quantum import VQC
 
 
 class ParallelVQC(nn.Module):

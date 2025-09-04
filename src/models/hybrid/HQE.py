@@ -2,11 +2,8 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn import LogSoftmax
-from models.quantum.VQC import VQC
-from models.BaseModel import BaseModel
-from metrics import LoggingService
-from models.ModelFactory import ModelFactory
-
+from models.quantum import VQC
+from models import BaseModel, ModelFactory
 
 @ModelFactory.model("hqe")
 class HQE(BaseModel):
