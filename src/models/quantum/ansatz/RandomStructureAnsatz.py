@@ -1,6 +1,8 @@
 import pennylane as qml
 from models.quantum.ansatz.BaseAnsatz import BaseAnsatz
+from models.quantum.ansatz.AnsatzFactory import AnsatzFactory
 
+@AnsatzFactory.ansatz("RandomStructureAnsatz")
 class RandomStructureAnsatz(BaseAnsatz):
     def __init__(
         self,
@@ -25,4 +27,3 @@ class RandomStructureAnsatz(BaseAnsatz):
             ratio_imprim=self.ratio_imprim,
             seed=self.seed,
         )
-        

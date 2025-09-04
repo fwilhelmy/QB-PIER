@@ -1,5 +1,7 @@
 from models.quantum.ansatz.BaseAnsatz import BaseAnsatz
+from models.quantum.ansatz.AnsatzFactory import AnsatzFactory
 
+@AnsatzFactory.ansatz("IdentityAnsatz")
 class IdentityAnsatz(BaseAnsatz):
     def __init__(
         self,
@@ -19,4 +21,3 @@ class IdentityAnsatz(BaseAnsatz):
 
     def ansatz(self, weights):
         pass # Intentionally no entangling layers
-    
