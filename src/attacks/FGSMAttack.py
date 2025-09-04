@@ -9,10 +9,13 @@ from tqdm import tqdm
 
 from torch.utils.data import Dataset
 
+from attacks.AttackFactory import AttackFactory
 from attacks.BaseAttack import BaseAttack
 
 # TODO Test model.freeze()
 
+
+@AttackFactory.attack("fgsm")
 class FGSMAttack(BaseAttack):
     """Fast Gradient Sign Method attack."""
 
