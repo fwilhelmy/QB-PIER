@@ -46,7 +46,7 @@ def run_attacks(trained_models, dataset_type: str, device):
             pbar = tqdm([(model, epsilon) for model in models for epsilon in epsilons],
                         desc="Attacking Models")
             for victim_model, epsilon in pbar:
-                pbar.set_postfix(info=f"victim={victim_model.model_path} epsilon={epsilon}")
+                pbar.set_postfix(info=victim_model.model_path)
                 victim_model.eval()
                 adv_examples = attack.attack(attacker_model, epsilon).to(device)
                 with torch.no_grad():
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     #     print("Usage: python loading.py <root_dir>")
     #     sys.exit(1)
     # root_dir = sys.argv[1]
-    root_dir = "C:\\Users\\fwilh\\Desktop\\Experiments\\MODELS"
+    root_dir = "logs/default/2025-09-03@17-16-07"
     ls = LoggingService("logs")
     models = load_experiment(root_dir, load="final", map_location="cpu")
     # for path, seeds in models.items():
