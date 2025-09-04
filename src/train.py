@@ -13,7 +13,7 @@ from hydra.core.hydra_config import HydraConfig
 
 from metrics import LoggingService
 from utils import seed_experiment
-from data.DatasetManagerFactory import DatasetManagerFactory
+from datasets import DatasetFactory
 from visualisation.training import plot_training_curves, generate_gradient_flow_plots
 from models.ModelFactory import ModelFactory
 
@@ -55,7 +55,7 @@ def train_model(cfg: DictConfig, log_dir: str):
         seed_experiment(seed)
 
         # 2) Prepare data
-        dm = DatasetManagerFactory.create(
+        dm = DatasetFactory.create(
             cfg["dataset"]["dataset"], root=cfg["dataset"].get("root")
         )
         train_split, eval_split = dm.calculate_split_sizes(

@@ -11,7 +11,7 @@ from hydra.core.hydra_config import HydraConfig
 
 from metrics import LoggingService
 from utils import calculate_accuracy, seed_experiment
-from data.DatasetManagerFactory import DatasetManagerFactory
+from datasets import DatasetFactory
 from attacks import AttackFactory
 from loading import load_experiment
 from visualisation.attacks import plot_transfer_attack_effects
@@ -41,7 +41,7 @@ def run_attacks(
         print(f"\n>>> Running attacks for seed : {seed}")
         seed_experiment(seed)
 
-        dm = DatasetManagerFactory.create(dataset_type, root=dataset_root)
+        dm = DatasetFactory.create(dataset_type, root=dataset_root)
         dataset = dm.load_dataset(train=False)
         dm.dataset = dataset
         targets = dataset.targets

@@ -1,11 +1,11 @@
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, Normalize, Compose
-from data.DatasetManager import DatasetManager
-from data.DatasetManagerFactory import DatasetManagerFactory
+from src.datasets.BaseDataset import BaseDataset
+from src.datasets.DatasetFactory import DatasetFactory
 
 
-@DatasetManagerFactory.dataset("mnist")
-class MNISTManager(DatasetManager):
+@DatasetFactory.dataset("mnist")
+class MNIST(BaseDataset):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

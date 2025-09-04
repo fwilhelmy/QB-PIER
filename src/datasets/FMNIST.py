@@ -1,11 +1,11 @@
 from torchvision.datasets import FashionMNIST
 from torchvision.transforms import ToTensor
-from data.DatasetManager import DatasetManager
-from data.DatasetManagerFactory import DatasetManagerFactory
+from src.datasets.BaseDataset import BaseDataset
+from src.datasets.DatasetFactory import DatasetFactory
 
 
-@DatasetManagerFactory.dataset("fmnist")
-class FMNISTManager(DatasetManager):
+@DatasetFactory.dataset("fmnist")
+class FMNIST(BaseDataset):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

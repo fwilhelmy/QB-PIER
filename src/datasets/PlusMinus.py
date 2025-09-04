@@ -4,12 +4,12 @@
 import pennylane as qml
 import torch
 from torch.utils.data import TensorDataset
-from data.DatasetManager import DatasetManager
-from data.DatasetManagerFactory import DatasetManagerFactory
+from src.datasets.BaseDataset import BaseDataset
+from src.datasets.DatasetFactory import DatasetFactory
 
 
-@DatasetManagerFactory.dataset("plusminus")
-class PlusMinusManager(DatasetManager):
+@DatasetFactory.dataset("plusminus")
+class PlusMinus(BaseDataset):
     """Dataset manager for the PennyLane PlusMinus dataset.
 
     Uses the PennyLane Datasets API as in the 'Adversarial attacks and robustness
