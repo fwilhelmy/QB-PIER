@@ -2,10 +2,10 @@ import torch
 from torch.nn import LogSoftmax
 
 import numpy as np
-from models.quantum.VQC import VQC
-from models.BaseModel import BaseModel
+from models.quantum import VQC
+from models import BaseModel
 from metrics import LoggingService
-from models.ModelFactory import ModelFactory
+from models import ModelFactory
 
 @ModelFactory.model("ampvqc")
 class AmpVQC(BaseModel):

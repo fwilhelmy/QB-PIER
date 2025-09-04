@@ -4,9 +4,8 @@ import torch
 from torch import flatten
 from torch.nn import BatchNorm2d, Conv2d, Linear, LogSoftmax, MaxPool2d, ReLU
 
-from models.BaseModel import BaseModel
-from models.quantum.ParallelVQC import ParallelVQC
-from models.ModelFactory import ModelFactory
+from models import BaseModel, ModelFactory
+from models.quantum import ParallelVQC
 
 
 @ModelFactory.model("hqnn")

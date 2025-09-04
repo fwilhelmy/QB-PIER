@@ -60,8 +60,7 @@ def run_attacks(
                 desc="Attacking Models",
             )
             for victim_model, epsilon in pbar:
-                tgt_name = getattr(victim_model, "model_path", getattr(victim_model, "model_name", "unknown"))
-                pbar.set_postfix(info=f"victim={tgt_name} epsilon={epsilon}")
+                pbar.set_postfix(info=victim_model.model_path)
                 victim_model.eval()
                 adv_examples = attack.attack(attacker_model, epsilon).to(device)
                 with torch.no_grad():

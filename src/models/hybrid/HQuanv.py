@@ -5,11 +5,10 @@ from typing import Optional
 import torch
 from torch import flatten, float32
 from torch.nn import Linear, LogSoftmax, ReLU
-from metrics import LoggingService
 
-from models.BaseModel import BaseModel
-from models.quantum.Quanv2d import Quanv2d
-from models.ModelFactory import ModelFactory
+from metrics import LoggingService
+from models import BaseModel, ModelFactory
+from models.quantum import Quanv2d
 
 @ModelFactory.model("hquanv")
 class HQuanv(BaseModel):
