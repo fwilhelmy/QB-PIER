@@ -1,22 +1,33 @@
 from collections import defaultdict
 import os
-import sys
 
 import pandas as pd
 import torch
 from tqdm import tqdm
 
+import hydra
+from omegaconf import DictConfig
+from hydra.core.hydra_config import HydraConfig
+
 from metrics import LoggingService
 from utils import calculate_accuracy, seed_experiment
 from data.DatasetManagerFactory import DatasetManagerFactory
-from attacks import FGSMAttack
+from attacks import FGSMAttack, PGDAttack
 from loading import load_experiment
-from visualisation.training import plot_training_curves, plot_models_together
 from visualisation.attacks import plot_transfer_attack_effects
 
 
-def run_attacks(trained_models, dataset_type: str, device):
+def run_attacks(
+    trained_models,
+    dataset_type: str,
+    device,
+    attack_name: str,
+    attack_params: dict,
+    epsilons,
+    dataset_root: str = "./data/processed",
+):
     """Run pairwise transfer attacks among the trained models."""
+
     records = []
 
     models_by_seed = defaultdict(list)
@@ -24,29 +35,33 @@ def run_attacks(trained_models, dataset_type: str, device):
         for seed, model in model_seeds.items():
             models_by_seed[seed].append(model)
 
+    AttackCls = FGSMAttack if attack_name.lower() == "fgsm" else PGDAttack
+    attack_args = {k: v for k, v in attack_params.items() if k != "name"}
+
     for seed, models in models_by_seed.items():
         print(f"\n>>> Running attacks for seed : {seed}")
         seed_experiment(seed)
 
-        # Prepare dataset and gradients once for efficiency
-        dm = DatasetManagerFactory(dataset_type)
+        dm = DatasetManagerFactory(dataset_type, root=dataset_root)
         dataset = dm.load_dataset(train=False)
         dm.dataset = dataset
-        data = dataset.data.unsqueeze(1).to(torch.float)
         targets = dataset.targets
 
-        attack = FGSMAttack(dm.dataset)
-        stride = 2
-        epsilons = [x / 100.0 for x in range(0, 100 + stride, stride)]
+        attack = AttackCls(dm.dataset, **attack_args)
 
         for attacker_model in models:
-            print(f"Attacking with source model {attacker_model.model_path}")
+            src_name = getattr(attacker_model, "model_path", getattr(attacker_model, "model_name", "unknown"))
+            print(f"Attacking with source model {src_name}")
             attacker_model.eval()
-            attack.compute_gradients(attacker_model)
-            pbar = tqdm([(model, epsilon) for model in models for epsilon in epsilons],
-                        desc="Attacking Models")
+            if attack_name.lower() == "fgsm" and hasattr(attack, "compute_gradients"):
+                attack.compute_gradients(attacker_model)
+            pbar = tqdm(
+                [(model, epsilon) for model in models for epsilon in epsilons],
+                desc="Attacking Models",
+            )
             for victim_model, epsilon in pbar:
-                pbar.set_postfix(info=f"victim={victim_model.model_path} epsilon={epsilon}")
+                tgt_name = getattr(victim_model, "model_path", getattr(victim_model, "model_name", "unknown"))
+                pbar.set_postfix(info=f"victim={tgt_name} epsilon={epsilon}")
                 victim_model.eval()
                 adv_examples = attack.attack(attacker_model, epsilon).to(device)
                 with torch.no_grad():
@@ -58,8 +73,8 @@ def run_attacks(trained_models, dataset_type: str, device):
                 records.append(
                     {
                         "seed": seed,
-                        "source_model": attacker_model.model_path,
-                        "target_model": victim_model.model_path,
+                        "source_model": src_name,
+                        "target_model": tgt_name,
                         "epsilon": epsilon,
                         "accuracy": float(adv_acc),
                     }
@@ -68,21 +83,32 @@ def run_attacks(trained_models, dataset_type: str, device):
     return pd.DataFrame(records)
 
 
-if __name__ == "__main__":
-    # if len(sys.argv) != 2:
-    #     print("Usage: python loading.py <root_dir>")
-    #     sys.exit(1)
-    # root_dir = sys.argv[1]
-    root_dir = "C:\\Users\\fwilh\\Desktop\\Experiments\\MODELS"
-    ls = LoggingService("logs")
-    models = load_experiment(root_dir, load="final", map_location="cpu")
-    # for path, seeds in models.items():
-    #     plot_training_curves("Model", seeds, path)
-    # plot_models_together(models)
-    attack_results = run_attacks(models, "mnist", "cpu")
-    os.makedirs(os.path.join(ls.root_dir, "attacks"), exist_ok=True)
+@hydra.main(config_path="../conf", config_name="attack", version_base=None)
+def main(cfg: DictConfig) -> None:
+    """Entry point for running model transfer attacks."""
+    run_dir = HydraConfig.get().run.dir
+    ls = LoggingService(run_dir)
+    models = load_experiment(
+        cfg.experiment_dir, load=cfg.model_load, map_location=cfg.device.device
+    )
+    if 100 % cfg.stride != 0:
+        raise ValueError("stride must divide 100")
+    epsilons = [i / 100 for i in range(0, 101, cfg.stride)]
+    attack_results = run_attacks(
+        models,
+        cfg.dataset.dataset,
+        cfg.device.device,
+        cfg.attack.name,
+        cfg.attack,
+        epsilons,
+        cfg.dataset.root,
+    )
     attack_path = os.path.join(ls.root_dir, "attacks")
+    os.makedirs(attack_path, exist_ok=True)
     attack_results.to_csv(os.path.join(attack_path, "results.csv"), index=False)
     attack_results.to_json(os.path.join(attack_path, "results.json"), index=False)
     plot_transfer_attack_effects(attack_results, title_prefix="attacks/")
 
+
+if __name__ == "__main__":
+    main()

@@ -88,6 +88,15 @@ training loop consistent across the classical, quantum and hybrid models found
 under `src/models/`.
 
 
+## Attack Pipeline
+The script [`attack.py`](src/attack.py) performs pairwise transfer attacks using Hydra.
+Example usage:
+```bash
+python src/attack.py experiment_dir=./logs/my_experiment
+python src/attack.py attack=pgd dataset=fmnist stride=10 experiment_dir=./logs/my_experiment
+```
+Configuration files live under `conf/attack/` and `conf/dataset/` allowing easy overrides of attack type, datasets, and other options.
+
 <a id="metrics-storage"></a>
 ## Metrics & Logging
 Training and validation results are aggregated through

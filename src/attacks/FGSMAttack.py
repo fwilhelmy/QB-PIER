@@ -38,8 +38,9 @@ class FGSMAttack(BaseAttack):
         ``batch_size`` controls how many samples are processed at once.
         """
 
-        if model.model_path in self.gradients:
-            return self.gradients[model.model_path]
+        key = getattr(model, "model_path", getattr(model, "model_name", str(id(model))))
+        if key in self.gradients:
+            return self.gradients[key]
 
         gradients: List[tuple[Tensor, Tensor]] = []
         model.eval()
@@ -50,7 +51,7 @@ class FGSMAttack(BaseAttack):
             self.dataset, batch_size=batch_size, shuffle=False
         )
         processed = 0
-        pbar = tqdm(loader, desc=f"Computing gradients for {model.model_path}")
+        pbar = tqdm(loader, desc=f"Computing gradients for {key}")
         for images, targets in pbar:
             if processed >= max_x:
                 break
@@ -68,7 +69,7 @@ class FGSMAttack(BaseAttack):
                     break
             model.load_state_dict(state)
 
-        self.gradients[model.model_path] = gradients
+        self.gradients[key] = gradients
         return gradients
 
     def attack(self, model, epsilon: float, **kwargs) -> Tensor:

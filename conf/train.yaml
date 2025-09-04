@@ -1,4 +1,5 @@
 defaults:
+  - paths: default
   - training: dev
   - device: local
   - qdevice: sim
@@ -7,9 +8,6 @@ defaults:
   - _self_
 
 experiment_name: default
-
-DATA_DIR: "./data/processed"
-LOGS_DIR: "./logs"
 
 hydra:
   run:
