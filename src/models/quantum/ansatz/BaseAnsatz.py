@@ -17,9 +17,8 @@ class BaseAnsatz(ABC):
         if embedding.lower() == "none":
             self.embedding, self.n_qubits = None, input_size
         else:
-            self.embedding, self.n_qubits = EmbeddingFactory.create(
-                embedding, input_size=input_size
-            )
+            self.embedding = EmbeddingFactory.create(embedding, input_size=input_size)
+            self.n_qubits = self.embedding.n_qubits
 
     @property
     @abstractmethod

@@ -17,18 +17,3 @@ class EmbeddingFactory(HydraFactory[BaseEmbedding]):
     def embedding(cls, name: str) -> Callable[[Type[BaseEmbedding]], Type[BaseEmbedding]]:
         """Decorator to register an embedding under ``name``."""
         return super().item(name)
-
-    @classmethod
-    def create(
-        cls,
-        name: str,
-        *,
-        input_size: int,
-        configure: Optional[Dict[str, Any]] = None,
-        **kwargs: Any,
-    ) -> tuple[BaseEmbedding | None, int]:
-        """Instantiate an embedding and return it with its qubit count."""
-        embedding = super().create(
-            name, configure=configure, input_size=input_size, **kwargs
-        )
-        return embedding, embedding.n_qubits
