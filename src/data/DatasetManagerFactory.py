@@ -1,13 +1,22 @@
-from data.FMNISTManager import FMNISTManager
-from data.MNISTManager import MNISTManager
-from data.PlusMinusManager import PlusMinusManager
+"""Factory for :class:`DatasetManager` classes using :class:`HydraFactory`."""
 
-def DatasetManagerFactory(dataset_name: str, root: str = "./data/processed"):
-    dataset_name = dataset_name.lower()
-    if dataset_name == 'mnist':
-        return MNISTManager(root=root)
-    elif dataset_name == 'fmnist':
-        return FMNISTManager(root=root)
-    elif dataset_name in "plusminus":
-        return PlusMinusManager(root=root)
-    else: raise ValueError(f"Unsupported dataset: {dataset_name}")
+from typing import Callable, Dict, Type
+
+from HydraFactory import HydraFactory
+
+from .DatasetManager import DatasetManager
+
+
+class DatasetManagerFactory(HydraFactory[DatasetManager]):
+    """Registry and entry point for all :class:`DatasetManager` subclasses."""
+
+    _registry: Dict[str, Type[DatasetManager]] = {}
+
+    @classmethod
+    def dataset_manager(
+        cls, name: str
+    ) -> Callable[[Type[DatasetManager]], Type[DatasetManager]]:
+        """Decorator to register a :class:`DatasetManager` subclass under ``name``."""
+
+        return super().item(name)
+
