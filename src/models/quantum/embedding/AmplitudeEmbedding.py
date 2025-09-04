@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-import pennylane as qml
 import math
 
-from models.quantum.embedding import BaseEmbedding
+import pennylane as qml
+
+from models.quantum.embedding import BaseEmbedding, EmbeddingFactory
 
 
+@EmbeddingFactory.embedding("amplitude")
 class AmplitudeEmbedding(BaseEmbedding):
     """Embed inputs into the quantum state amplitudes."""
 

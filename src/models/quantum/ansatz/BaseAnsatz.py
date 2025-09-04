@@ -14,7 +14,12 @@ class BaseAnsatz(ABC):
         embedding: str = "angle",
     ):
         self.n_layers = n_layers
-        self.embedding, self.n_qubits = EmbeddingFactory(embedding, input_size)
+        if embedding.lower() == "none":
+            self.embedding, self.n_qubits = None, input_size
+        else:
+            self.embedding, self.n_qubits = EmbeddingFactory.create(
+                embedding, input_size=input_size
+            )
 
     @property
     @abstractmethod
