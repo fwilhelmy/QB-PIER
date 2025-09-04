@@ -13,7 +13,7 @@ class DatasetManagerFactory(HydraFactory[DatasetManager]):
     _registry: Dict[str, Type[DatasetManager]] = {}
 
     @classmethod
-    def dataset_manager(
+    def dataset(
         cls, name: str
     ) -> Callable[[Type[DatasetManager]], Type[DatasetManager]]:
         """Decorator to register a :class:`DatasetManager` subclass under ``name``."""

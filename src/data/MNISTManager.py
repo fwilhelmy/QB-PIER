@@ -4,7 +4,7 @@ from data.DatasetManager import DatasetManager
 from data.DatasetManagerFactory import DatasetManagerFactory
 
 
-@DatasetManagerFactory.dataset_manager("mnist")
+@DatasetManagerFactory.dataset("mnist")
 class MNISTManager(DatasetManager):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

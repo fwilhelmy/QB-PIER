@@ -8,7 +8,7 @@ from data.DatasetManager import DatasetManager
 from data.DatasetManagerFactory import DatasetManagerFactory
 
 
-@DatasetManagerFactory.dataset_manager("plusminus")
+@DatasetManagerFactory.dataset("plusminus")
 class PlusMinusManager(DatasetManager):
     """Dataset manager for the PennyLane PlusMinus dataset.
 
