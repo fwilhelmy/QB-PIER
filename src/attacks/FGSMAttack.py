@@ -13,6 +13,7 @@ from attacks import AttackFactory, BaseAttack
 
 # TODO Test model.freeze()
 
+
 @AttackFactory.attack("fgsm")
 class FGSMAttack(BaseAttack):
     """Fast Gradient Sign Method attack."""
