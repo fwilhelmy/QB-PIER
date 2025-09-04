@@ -11,8 +11,7 @@ from __future__ import annotations
 from typing import Callable, Dict, Type
 
 from HydraFactory import HydraFactory
-
-from .BaseAnsatz import BaseAnsatz
+from models.quantum.ansatz import BaseAnsatz
 
 
 class AnsatzFactory(HydraFactory[BaseAnsatz]):
