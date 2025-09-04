@@ -102,7 +102,7 @@ def train_model(cfg: DictConfig, log_dir: str):
 
     return trained
 
-@hydra.main(config_path="../conf", config_name="config", version_base=None)
+@hydra.main(config_path="../conf", config_name="train", version_base=None)
 def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
     root_dir = HydraConfig.get().run.dir.rsplit("/",1)[0]
