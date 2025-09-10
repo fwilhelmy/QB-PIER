@@ -1,13 +1,13 @@
 """Hybrid quantum-classical models."""
 
 from .HQNN import HQNN
-from .encoders import (
+from .Encoder import (
     ConvolutionEncoder,
     QuanvolutionEncoder,
     LinearEncoder,
     PCAEncoder,
 )
-from .classifiers import (
+from .Classifier import (
     VQCClassifier,
     ParallelVQCClassifier,
     MLPClassifier,
