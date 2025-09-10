@@ -3,10 +3,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from torch import Tensor
-from torch.nn import Module
+
+from ..HybridLayer import HybridLayer
 
 
-class BaseClassifier(Module, ABC):
+class BaseClassifier(HybridLayer, ABC):
     """Abstract base classifier for hybrid models."""
 
     def __init__(self, in_features: int, output_size: int) -> None:
