@@ -1,0 +1,4 @@
+from pytorch_lightning.utilities.model_summary import ModelSummary in train.py
+
+0	training epochs
+0	average training time
