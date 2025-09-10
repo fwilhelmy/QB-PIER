@@ -42,20 +42,16 @@ class HQNN(BaseModel):
     # ------------------------------------------------------------------
     # Convenience methods to manipulate encoder and classifier
     def freeze_encoder(self) -> None:
-        for p in self.encoder.parameters():
-            p.requires_grad = False
+        self.encoder.freeze()
 
     def freeze_classifier(self) -> None:
-        for p in self.classifier.parameters():
-            p.requires_grad = False
+        self.classifier.freeze()
 
     def unfreeze_encoder(self) -> None:
-        for p in self.encoder.parameters():
-            p.requires_grad = True
+        self.encoder.unfreeze()
 
     def unfreeze_classifier(self) -> None:
-        for p in self.classifier.parameters():
-            p.requires_grad = True
+        self.classifier.unfreeze()
 
     def train_encoder(self) -> None:
         self.unfreeze_encoder()
@@ -72,12 +68,10 @@ class HQNN(BaseModel):
         self.classifier = classifier
 
     def load_encoder(self, path: str) -> None:
-        state = torch.load(path, map_location="cpu")
-        self.encoder.load_state_dict(state)
+        self.encoder.load(path)
 
     def load_classifier(self, path: str) -> None:
-        state = torch.load(path, map_location="cpu")
-        self.classifier.load_state_dict(state)
+        self.classifier.load(path)
 
     # ------------------------------------------------------------------
     def forward(self, inputs: Tensor) -> Tensor:  # noqa: D401

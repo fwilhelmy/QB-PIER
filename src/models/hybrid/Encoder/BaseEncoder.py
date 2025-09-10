@@ -3,10 +3,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from torch import Tensor
-from torch.nn import Module
+
+from ..HybridLayer import HybridLayer
 
 
-class BaseEncoder(Module, ABC):
+class BaseEncoder(HybridLayer, ABC):
     """Abstract base encoder for hybrid models."""
 
     def __init__(self, input_size: tuple[int, int, int]) -> None:
