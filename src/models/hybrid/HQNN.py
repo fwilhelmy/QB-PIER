@@ -6,8 +6,8 @@ import torch
 from torch import Tensor
 
 from models import BaseModel, ModelFactory
-from .encoders import ENCODER_REGISTRY
-from .classifiers import CLASSIFIER_REGISTRY
+from .Encoder import ENCODER_REGISTRY
+from .Classifier import CLASSIFIER_REGISTRY
 
 
 @ModelFactory.model("hqnn")
