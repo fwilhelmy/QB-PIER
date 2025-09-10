@@ -1,12 +1,12 @@
 from collections import defaultdict
 import os
 import time
-import json
 from typing import Dict, List
 
 import hydra
 from omegaconf import DictConfig
 import torch
+from pytorch_lightning.utilities.model_summary import ModelSummary
 
 from hydra.types import RunMode
 from hydra.core.hydra_config import HydraConfig
@@ -96,11 +96,11 @@ def train_model(cfg: DictConfig, log_dir: str):
         trained[seed] = model
 
     avg_time = sum(seed_times.values()) / len(seed_times) if seed_times else 0.0
-    performance = {"seed_times": seed_times, "average": avg_time}
-    LoggingService().save_file(
-        content=json.dumps(performance, indent=2),
-        title=f"performance.json",
-        path=log_dir)
+    epochs = model.trainer.current_epoch if trained else 0
+    summary = str(ModelSummary(model))
+    summary += f"\n{epochs}\ttraining epochs\n"
+    summary += f"{avg_time}\taverage training time\n"
+    LoggingService().save_file(summary, "summary.txt", path=log_dir)
 
     return trained
 

@@ -1,5 +1,6 @@
 """Quantum circuit ansatz definitions."""
 
+from .AnsatzFactory import AnsatzFactory
 from .BaseAnsatz import BaseAnsatz
 from .AnsatzFactory import AnsatzFactory
 
@@ -12,6 +13,7 @@ from .ReUpAnsatzWrapper import ReUpAnsatzWrapper
 from .ResidualAnsatzWrapper import ResidualAnsatzWrapper
 
 __all__ = [
+    "AnsatzFactory",
     "BaseAnsatz",
     "AnsatzFactory",
     "BasicEntanglingAnsatz",
