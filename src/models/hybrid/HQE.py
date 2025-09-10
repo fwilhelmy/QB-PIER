@@ -16,7 +16,7 @@ class HQE(BaseModel):
 
     def __init__(self, hidden_sizes, n_qdepth: int = 1,
                  ansatz: dict | None = None,
-                embedding: str = "amplitude",
+                 embedding: str = "amplitude",
                  **kwargs) -> None:
         super().__init__(**kwargs)
         self.save_hyperparameters("hidden_sizes", "n_qdepth", "ansatz", "embedding")

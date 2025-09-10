@@ -6,7 +6,7 @@ from typing import Optional
 import torch
 from torch import Tensor
 
-from src.datasets.BaseDataset import BaseDataset
+from datasets.BaseDataset import BaseDataset
 
 
 class BaseAttack(ABC):

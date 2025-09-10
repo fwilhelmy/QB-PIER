@@ -13,7 +13,6 @@ from typing import Callable, Dict, Type
 from HydraFactory import HydraFactory
 from models.quantum.ansatz import BaseAnsatz
 
-
 class AnsatzFactory(HydraFactory[BaseAnsatz]):
     """Registry and entry point for all :class:`BaseAnsatz` subclasses."""
 
