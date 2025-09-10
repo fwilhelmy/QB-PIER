@@ -1,5 +1,6 @@
 """Quantum circuit ansatz definitions."""
 
+from .AnsatzFactory import AnsatzFactory
 from .BaseAnsatz import BaseAnsatz
 from .BasicEntanglingAnsatz import BasicEntanglingAnsatz
 from .StrongEntanglingAnsatz import StrongEntanglingAnsatz
@@ -8,9 +9,9 @@ from .IdentityAnsatz import IdentityAnsatz
 from .RandomStructureAnsatz import RandomStructureAnsatz
 from .ReUpAnsatzWrapper import ReUpAnsatzWrapper
 from .ResidualAnsatzWrapper import ResidualAnsatzWrapper
-from .AnsatzFactory import AnsatzFactory
 
 __all__ = [
+    "AnsatzFactory",
     "BaseAnsatz",
     "BasicEntanglingAnsatz",
     "StrongEntanglingAnsatz",
@@ -19,5 +20,4 @@ __all__ = [
     "RandomStructureAnsatz",
     "ReUpAnsatzWrapper",
     "ResidualAnsatzWrapper",
-    "AnsatzFactory",
 ]
