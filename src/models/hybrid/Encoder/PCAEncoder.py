@@ -5,10 +5,10 @@ import torch
 from torch import Tensor
 from sklearn.decomposition import PCA
 
-from .BaseEncoder import BaseEncoder
+from ..HybridLayer import HybridLayer
 
 
-class PCAEncoder(BaseEncoder):
+class PCAEncoder(HybridLayer):
     """Encoder applying Principal Component Analysis."""
 
     def __init__(
@@ -16,15 +16,11 @@ class PCAEncoder(BaseEncoder):
         input_size: tuple[int, int, int],
         n_components: int,
     ) -> None:
-        super().__init__(input_size)
+        super().__init__(input_size=input_size)
         self.input_dim = int(np.prod(input_size))
         self.n_components = n_components
         self.pca = PCA(n_components=n_components)
-        self._out_features = n_components
-
-    @property
-    def output_size(self) -> int:
-        return self._out_features
+        self.output_size = n_components
 
     def fit(self, data: Tensor) -> None:
         flat = data.view(data.size(0), -1).detach().cpu().numpy()

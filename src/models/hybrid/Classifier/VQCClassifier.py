@@ -5,10 +5,10 @@ from torch.nn import Linear, LogSoftmax, ReLU
 
 from models.quantum import VQC
 
-from .BaseClassifier import BaseClassifier
+from ..HybridLayer import HybridLayer
 
 
-class VQCClassifier(BaseClassifier):
+class VQCClassifier(HybridLayer):
     """Classifier using a single variational quantum circuit."""
 
     def __init__(
@@ -20,7 +20,7 @@ class VQCClassifier(BaseClassifier):
         ansatz: dict | None = None,
         embedding: str = "angle",
     ) -> None:
-        super().__init__(in_features, output_size)
+        super().__init__(in_features=in_features, output_size=output_size)
         self.fc1 = Linear(in_features, in_qlayer)
         self.relu = ReLU()
         self.qlayer = VQC(

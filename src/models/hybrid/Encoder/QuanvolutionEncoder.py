@@ -5,10 +5,10 @@ from torch import Tensor, flatten
 
 from models.quantum import Quanv2d
 
-from .BaseEncoder import BaseEncoder
+from ..HybridLayer import HybridLayer
 
 
-class QuanvolutionEncoder(BaseEncoder):
+class QuanvolutionEncoder(HybridLayer):
     """Encoder using a quantum convolution layer."""
 
     def __init__(
@@ -21,8 +21,10 @@ class QuanvolutionEncoder(BaseEncoder):
         embedding: str = "angle",
         rotation: str = "X",
     ) -> None:
-        super().__init__(input_size)
-        channels, height, width = input_size
+        super().__init__(input_size=input_size)
+        if self.input_size is None:
+            raise RuntimeError("Input size must be specified for QuanvolutionEncoder")
+        channels, height, width = self.input_size
         stride = stride or patch_size
         ansatz = ansatz or {}
         self.quanv = Quanv2d(
@@ -37,11 +39,7 @@ class QuanvolutionEncoder(BaseEncoder):
             ansatz=ansatz,
         )
         n_patches = (height - patch_size) // stride + 1
-        self._out_features = self.quanv.out_channels * n_patches * n_patches
-
-    @property
-    def output_size(self) -> int:
-        return self._out_features
+        self.output_size = self.quanv.out_channels * n_patches * n_patches
 
     def forward(self, x: Tensor) -> Tensor:
         x = self.quanv(x)
