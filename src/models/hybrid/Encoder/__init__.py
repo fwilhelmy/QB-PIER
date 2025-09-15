@@ -1,19 +1,19 @@
 from .ConvolutionEncoder import ConvolutionEncoder
 from .QuanvolutionEncoder import QuanvolutionEncoder
-from .LinearEncoder import LinearEncoder
+from .MLPEncoder import MLPEncoder
 from .PCAEncoder import PCAEncoder
 
 ENCODER_REGISTRY = {
     "conv": ConvolutionEncoder,
     "quanv": QuanvolutionEncoder,
-    "linear": LinearEncoder,
+    "linear": MLPEncoder,
     "pca": PCAEncoder,
 }
 
 __all__ = [
     "ConvolutionEncoder",
     "QuanvolutionEncoder",
-    "LinearEncoder",
+    "MLPEncoder",
     "PCAEncoder",
     "ENCODER_REGISTRY",
 ]

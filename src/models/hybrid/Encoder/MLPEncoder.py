@@ -8,7 +8,7 @@ from torch.nn import Linear, Module, ReLU, Sequential
 from ..HybridLayer import HybridLayer
 
 
-class LinearEncoder(HybridLayer):
+class MLPEncoder(HybridLayer):
     """Simple MLP-based encoder operating on flattened inputs."""
 
     def __init__(
