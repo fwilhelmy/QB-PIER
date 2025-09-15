@@ -1,4 +1,3 @@
-from .BaseEncoder import BaseEncoder
 from .ConvolutionEncoder import ConvolutionEncoder
 from .QuanvolutionEncoder import QuanvolutionEncoder
 from .LinearEncoder import LinearEncoder
@@ -12,7 +11,6 @@ ENCODER_REGISTRY = {
 }
 
 __all__ = [
-    "BaseEncoder",
     "ConvolutionEncoder",
     "QuanvolutionEncoder",
     "LinearEncoder",

@@ -5,10 +5,10 @@ import torch
 from torch import Tensor
 from torch.nn import Linear, Module, ReLU, Sequential
 
-from .BaseEncoder import BaseEncoder
+from ..HybridLayer import HybridLayer
 
 
-class LinearEncoder(BaseEncoder):
+class LinearEncoder(HybridLayer):
     """Simple MLP-based encoder operating on flattened inputs."""
 
     def __init__(
@@ -16,7 +16,7 @@ class LinearEncoder(BaseEncoder):
         input_size: tuple[int, int, int],
         hidden_sizes: int | tuple[int, ...] = (128,),
     ) -> None:
-        super().__init__(input_size)
+        super().__init__(input_size=input_size)
         if isinstance(hidden_sizes, int):
             hidden_sizes = (hidden_sizes,)
         layers: list[Module] = []
@@ -26,11 +26,7 @@ class LinearEncoder(BaseEncoder):
             layers.append(ReLU())
             prev = h
         self.net = Sequential(*layers)
-        self._out_features = prev
-
-    @property
-    def output_size(self) -> int:
-        return self._out_features
+        self.output_size = prev
 
     def forward(self, x: Tensor) -> Tensor:
         x = torch.flatten(x, 1)
