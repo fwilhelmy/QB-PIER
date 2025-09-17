@@ -1,18 +1,14 @@
-"""Hybrid CNN model using a quanvolution layer."""
+"""Quanvolutional hybrid model implemented using the HQNN architecture."""
 
 from typing import Optional
 
-import torch
-from torch import flatten, float32
-from torch.nn import Linear, LogSoftmax, ReLU
+from models import ModelFactory
+from .HQNN import HQNN
 
-from metrics import LoggingService
-from models import BaseModel, ModelFactory
-from models.quantum import Quanv2d
 
 @ModelFactory.model("hquanv")
-class HQuanv(BaseModel):
-    """Hybrid Quanvolutional Neural Network."""
+class HQuanv(HQNN):
+    """Hybrid Quanvolutional Neural Network built on :class:`HQNN`."""
 
     def __init__(
         self,
@@ -26,7 +22,26 @@ class HQuanv(BaseModel):
         fc_size: Optional[int] = None,
         **kwargs,
     ) -> None:
-        super().__init__(**kwargs)
+        stride = stride or patch_size
+        encoder_params = {
+            "patch_size": patch_size,
+            "stride": stride,
+            "n_qdepth": n_qdepth,
+            "ansatz": ansatz,
+            "embedding": embedding,
+            "rotation": rotation,
+        }
+        n_patches = (img_size - patch_size) // stride + 1
+        enc_output = (patch_size * patch_size) * n_patches * n_patches
+        fc_hidden = fc_size or enc_output
+        classifier_params = {"hidden_sizes": fc_hidden}
+        super().__init__(
+            encoder="quanv",
+            classifier="mlp",
+            encoder_params=encoder_params,
+            classifier_params=classifier_params,
+            **kwargs,
+        )
         self.save_hyperparameters(
             "img_size",
             "patch_size",
@@ -37,46 +52,3 @@ class HQuanv(BaseModel):
             "rotation",
             "fc_size",
         )
-
-        self.img_size = img_size
-        self.patch_size = patch_size
-        self.stride = stride or patch_size
-
-        # Quantum convolution layer
-        if ansatz is None:
-            ansatz = {}
-        self.quanv = Quanv2d(
-            in_channels=1,
-            out_channels=self.patch_size * self.patch_size,
-            kernel_size=self.patch_size,
-            stride=self.stride,
-            padding=0,
-            dilation=1,
-            n_layers=n_qdepth,
-            embedding=embedding,
-            ansatz=ansatz,
-        )
-
-        n_patches = (self.img_size - self.patch_size) // self.stride + 1
-        self.fc_input_dim = fc_size or self.quanv.out_channels * n_patches * n_patches
-
-        # Classical fully connected layers
-        self.fc1 = Linear(in_features=self.fc_input_dim, out_features=self.fc_input_dim)
-        self.relu3 = ReLU()
-
-        self.fc2 = Linear(in_features=self.fc_input_dim, out_features=self.output_size)
-        self.logSoftmax = LogSoftmax(dim=1)
-
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        # Quantum convolution
-        x = self.quanv(inputs)
-
-        # Flatten and pass through classical layers
-        x = flatten(x.to(float32), 1)
-        x = self.fc1(x)
-        x = self.relu3(x)
-
-        x = self.fc2(x)
-        output = self.logSoftmax(x)
-
-        return output
