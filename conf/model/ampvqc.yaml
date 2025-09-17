@@ -2,4 +2,4 @@ defaults:
   - ansatz: strong
 model_class: AmpVQC
 model_type: quantum
-n_qdepth: 4
+n_qdepth: 50
