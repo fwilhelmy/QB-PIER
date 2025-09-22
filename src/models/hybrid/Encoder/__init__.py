@@ -1,10 +1,11 @@
 from .ConvolutionEncoder import ConvolutionEncoder
 from .QuanvolutionEncoder import QuanvolutionEncoder
-from .LinearEncoder import LinearEncoder
+from .MLPEncoder import MLPEncoder
 from .PCAEncoder import PCAEncoder
+
 __all__ = [
     "ConvolutionEncoder",
     "QuanvolutionEncoder",
-    "LinearEncoder",
+    "MLPEncoder",
     "PCAEncoder",
 ]

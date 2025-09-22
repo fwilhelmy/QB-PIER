@@ -5,7 +5,7 @@ from .HQNN import HQNN
 from .Encoder import (
     ConvolutionEncoder,
     QuanvolutionEncoder,
-    LinearEncoder,
+    MLPEncoder,
     PCAEncoder,
 )
 from .Classifier import (
@@ -20,7 +20,7 @@ __all__ = [
     "HQNN",
     "ConvolutionEncoder",
     "QuanvolutionEncoder",
-    "LinearEncoder",
+    "MLPEncoder",
     "PCAEncoder",
     "VQCClassifier",
     "ParallelVQCClassifier",
