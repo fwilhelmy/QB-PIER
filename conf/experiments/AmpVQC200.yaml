@@ -1,10 +1,10 @@
+# @package _global_
+
 defaults:
-  - override hydra/sweeper: basic
-  - override hydra/launcher: basic
+  - override /model: ampvqc
 
 hydra:
-  sweep:
+  mode: MULTIRUN
+  sweeper:
     params:
-      - model=ampvqc model.params.n_qdepth=2
-      - model=ampvqc model.params.n_qdepth=4
-      - model=ampvqc model.params.n_qdepth=6
+      model.n_qdepth: 2,4,6
