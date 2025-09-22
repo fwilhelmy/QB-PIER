@@ -6,8 +6,10 @@ from torch import Tensor
 from sklearn.decomposition import PCA
 
 from ..HybridLayer import HybridLayer
+from ..HybridLayerFactory import HybridLayerFactory
 
 
+@HybridLayerFactory.encoder("pca")
 class PCAEncoder(HybridLayer):
     """Encoder applying Principal Component Analysis."""
 

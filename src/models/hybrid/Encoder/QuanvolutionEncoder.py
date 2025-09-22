@@ -6,8 +6,10 @@ from torch import Tensor, flatten
 from models.quantum import Quanv2d
 
 from ..HybridLayer import HybridLayer
+from ..HybridLayerFactory import HybridLayerFactory
 
 
+@HybridLayerFactory.encoder("quanv")
 class QuanvolutionEncoder(HybridLayer):
     """Encoder using a quantum convolution layer."""
 

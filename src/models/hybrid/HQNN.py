@@ -6,8 +6,7 @@ import torch
 from torch import Tensor
 
 from models import BaseModel, ModelFactory
-from .Encoder import ENCODER_REGISTRY
-from .Classifier import CLASSIFIER_REGISTRY
+from .HybridLayerFactory import HybridLayerFactory
 
 
 @ModelFactory.model("hqnn")
@@ -29,11 +28,14 @@ class HQNN(BaseModel):
             "encoder", "classifier", "encoder_params", "classifier_params"
         )
 
-        encoder_cls = ENCODER_REGISTRY[encoder]
-        self.encoder = encoder_cls(self.input_size, **encoder_params)
+        self.encoder = HybridLayerFactory.create_encoder(
+            encoder,
+            input_size=self.input_size,
+            **encoder_params,
+        )
 
-        classifier_cls = CLASSIFIER_REGISTRY[classifier]
-        self.classifier = classifier_cls(
+        self.classifier = HybridLayerFactory.create_classifier(
+            classifier,
             in_features=self.encoder.output_size,
             output_size=self.output_size,
             **classifier_params,
