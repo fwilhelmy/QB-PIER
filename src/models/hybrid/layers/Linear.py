@@ -1,34 +1,35 @@
 from __future__ import annotations
 
+import numpy as np
+import torch
 from torch import Tensor
-from torch.nn import Linear, LogSoftmax, Module, ReLU, Sequential
+from torch.nn import Linear as TorchLinear, Module, ReLU, Sequential
 
 from ..HybridLayer import HybridLayer
 from ..HybridLayerFactory import HybridLayerFactory
 
 
-@HybridLayerFactory.classifier("mlp")
-class MLPClassifier(HybridLayer):
-    """Purely classical multilayer perceptron classifier."""
+@HybridLayerFactory.encoder("linear")
+class Linear(HybridLayer):
+    """Simple MLP-based hybrid layer operating on flattened inputs."""
 
     def __init__(
         self,
-        in_features: int,
-        output_size: int,
+        input_size: tuple[int, int, int],
         hidden_sizes: int | tuple[int, ...] = (128,),
     ) -> None:
-        super().__init__(in_features=in_features, output_size=output_size)
+        super().__init__(input_size=input_size)
         if isinstance(hidden_sizes, int):
             hidden_sizes = (hidden_sizes,)
         layers: list[Module] = []
-        prev = in_features
+        prev = int(np.prod(input_size))
         for h in hidden_sizes:
-            layers.append(Linear(prev, h))
+            layers.append(TorchLinear(prev, h))
             layers.append(ReLU())
             prev = h
-        layers.append(Linear(prev, output_size))
-        layers.append(LogSoftmax(dim=1))
         self.net = Sequential(*layers)
+        self.output_size = prev
 
     def forward(self, x: Tensor) -> Tensor:
+        x = torch.flatten(x, 1)
         return self.net(x)

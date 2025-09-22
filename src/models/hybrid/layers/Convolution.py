@@ -9,7 +9,7 @@ from ..HybridLayerFactory import HybridLayerFactory
 
 
 @HybridLayerFactory.encoder("conv")
-class ConvolutionEncoder(HybridLayer):
+class Convolution(HybridLayer):
     """Classical convolutional feature extractor."""
 
     def __init__(
@@ -45,7 +45,7 @@ class ConvolutionEncoder(HybridLayer):
     def _get_conv_out_size(self) -> int:
         with torch.no_grad():
             if self.input_size is None:
-                raise RuntimeError("Input size must be specified for ConvolutionEncoder")
+                raise RuntimeError("Input size must be specified for Convolution")
             dummy = torch.zeros(1, *self.input_size)
             x = self.maxpool1(self.relu1(self.batchNorm1(self.conv1(dummy))))
             x = self.maxpool2(self.relu2(self.batchNorm2(self.conv2(x))))
