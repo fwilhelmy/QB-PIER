@@ -9,8 +9,8 @@ from ..HybridLayer import HybridLayer
 from ..HybridLayerFactory import HybridLayerFactory
 
 
-@HybridLayerFactory.encoder("linear")
-class Linear(HybridLayer):
+@HybridLayerFactory.encoder("encoder")
+class Encoder(HybridLayer):
     """Simple MLP-based hybrid layer operating on flattened inputs."""
 
     def __init__(

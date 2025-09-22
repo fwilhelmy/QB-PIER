@@ -7,7 +7,7 @@ from .HQuanv import HQuanv
 from .HQE import HQE
 from .layers import (
     Convolution,
-    Linear,
+    Encoder,
     MLP,
     PCA,
     ParallelVQC,
@@ -19,7 +19,7 @@ __all__ = [
     "HQNN",
     "Convolution",
     "Quanvolution",
-    "Linear",
+    "Encoder",
     "PCA",
     "VQC",
     "ParallelVQC",
