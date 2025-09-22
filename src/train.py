@@ -88,7 +88,7 @@ def train_model(cfg: DictConfig, log_dir: str):
         )
         model = model.to(cfg["device"]["device"])
 
-        # 5) Training
+        # 4) Training
         start_time = time.time()
         model.fit(train_loader, eval_loader)
         elapsed = time.time() - start_time
