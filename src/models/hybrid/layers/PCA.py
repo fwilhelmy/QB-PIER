@@ -10,8 +10,8 @@ from ..HybridLayerFactory import HybridLayerFactory
 
 
 @HybridLayerFactory.encoder("pca")
-class PCAEncoder(HybridLayer):
-    """Encoder applying Principal Component Analysis."""
+class PCA(HybridLayer):
+    """Hybrid layer applying Principal Component Analysis."""
 
     def __init__(
         self,

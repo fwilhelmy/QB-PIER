@@ -10,8 +10,8 @@ from ..HybridLayerFactory import HybridLayerFactory
 
 
 @HybridLayerFactory.encoder("quanv")
-class QuanvolutionEncoder(HybridLayer):
-    """Encoder using a quantum convolution layer."""
+class Quanvolution(HybridLayer):
+    """Hybrid layer using a quantum convolution block."""
 
     def __init__(
         self,
@@ -25,7 +25,7 @@ class QuanvolutionEncoder(HybridLayer):
     ) -> None:
         super().__init__(input_size=input_size)
         if self.input_size is None:
-            raise RuntimeError("Input size must be specified for QuanvolutionEncoder")
+            raise RuntimeError("Input size must be specified for Quanvolution")
         channels, height, width = self.input_size
         stride = stride or patch_size
         ansatz = ansatz or {}
