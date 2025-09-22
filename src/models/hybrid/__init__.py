@@ -1,30 +1,30 @@
 """Hybrid quantum-classical models."""
 
+from . import layers
 from .HybridLayerFactory import HybridLayerFactory
 from .HQNN import HQNN
-from .Encoder import (
-    ConvolutionEncoder,
-    QuanvolutionEncoder,
-    MLPEncoder,
-    PCAEncoder,
-)
-from .Classifier import (
-    VQCClassifier,
-    ParallelVQCClassifier,
-    MLPClassifier,
-)
 from .HQuanv import HQuanv
 from .HQE import HQE
+from .layers import (
+    Convolution,
+    Linear,
+    MLP,
+    PCA,
+    ParallelVQC,
+    Quanvolution,
+    VQC,
+)
 
 __all__ = [
     "HQNN",
-    "ConvolutionEncoder",
-    "QuanvolutionEncoder",
-    "MLPEncoder",
-    "PCAEncoder",
-    "VQCClassifier",
-    "ParallelVQCClassifier",
-    "MLPClassifier",
+    "Convolution",
+    "Quanvolution",
+    "Linear",
+    "PCA",
+    "VQC",
+    "ParallelVQC",
+    "MLP",
+    "layers",
     "HQuanv",
     "HQE",
     "HybridLayerFactory",
