@@ -1,12 +1,9 @@
 defaults:
-  - ansatz: basic
+  - hybrid/encoder: conv
+  - hybrid/classifier: parallel_vqc
 model_class: HQNN
 model_type: hybrid
-encoder: conv
-classifier: parallel_vqc
-encoder_params: {}
-classifier_params:
-  in_qlayer: 16
-  qblock_size: 5
-  n_qdepth: 3
-  ansatz: ${ansatz}
+encoder: ${hybrid.encoder.name}
+classifier: ${hybrid.classifier.name}
+encoder_params: ${hybrid.encoder.params}
+classifier_params: ${hybrid.classifier.params}

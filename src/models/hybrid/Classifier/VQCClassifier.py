@@ -6,8 +6,10 @@ from torch.nn import Linear, LogSoftmax, ReLU
 from models.quantum import VQC
 
 from ..HybridLayer import HybridLayer
+from ..HybridLayerFactory import HybridLayerFactory
 
 
+@HybridLayerFactory.classifier("vqc")
 class VQCClassifier(HybridLayer):
     """Classifier using a single variational quantum circuit."""
 

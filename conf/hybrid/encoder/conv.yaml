@@ -1,0 +1,5 @@
+name: conv
+params:
+  conv_channels:
+    - 16
+    - 32

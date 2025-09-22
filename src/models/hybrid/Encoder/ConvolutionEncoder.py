@@ -5,8 +5,10 @@ from torch import Tensor, flatten
 from torch.nn import BatchNorm2d, Conv2d, MaxPool2d, ReLU
 
 from ..HybridLayer import HybridLayer
+from ..HybridLayerFactory import HybridLayerFactory
 
 
+@HybridLayerFactory.encoder("conv")
 class ConvolutionEncoder(HybridLayer):
     """Classical convolutional feature extractor."""
 

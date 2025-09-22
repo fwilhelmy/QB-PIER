@@ -1,0 +1,4 @@
+name: linear
+params:
+  hidden_sizes:
+    - 128

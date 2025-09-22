@@ -1,0 +1,9 @@
+defaults:
+  - /model/ansatz@params.ansatz: basic
+name: quanv
+params:
+  patch_size: 2
+  stride: 2
+  n_qdepth: 1
+  embedding: angle
+  rotation: X

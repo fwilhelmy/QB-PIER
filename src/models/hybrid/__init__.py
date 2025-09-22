@@ -1,5 +1,6 @@
 """Hybrid quantum-classical models."""
 
+from .HybridLayerFactory import HybridLayerFactory
 from .HQNN import HQNN
 from .Encoder import (
     ConvolutionEncoder,
@@ -26,4 +27,5 @@ __all__ = [
     "MLPClassifier",
     "HQuanv",
     "HQE",
+    "HybridLayerFactory",
 ]
