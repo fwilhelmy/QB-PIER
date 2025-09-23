@@ -4,7 +4,6 @@ defaults:
   - dataset: mnist
   - model: lenet
   - training: dev
-  - optional Experiments: null
   - _self_
 
 expdir: training # Experiment directory
@@ -28,6 +27,7 @@ hydra:
           - qdevice
           - dataset
           - expdir
+          - experiment
           - DATA_DIR
           - LOGS_DIR
           - training.seeds

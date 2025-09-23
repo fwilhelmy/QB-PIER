@@ -3,6 +3,8 @@
 defaults:
   - override /model: ampvqc
 
+expdir: test # Experiment directory
+
 hydra:
   mode: MULTIRUN
   sweeper:

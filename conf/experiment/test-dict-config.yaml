@@ -1,0 +1,19 @@
+# @package _global_
+
+defaults:
+  - override /model: ampvqc
+  - override /training: full
+
+exp_dir: optim_lr
+
+model:
+  n_qdepth: 50
+
+training:
+  n_steps: 5000
+
+hydra:
+  mode: MULTIRUN
+  sweeper:
+    params:
+      training: "{learning_rate:0.001,optimiser:adam},{learning_rate:0.0003,optimiser:adam},{learning_rate:0.001,optimiser:adamw},{learning_rate:0.0003,optimiser:adamw},{learning_rate:0.03,optimiser:sgd},{learning_rate:0.03,optimiser:momentum}"
