@@ -72,10 +72,21 @@ Quantum circuit layouts are configured through ansatz files under
 parameters. Models include a `defaults` entry like `- ansatz: strong` to select
 the desired circuit.
 
-To sweep over multiple values you can enable Hydra's multi-run mode:
+You can also launch a fully configured experiment by referencing one of the
+presets stored under `conf/experiment/`:
 
 ```bash
-python src/main.py -m model=ampvqc optimizer.lr=0.001,0.0001
+python src/main.py +experiment=AmpVQC200
+```
+
+To sweep over multiple values you can enable Hydra's multi-run mode. The `-m`
+flag expands comma-separated values into a cartesian product, and additional
+overrides can follow afterwards so that they apply to every spawned run. For
+example, to sweep two learning rates while keeping the device fixed you can
+execute:
+
+```bash
+python src/main.py -m model=ampvqc optimizer.lr=0.001,0.0001 device=colab_t4
 ```
 
 ## Training Pipeline
