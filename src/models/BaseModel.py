@@ -138,13 +138,6 @@ class BaseModel(LightningModule):
 
         return {"loss": loss, "acc": acc, "weights_l2": weights_l2}
 
-    def on_train_epoch_end(self):
-        self.metrics.log_epoch(self.global_step)
-
-        # TODO Right now wont work with log_interval = 1.0
-        self.metrics.log_dict("grad_l2", {name: param.grad.data.norm(2).item()
-            for name, param in self.named_parameters() if param.grad is not None})
-
     def validation_step(self, batch: Any, batch_idx: int):
         x, y = batch
         y_hat = self(x)
@@ -160,6 +153,27 @@ class BaseModel(LightningModule):
         acc = calculate_accuracy(y_hat, y)
 
         return {"loss": loss, "acc": acc}
+    
+    def _gradient_norms(self) -> Dict[str, float]:
+        return {name: param.grad.data.norm(2).item()
+            for name, param in self.named_parameters() if param.grad is not None}
+
+    def on_train_epoch_end(self):
+        self.metrics.log_epoch(self.global_step)
+        # Log last computed gradient norms captured during backprop. When
+        # log_interval=1.0, gradients are typically cleared by the time we
+        # reach epoch end, so we cache them in on_after_backward.
+        if hasattr(self, "_last_grad_l2") and self._last_grad_l2:
+            self.metrics.log_dict("grad_l2", self._last_grad_l2, step=self.global_step)
+        else:
+            # Fallback: compute if available (may be empty at epoch end)
+            grad_snapshot = self._gradient_norms()
+            if grad_snapshot:
+                self.metrics.log_dict("grad_l2", grad_snapshot, step=self.global_step)
+
+    def on_after_backward(self) -> None:
+        # Cache gradient L2 norms right after backward, before optimizer.zero_grad()
+        self._last_grad_l2 = self._gradient_norms()
 
     def fit(
         self,
