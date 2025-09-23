@@ -1,6 +1,6 @@
 defaults:
-  - hybrid/encoder@encoder: quanv
-  - hybrid/classifier@classifier: mlp
+  - /hybrid/encoder@encoder: quanv
+  - /hybrid/classifier@classifier: mlp
 model_class: HQNN
 model_type: hybrid
 
