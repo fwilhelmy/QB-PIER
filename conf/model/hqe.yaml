@@ -1,5 +1,5 @@
 defaults:
-  - /hybrid/encoder@encoder: linear
+  - /hybrid/encoder@encoder: encoder
   - /hybrid/classifier@classifier: vqc
 model_class: HQNN
 model_type: hybrid
@@ -13,6 +13,6 @@ encoder:
 
 classifier:
   params:
-    in_qlayer: ${dataset.classes}
+    in_qlayer: 1024
     n_qdepth: 2
     embedding: amplitude

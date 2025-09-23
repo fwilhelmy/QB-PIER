@@ -1,4 +1,4 @@
-name: linear
+name: encoder
 params:
   hidden_sizes:
     - 128
