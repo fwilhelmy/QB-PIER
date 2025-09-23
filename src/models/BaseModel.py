@@ -123,6 +123,7 @@ class BaseModel(LightningModule):
             return optim.Adam(self.parameters(), lr=self.hparams["learning_rate"], **self.hparams.get("optimiser_config", {}))
         if name == "sgd":
             return optim.SGD(self.parameters(), lr=self.hparams["learning_rate"], **self.hparams.get("optimiser_config", {}))
+        raise ValueError(f"Unsupported optimizer: {name}")
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError # must be implemented by each subclass
