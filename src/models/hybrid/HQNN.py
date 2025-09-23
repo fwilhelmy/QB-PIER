@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from typing import Any
+
 import torch
+from omegaconf import DictConfig
 from torch import Tensor
 
 from models import BaseModel, ModelFactory
@@ -15,27 +19,32 @@ class HQNN(BaseModel):
 
     def __init__(
         self,
-        encoder: str,
-        classifier: str,
-        encoder_params: dict | None = None,
-        classifier_params: dict | None = None,
-        **kwargs,
+        encoder: Mapping[str, Any] | DictConfig,
+        classifier: Mapping[str, Any] | DictConfig,
+        **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
-        encoder_params = encoder_params or {}
-        classifier_params = classifier_params or {}
+
+        encoder_name = encoder["name"]
+        encoder_params = encoder.get("params", {}) or {}
+        classifier_name = classifier["name"]
+        classifier_params = classifier.get("params", {}) or {}
+
         self.save_hyperparameters(
-            "encoder", "classifier", "encoder_params", "classifier_params"
+            encoder=encoder_name,
+            classifier=classifier_name,
+            encoder_params=dict(encoder_params),
+            classifier_params=dict(classifier_params),
         )
 
         self.encoder = HybridLayerFactory.create_encoder(
-            encoder,
+            encoder_name,
             input_size=self.input_size,
             **encoder_params,
         )
 
         self.classifier = HybridLayerFactory.create_classifier(
-            classifier,
+            classifier_name,
             in_features=self.encoder.output_size,
             output_size=self.output_size,
             **classifier_params,
