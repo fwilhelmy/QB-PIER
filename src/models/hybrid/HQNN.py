@@ -25,17 +25,12 @@ class HQNN(BaseModel):
     ) -> None:
         super().__init__(**kwargs)
 
+        self.save_hyperparameters("encoder", "classifier")
+
         encoder_name = encoder["name"]
         encoder_params = encoder.get("params", {}) or {}
         classifier_name = classifier["name"]
         classifier_params = classifier.get("params", {}) or {}
-
-        self.save_hyperparameters(
-            encoder=encoder_name,
-            classifier=classifier_name,
-            encoder_params=dict(encoder_params),
-            classifier_params=dict(classifier_params),
-        )
 
         self.encoder = HybridLayerFactory.create_encoder(
             encoder_name,
@@ -50,27 +45,13 @@ class HQNN(BaseModel):
             **classifier_params,
         )
 
-    # ------------------------------------------------------------------
-    # Convenience methods to manipulate encoder and classifier
-    def freeze_encoder(self) -> None:
-        self.encoder.freeze()
-
-    def freeze_classifier(self) -> None:
+    def train_encoder(self) -> None:
+        self.encoder.unfreeze()
         self.classifier.freeze()
 
-    def unfreeze_encoder(self) -> None:
-        self.encoder.unfreeze()
-
-    def unfreeze_classifier(self) -> None:
-        self.classifier.unfreeze()
-
-    def train_encoder(self) -> None:
-        self.unfreeze_encoder()
-        self.freeze_classifier()
-
     def train_classifier(self) -> None:
-        self.unfreeze_classifier()
-        self.freeze_encoder()
+        self.classifier.unfreeze()
+        self.encoder.freeze()
 
     def swap_encoder(self, encoder: torch.nn.Module) -> None:
         self.encoder = encoder
@@ -89,6 +70,5 @@ class HQNN(BaseModel):
         """Process inputs through encoder and classifier."""
         x = self.encoder(inputs)
         return self.classifier(x)
-
 
 __all__ = ["HQNN"]
