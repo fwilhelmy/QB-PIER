@@ -1,7 +1,18 @@
 defaults:
-  - ansatz: basic
-model_class: HQE
+  - hybrid/encoder@encoder: linear
+  - hybrid/classifier@classifier: vqc
+model_class: HQNN
 model_type: hybrid
-hidden_sizes: [4096, 2048, 1024]
-n_qdepth: 2
-embedding: amplitude
+
+encoder:
+  params:
+    hidden_sizes:
+      - 4096
+      - 2048
+      - 1024
+
+classifier:
+  params:
+    in_qlayer: ${dataset.classes}
+    n_qdepth: 2
+    embedding: amplitude

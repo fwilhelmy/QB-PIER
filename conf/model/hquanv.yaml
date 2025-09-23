@@ -1,8 +1,16 @@
 defaults:
-  - ansatz: random
-model_class: HQuanv
+  - hybrid/encoder@encoder: quanv
+  - hybrid/classifier@classifier: mlp
+model_class: HQNN
 model_type: hybrid
-img_size: 28
-patch_size: 2
-n_qdepth: 2
-embedding: angle
+
+encoder:
+  params:
+    patch_size: 2
+    n_qdepth: 2
+    embedding: angle
+
+classifier:
+  params:
+    hidden_sizes:
+      - 784
