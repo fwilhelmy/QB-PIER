@@ -31,7 +31,7 @@ class VQC(HybridLayer):
             embedding=embedding,
             ansatz=ansatz,
         )
-        self.fc2 = Linear(in_qlayer, output_size)
+        self.fc2 = Linear(self.qlayer.output_size, output_size)
         self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, x: Tensor) -> Tensor:

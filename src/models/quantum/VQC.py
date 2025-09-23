@@ -29,6 +29,10 @@ class VQC(nn.Module):
         )
         self.qlayer = self.ansatz.qlayer
 
+    @property
+    def output_size(self) -> int:
+        return self.ansatz.n_qubits
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Expect ``x`` of shape ``(batch_size, n_qubits)``.
 
