@@ -1,6 +1,6 @@
 defaults:
   - /model/ansatz@params.ansatz: basic
-name: parallel_vqc
+name: hpvql
 params:
   in_qlayer: 16
   qblock_size: 5

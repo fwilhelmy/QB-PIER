@@ -1,5 +1,5 @@
 defaults:
-  - /hybrid/encoder@encoder: conv
-  - /hybrid/classifier@classifier: parallel_vqc
+  - layer@encoder: conv
+  - layer@classifier: hpvql
 model_class: HQNN
 model_type: hybrid
