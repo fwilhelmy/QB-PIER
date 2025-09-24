@@ -1,6 +1,6 @@
 defaults:
   - /hybrid/encoder@encoder: encoder
-  - /hybrid/classifier@classifier: vqc
+  - /hybrid/classifier@classifier: vql
 model_class: HQNN
 model_type: hybrid
 

@@ -3,8 +3,6 @@
 from . import layers
 from .HybridLayerFactory import HybridLayerFactory
 from .HQNN import HQNN
-from .HQuanv import HQuanv
-from .HQE import HQE
 from .layers import (
     Convolution,
     Encoder,
@@ -12,7 +10,7 @@ from .layers import (
     PCA,
     ParallelVQC,
     Quanvolution,
-    VQC,
+    VQL,
 )
 
 __all__ = [
@@ -21,11 +19,9 @@ __all__ = [
     "Quanvolution",
     "Encoder",
     "PCA",
-    "VQC",
+    "VQL",
     "ParallelVQC",
     "MLP",
     "layers",
-    "HQuanv",
-    "HQE",
     "HybridLayerFactory",
 ]
