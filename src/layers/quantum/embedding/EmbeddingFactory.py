@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import Any, Callable, Dict, Optional, Type
 
 from HydraFactory import HydraFactory
-
-from layers.quantum.embedding.BaseEmbedding import BaseEmbedding
+from .BaseEmbedding import BaseEmbedding
 
 
 class EmbeddingFactory(HydraFactory[BaseEmbedding]):
