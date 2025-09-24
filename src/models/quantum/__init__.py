@@ -3,7 +3,7 @@
 from .VQC import VQC
 from .ParallelVQC import ParallelVQC
 from .Quanv2d import Quanv2d
-from .AmpVQC import AmpVQC
+from .VQM import VQM
 
 from . import ansatz
 from . import embedding
@@ -12,7 +12,7 @@ __all__ = [
     "VQC",
     "ParallelVQC",
     "Quanv2d",
-    "AmpVQC",
+    "VQM",
     "ansatz",
     "embedding"
 ]

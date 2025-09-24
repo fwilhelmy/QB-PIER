@@ -1,4 +1,4 @@
-# Quantum-focused models such as AmpVQC, DimVQC, and HQE execute the quantum circuits on CPU. GPU provides little advantage unless you switch to a GPU‑based quantum simulator. Use the cluster primarily to run multiple experiments in parallel or to train several seeds at once.
+# Quantum-focused models such as the VQM, DimVQC, and HQE execute the quantum circuits on CPU. GPU provides little advantage unless you switch to a GPU‑based quantum simulator. Use the cluster primarily to run multiple experiments in parallel or to train several seeds at once.
 
 device: cpu
 accelerator: cpu

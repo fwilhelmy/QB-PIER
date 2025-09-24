@@ -1,5 +1,6 @@
 defaults:
   - ansatz: strong
-model_class: AmpVQC
+model_class: VQM
 model_type: quantum
 n_qdepth: 50
+embedding: amplitude
