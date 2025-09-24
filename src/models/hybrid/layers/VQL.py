@@ -3,15 +3,15 @@ from __future__ import annotations
 from torch import Tensor
 from torch.nn import Linear, LogSoftmax, ReLU
 
-from models.quantum import VQC as QuantumVQC
+from models.quantum import VQC as VariationalQuantumCircuit
 
 from ..HybridLayer import HybridLayer
 from ..HybridLayerFactory import HybridLayerFactory
 
 
-@HybridLayerFactory.classifier("vqc")
-class VQC(HybridLayer):
-    """Classifier using a single variational quantum circuit."""
+@HybridLayerFactory.classifier("vql")
+class VQL(HybridLayer):
+    """Variational Quantum Layer used as a classifier module."""
 
     def __init__(
         self,
@@ -25,7 +25,7 @@ class VQC(HybridLayer):
         super().__init__(in_features=in_features, output_size=output_size)
         self.fc1 = Linear(in_features, in_qlayer)
         self.relu = ReLU()
-        self.qlayer = QuantumVQC(
+        self.qlayer = VariationalQuantumCircuit(
             input_size=in_qlayer,
             n_layers=n_qdepth,
             embedding=embedding,
