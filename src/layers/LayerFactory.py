@@ -2,7 +2,7 @@
 
 from typing import Any, Callable
 
-from ..HydraFactory import HydraFactory
+from HydraFactory import HydraFactory
 
 from .BaseLayer import BaseLayer
 
