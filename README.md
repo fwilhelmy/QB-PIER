@@ -76,7 +76,7 @@ You can also launch a fully configured experiment by referencing one of the
 presets stored under `conf/experiment/`:
 
 ```bash
-python src/main.py +experiment=AmpVQC200
+python src/main.py +experiment=VQM200
 ```
 
 To sweep over multiple values you can enable Hydra's multi-run mode. The `-m`
@@ -86,7 +86,7 @@ example, to sweep two learning rates while keeping the device fixed you can
 execute:
 
 ```bash
-python src/main.py -m model=ampvqc optimizer.lr=0.001,0.0001 device=colab_t4
+python src/main.py -m model=vqm optimizer.lr=0.001,0.0001 device=colab_t4
 ```
 
 ## Training Pipeline
