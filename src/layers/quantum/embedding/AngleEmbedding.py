@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pennylane as qml
 
-from models.quantum.embedding import BaseEmbedding, EmbeddingFactory
+from . import BaseEmbedding, EmbeddingFactory
 
 @EmbeddingFactory.embedding("angle")
 class AngleEmbedding(BaseEmbedding):

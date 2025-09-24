@@ -6,7 +6,7 @@ import math
 
 import pennylane as qml
 
-from models.quantum.embedding import BaseEmbedding, EmbeddingFactory
+from . import BaseEmbedding, EmbeddingFactory
 
 
 @EmbeddingFactory.embedding("amplitude")

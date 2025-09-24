@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models.quantum import VQC
+from .VQC import VQC
 from metrics import LoggingService
 
 class Quanv2d(nn.Module):

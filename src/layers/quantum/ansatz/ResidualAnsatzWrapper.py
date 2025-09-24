@@ -1,6 +1,6 @@
 from overrides import override
 import torch, pennylane as qml
-from models.quantum.ansatz import BaseAnsatz, AnsatzFactory
+from . import AnsatzFactory, BaseAnsatz
 
 def ResidualAnsatzWrapper(ansatz_cls: type[BaseAnsatz]) -> type[BaseAnsatz]:
     class ResidualAnsatz(ansatz_cls):
