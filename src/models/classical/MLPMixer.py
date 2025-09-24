@@ -7,8 +7,7 @@ import matplotlib.pyplot as plt
 from models.BaseModel import BaseModel
 from models.ModelFactory import ModelFactory
 
-from ...layers.PatchEmbed import PatchEmbed
-from ...layers.MixerBlock import MixerBlock
+from layers import MixerBlock, PatchEmbed
 
 @ModelFactory.model("mlpmixer")
 class MLPMixer(BaseModel):

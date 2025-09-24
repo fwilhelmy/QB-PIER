@@ -5,12 +5,12 @@ from torch import Tensor, flatten
 
 from models.quantum import Quanv2d
 
-from ..HybridLayer import HybridLayer
-from ..HybridLayerFactory import HybridLayerFactory
+from .BaseLayer import BaseLayer
+from .LayerFactory import LayerFactory
 
 
-@HybridLayerFactory.encoder("quanv")
-class Quanvolution(HybridLayer):
+@LayerFactory.encoder("quanv")
+class Quanvolution(BaseLayer):
     """Hybrid layer using a quantum convolution block."""
 
     def __init__(

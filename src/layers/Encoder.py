@@ -5,12 +5,12 @@ import torch
 from torch import Tensor
 from torch.nn import Linear as TorchLinear, Module, ReLU, Sequential
 
-from ..HybridLayer import HybridLayer
-from ..HybridLayerFactory import HybridLayerFactory
+from .BaseLayer import BaseLayer
+from .LayerFactory import LayerFactory
 
 
-@HybridLayerFactory.encoder("encoder")
-class Encoder(HybridLayer):
+@LayerFactory.encoder("encoder")
+class Encoder(BaseLayer):
     """Simple MLP-based hybrid layer operating on flattened inputs."""
 
     def __init__(
