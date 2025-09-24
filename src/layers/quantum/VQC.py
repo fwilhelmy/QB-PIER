@@ -1,4 +1,4 @@
-from models.quantum.ansatz.AnsatzFactory import AnsatzFactory
+from .ansatz import AnsatzFactory
 import torch
 import torch.nn as nn
 

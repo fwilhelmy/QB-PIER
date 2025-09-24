@@ -4,8 +4,7 @@ import torch
 from torch import Tensor, flatten
 from torch.nn import BatchNorm2d, Conv2d, MaxPool2d, ReLU
 
-from .BaseLayer import BaseLayer
-from .LayerFactory import LayerFactory
+from layers import BaseLayer, LayerFactory
 
 
 @LayerFactory.encoder("conv")

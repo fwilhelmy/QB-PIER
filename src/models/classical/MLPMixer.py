@@ -1,13 +1,11 @@
 from torch import nn
 import math
 import matplotlib.pyplot as plt
-import math
 import torch
-import matplotlib.pyplot as plt
-from models.BaseModel import BaseModel
-from models.ModelFactory import ModelFactory
 
-from layers import MixerBlock, PatchEmbed
+from ..BaseModel import BaseModel
+from ..ModelFactory import ModelFactory
+from ...layers.classical import MixerBlock, PatchEmbed
 
 @ModelFactory.model("mlpmixer")
 class MLPMixer(BaseModel):

@@ -3,10 +3,10 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import math
 import numpy as np
-from models.BaseModel import BaseModel
-from models.ModelFactory import ModelFactory
 
-from layers import ResBlock
+from ..BaseModel import BaseModel
+from ..ModelFactory import ModelFactory
+from ...layers.classical import ResBlock
 
 @ModelFactory.model("resnet18")
 class ResNet18(BaseModel):

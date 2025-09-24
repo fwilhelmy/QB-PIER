@@ -1,6 +1,7 @@
 from typing import Callable, Dict, Type, Optional, Any
-from HydraFactory import HydraFactory
-from models import BaseModel
+from ..HydraFactory import HydraFactory
+
+from .BaseModel import BaseModel
 
 
 class ModelFactory(HydraFactory[BaseModel]):

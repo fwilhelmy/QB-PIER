@@ -9,8 +9,8 @@ import torch
 from omegaconf import DictConfig
 from torch import Tensor
 
-from models import BaseModel, ModelFactory
-from layers import LayerFactory
+from .. import BaseModel, ModelFactory
+from ...layers import LayerFactory
 
 
 @ModelFactory.model("hqnn")
