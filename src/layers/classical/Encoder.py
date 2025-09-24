@@ -7,7 +7,6 @@ from torch.nn import Linear as TorchLinear, Module, ReLU, Sequential
 
 from layers import BaseLayer, LayerFactory
 
-
 @LayerFactory.encoder("encoder")
 class Encoder(BaseLayer):
     """Simple MLP-based hybrid layer operating on flattened inputs."""

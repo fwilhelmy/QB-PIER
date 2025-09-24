@@ -8,8 +8,7 @@ import torch.nn as nn
 
 from .VQC import VQC
 
-
-class ParallelVQC(nn.Module):
+class HPVQL(nn.Module):
     """Stacks multiple :class:`VQC` blocks to process larger inputs.
 
     The input feature vector is split into chunks of ``block_size`` elements.

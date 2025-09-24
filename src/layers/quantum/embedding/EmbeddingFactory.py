@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Callable, Dict, Optional, Type
 
 from HydraFactory import HydraFactory
-from .BaseEmbedding import BaseEmbedding
+from . import BaseEmbedding
 
 
 class EmbeddingFactory(HydraFactory[BaseEmbedding]):

@@ -2,7 +2,6 @@ from .ansatz import AnsatzFactory
 import torch
 import torch.nn as nn
 
-
 class VQC(nn.Module):
     """Single quantum circuit module (Variational Quantum Circuit).
 

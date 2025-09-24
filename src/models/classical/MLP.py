@@ -2,8 +2,7 @@ import torch
 from typing import List, Tuple
 from torch import nn
 
-from ..BaseModel import BaseModel
-from ..ModelFactory import ModelFactory
+from models import BaseModel, ModelFactory
 
 class Linear(nn.Module):
     r"""Applies a linear transformation to the incoming data: :math:`y = xA^T + b`

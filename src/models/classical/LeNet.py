@@ -8,8 +8,7 @@ from torch.nn import ReLU
 from torch.nn import LogSoftmax
 from torch import flatten
 
-from ..BaseModel import BaseModel
-from ..ModelFactory import ModelFactory
+from models import BaseModel, ModelFactory
 
 @ModelFactory.model("lenet")
 class LeNet(BaseModel):

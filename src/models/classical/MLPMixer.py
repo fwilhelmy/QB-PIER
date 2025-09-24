@@ -3,9 +3,8 @@ import math
 import matplotlib.pyplot as plt
 import torch
 
-from ..BaseModel import BaseModel
-from ..ModelFactory import ModelFactory
-from ...layers.classical import MixerBlock, PatchEmbed
+from models import BaseModel, ModelFactory
+from layers.classical import MixerBlock, PatchEmbed
 
 @ModelFactory.model("mlpmixer")
 class MLPMixer(BaseModel):

@@ -5,7 +5,6 @@ from typing import Optional, Tuple
 import torch
 from torch.nn import Module
 
-
 class BaseLayer(Module):
     """Common base class for hybrid encoders and classifiers.
 

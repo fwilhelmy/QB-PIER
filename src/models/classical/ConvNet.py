@@ -3,8 +3,7 @@ from torch.nn import (
     Conv2d, Linear, MaxPool2d, ReLU, Sequential
 )
 
-from ..BaseModel import BaseModel
-from ..ModelFactory import ModelFactory
+from models import BaseModel, ModelFactory
 
 @ModelFactory.model("convnet")
 class ConvNet(BaseModel):

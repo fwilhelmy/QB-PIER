@@ -2,8 +2,8 @@ import pennylane as qml
 import numpy as np
 from qdevice import QDEVICE, INTERFACE, QDIFF, CIRCUIT_STYLE
 from abc import ABC, abstractmethod
-from ..embedding import EmbeddingFactory
 
+from ..embedding import EmbeddingFactory
 
 class BaseAnsatz(ABC):
     """Base class for all quantum Ansatz circuits."""

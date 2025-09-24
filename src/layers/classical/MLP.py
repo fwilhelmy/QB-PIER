@@ -5,7 +5,6 @@ from torch.nn import Linear, LogSoftmax, Module, ReLU, Sequential
 
 from layers import BaseLayer, LayerFactory
 
-
 @LayerFactory.classifier("mlp")
 class MLP(BaseLayer):
     """Purely classical multilayer perceptron head."""

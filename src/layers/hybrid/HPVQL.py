@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+from regex import P
 from torch import Tensor
 from torch.nn import Linear, LogSoftmax, ReLU
 
 from layers import BaseLayer, LayerFactory
-from layers.quantum import ParallelVQC as QuantumParallelVQC
+from layers.quantum import ParallelVQC
 
-
-@LayerFactory.classifier("parallel_vqc")
-class ParallelVQC(BaseLayer):
+@LayerFactory.classifier("hpvql")
+class HPVQL(BaseLayer):
     """Classifier combining a linear layer, parallel VQC, and final linear head."""
 
     def __init__(
@@ -23,7 +23,7 @@ class ParallelVQC(BaseLayer):
         super().__init__(in_features=in_features, output_size=output_size)
         self.fc1 = Linear(in_features=in_features, out_features=in_qlayer)
         self.relu = ReLU()
-        self.qlayer = QuantumParallelVQC(
+        self.qlayer = ParallelVQC(
             input_size=in_qlayer,
             block_size=qblock_size,
             n_layers=n_qdepth,

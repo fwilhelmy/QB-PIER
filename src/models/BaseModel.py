@@ -11,8 +11,8 @@ from pytorch_lightning.utilities import rank_zero_only
 
 import torch.optim as optim
 
-from ..utils import calculate_accuracy
-from ..metrics import TrainingLogger, MetricsContainer, LoggingService
+from utils import calculate_accuracy
+from metrics import TrainingLogger, MetricsContainer, LoggingService
 
 class BaseModel(LightningModule):
     """

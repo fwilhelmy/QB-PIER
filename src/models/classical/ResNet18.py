@@ -4,9 +4,8 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 
-from ..BaseModel import BaseModel
-from ..ModelFactory import ModelFactory
-from ...layers.classical import ResBlock
+from models import BaseModel, ModelFactory
+from layers.classical import ResBlock
 
 @ModelFactory.model("resnet18")
 class ResNet18(BaseModel):

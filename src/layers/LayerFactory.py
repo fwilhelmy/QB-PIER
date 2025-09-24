@@ -3,9 +3,7 @@
 from typing import Any, Callable
 
 from HydraFactory import HydraFactory
-
-from .BaseLayer import BaseLayer
-
+from . import BaseLayer
 
 class LayerFactory(HydraFactory[BaseLayer]):
     """Registry helper for :class:`BaseLayer` subclasses."""

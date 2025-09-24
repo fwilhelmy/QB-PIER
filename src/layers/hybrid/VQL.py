@@ -4,10 +4,10 @@ from torch import Tensor
 from torch.nn import Linear, LogSoftmax, ReLU
 
 from layers import BaseLayer, LayerFactory
-from layers.quantum import VQC as VariationalQuantumCircuit
+from layers.quantum import VQC
 
 
-@LayerFactory.classifier("vql")
+@LayerFactory.classifier("hvql")
 class VQL(BaseLayer):
     """Variational Quantum Layer used as a classifier module."""
 
@@ -23,7 +23,7 @@ class VQL(BaseLayer):
         super().__init__(in_features=in_features, output_size=output_size)
         self.fc1 = Linear(in_features, in_qlayer)
         self.relu = ReLU()
-        self.qlayer = VariationalQuantumCircuit(
+        self.qlayer = VQC(
             input_size=in_qlayer,
             n_layers=n_qdepth,
             embedding=embedding,

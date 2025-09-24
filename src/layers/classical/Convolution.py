@@ -6,7 +6,6 @@ from torch.nn import BatchNorm2d, Conv2d, MaxPool2d, ReLU
 
 from layers import BaseLayer, LayerFactory
 
-
 @LayerFactory.encoder("conv")
 class Convolution(BaseLayer):
     """Classical convolutional feature extractor."""
