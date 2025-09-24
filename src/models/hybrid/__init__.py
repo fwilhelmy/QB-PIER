@@ -3,8 +3,6 @@
 from . import layers
 from .HybridLayerFactory import HybridLayerFactory
 from .HQNN import HQNN
-from .HQuanv import HQuanv
-from .HQE import HQE
 from .layers import (
     Convolution,
     Encoder,
@@ -25,7 +23,5 @@ __all__ = [
     "ParallelVQC",
     "MLP",
     "layers",
-    "HQuanv",
-    "HQE",
     "HybridLayerFactory",
 ]
