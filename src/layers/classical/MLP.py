@@ -3,8 +3,8 @@ from __future__ import annotations
 from torch import Tensor
 from torch.nn import Linear, LogSoftmax, Module, ReLU, Sequential
 
-from .BaseLayer import BaseLayer
-from .LayerFactory import LayerFactory
+from ..BaseLayer import BaseLayer
+from ..LayerFactory import LayerFactory
 
 
 @LayerFactory.classifier("mlp")

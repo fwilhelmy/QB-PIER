@@ -5,8 +5,8 @@ import torch
 from torch import Tensor
 from sklearn.decomposition import PCA
 
-from .BaseLayer import BaseLayer
-from .LayerFactory import LayerFactory
+from ..BaseLayer import BaseLayer
+from ..LayerFactory import LayerFactory
 
 
 @LayerFactory.encoder("pca")
