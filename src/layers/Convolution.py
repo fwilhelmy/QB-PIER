@@ -4,12 +4,12 @@ import torch
 from torch import Tensor, flatten
 from torch.nn import BatchNorm2d, Conv2d, MaxPool2d, ReLU
 
-from ..HybridLayer import HybridLayer
-from ..HybridLayerFactory import HybridLayerFactory
+from .BaseLayer import BaseLayer
+from .LayerFactory import LayerFactory
 
 
-@HybridLayerFactory.encoder("conv")
-class Convolution(HybridLayer):
+@LayerFactory.encoder("conv")
+class Convolution(BaseLayer):
     """Classical convolutional feature extractor."""
 
     def __init__(

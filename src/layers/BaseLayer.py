@@ -6,12 +6,12 @@ import torch
 from torch.nn import Module
 
 
-class HybridLayer(Module):
+class BaseLayer(Module):
     """Common base class for hybrid encoders and classifiers.
 
     The original ``BaseEncoder`` and ``BaseClassifier`` classes shared a
     number of utility attributes such as ``input_size``, ``in_features`` and
-    ``output_size``.  Refactoring them into a single ``HybridLayer``
+    ``output_size``.  Refactoring them into a single ``BaseLayer``
     ensures that every concrete encoder and classifier exposes the same
     lightweight interface without duplicating bookkeeping logic.
     """
@@ -83,4 +83,4 @@ class HybridLayer(Module):
         self.load_state_dict(state)
 
 
-__all__ = ["HybridLayer"]
+__all__ = ["BaseLayer"]

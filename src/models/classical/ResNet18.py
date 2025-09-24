@@ -6,7 +6,7 @@ import numpy as np
 from models.BaseModel import BaseModel
 from models.ModelFactory import ModelFactory
 
-from ...layers.ResBlock import ResBlock
+from layers import ResBlock
 
 @ModelFactory.model("resnet18")
 class ResNet18(BaseModel):

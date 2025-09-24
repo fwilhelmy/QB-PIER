@@ -5,12 +5,12 @@ import torch
 from torch import Tensor
 from sklearn.decomposition import PCA
 
-from ..HybridLayer import HybridLayer
-from ..HybridLayerFactory import HybridLayerFactory
+from .BaseLayer import BaseLayer
+from .LayerFactory import LayerFactory
 
 
-@HybridLayerFactory.encoder("pca")
-class PCA(HybridLayer):
+@LayerFactory.encoder("pca")
+class PCA(BaseLayer):
     """Hybrid layer applying Principal Component Analysis."""
 
     def __init__(
