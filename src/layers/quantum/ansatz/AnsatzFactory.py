@@ -11,7 +11,8 @@ from __future__ import annotations
 from typing import Callable, Dict, Type
 
 from HydraFactory import HydraFactory
-from models.quantum.ansatz import BaseAnsatz
+
+from layers.quantum.ansatz.BaseAnsatz import BaseAnsatz
 
 class AnsatzFactory(HydraFactory[BaseAnsatz]):
     """Registry and entry point for all :class:`BaseAnsatz` subclasses."""

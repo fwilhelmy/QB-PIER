@@ -2,7 +2,7 @@
 # This is more an epic than anything else, but I want to keep it here for now.
 
 from __future__ import annotations
-from models.quantum.ansatz import BaseAnsatz, AnsatzFactory
+from . import AnsatzFactory, BaseAnsatz
 
 @AnsatzFactory.ansatz("ReUpAnsatzWrapper")
 class ReUpAnsatzWrapper(BaseAnsatz):

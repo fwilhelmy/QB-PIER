@@ -6,8 +6,8 @@ import numpy as np
 import torch
 from torch import nn
 
-from models import BaseModel, ModelFactory
-from models.quantum import VQC
+from .. import BaseModel, ModelFactory
+from ...layers.quantum import VQC
 
 
 @ModelFactory.model("ampvqc")

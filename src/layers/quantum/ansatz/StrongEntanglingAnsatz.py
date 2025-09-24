@@ -1,5 +1,5 @@
 import pennylane as qml
-from models.quantum.ansatz import BaseAnsatz, AnsatzFactory
+from . import AnsatzFactory, BaseAnsatz
 
 @AnsatzFactory.ansatz("StrongEntanglingAnsatz")
 class StrongEntanglingAnsatz(BaseAnsatz):

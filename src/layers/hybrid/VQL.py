@@ -3,10 +3,8 @@ from __future__ import annotations
 from torch import Tensor
 from torch.nn import Linear, LogSoftmax, ReLU
 
-from models.quantum import VQC as VariationalQuantumCircuit
-
-from .BaseLayer import BaseLayer
-from .LayerFactory import LayerFactory
+from layers import BaseLayer, LayerFactory
+from layers.quantum import VQC as VariationalQuantumCircuit
 
 
 @LayerFactory.classifier("vql")

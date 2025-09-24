@@ -1,4 +1,4 @@
-from models.quantum.ansatz import BaseAnsatz, AnsatzFactory
+from . import AnsatzFactory, BaseAnsatz
 
 @AnsatzFactory.ansatz("IdentityAnsatz")
 class IdentityAnsatz(BaseAnsatz):

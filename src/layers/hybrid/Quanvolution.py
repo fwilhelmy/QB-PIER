@@ -3,10 +3,8 @@ from __future__ import annotations
 import torch
 from torch import Tensor, flatten
 
-from models.quantum import Quanv2d
-
-from .BaseLayer import BaseLayer
-from .LayerFactory import LayerFactory
+from layers import BaseLayer, LayerFactory
+from layers.quantum import Quanv2d
 
 
 @LayerFactory.encoder("quanv")
