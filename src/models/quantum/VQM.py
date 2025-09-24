@@ -38,9 +38,9 @@ class VQM(BaseModel):
             ansatz=ansatz,
         )
 
-        self.log_softmax = nn.LogSoftmax(dim=1)
+        self.logSoftmax = nn.LogSoftmax(dim=1)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         batch = inputs.view(inputs.size(0), -1)
         logits = self.vqc(batch)
-        return self.log_softmax(logits)
+        return self.logSoftmax(logits)
