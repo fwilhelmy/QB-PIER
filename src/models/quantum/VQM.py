@@ -9,8 +9,7 @@ from torch import nn
 from models import BaseModel, ModelFactory
 from models.quantum import VQC
 
-
-@ModelFactory.model("ampvqc")
+@ModelFactory.model("ampvqc") # Legacy name for backward compatibility
 @ModelFactory.model("vqm")
 class VQM(BaseModel):
     """Variational Quantum Model (VQM) for variational quantum classification.
