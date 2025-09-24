@@ -8,7 +8,7 @@ from layers.quantum import VQC
 
 
 @LayerFactory.classifier("hvql")
-class VQL(BaseLayer):
+class HVQL(BaseLayer):
     """Variational Quantum Layer used as a classifier module."""
 
     def __init__(

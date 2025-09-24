@@ -2,10 +2,10 @@
 
 from .HPVQL import HPVQL
 from .Quanvolution import Quanvolution
-from .VQL import VQL
+from .HVQL import HVQL
 
 __all__ = [
     "HPVQL",
     "Quanvolution",
-    "VQL",
+    "HVQL",
 ]
