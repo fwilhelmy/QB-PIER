@@ -6,7 +6,7 @@ from .MLP import MLP
 from .PCA import PCA
 from .ParallelVQC import ParallelVQC
 from .Quanvolution import Quanvolution
-from .VQC import VQC
+from .VQL import VQL
 
 __all__ = [
     "Convolution",
@@ -15,5 +15,5 @@ __all__ = [
     "PCA",
     "ParallelVQC",
     "Quanvolution",
-    "VQC",
+    "VQL",
 ]

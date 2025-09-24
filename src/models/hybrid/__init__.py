@@ -10,7 +10,7 @@ from .layers import (
     PCA,
     ParallelVQC,
     Quanvolution,
-    VQC,
+    VQL,
 )
 
 __all__ = [
@@ -19,7 +19,7 @@ __all__ = [
     "Quanvolution",
     "Encoder",
     "PCA",
-    "VQC",
+    "VQL",
     "ParallelVQC",
     "MLP",
     "layers",
