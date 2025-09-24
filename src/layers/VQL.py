@@ -5,12 +5,12 @@ from torch.nn import Linear, LogSoftmax, ReLU
 
 from models.quantum import VQC as VariationalQuantumCircuit
 
-from ..HybridLayer import HybridLayer
-from ..HybridLayerFactory import HybridLayerFactory
+from .BaseLayer import BaseLayer
+from .LayerFactory import LayerFactory
 
 
-@HybridLayerFactory.classifier("vql")
-class VQL(HybridLayer):
+@LayerFactory.classifier("vql")
+class VQL(BaseLayer):
     """Variational Quantum Layer used as a classifier module."""
 
     def __init__(

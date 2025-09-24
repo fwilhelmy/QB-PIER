@@ -10,7 +10,7 @@ from omegaconf import DictConfig
 from torch import Tensor
 
 from models import BaseModel, ModelFactory
-from .HybridLayerFactory import HybridLayerFactory
+from layers import LayerFactory
 
 
 @ModelFactory.model("hqnn")
@@ -32,13 +32,13 @@ class HQNN(BaseModel):
         classifier_name = classifier["name"]
         classifier_params = classifier.get("params", {}) or {}
 
-        self.encoder = HybridLayerFactory.create_encoder(
+        self.encoder = LayerFactory.create_encoder(
             encoder_name,
             input_size=self.input_size,
             **encoder_params,
         )
 
-        self.classifier = HybridLayerFactory.create_classifier(
+        self.classifier = LayerFactory.create_classifier(
             classifier_name,
             in_features=self.encoder.output_size,
             output_size=self.output_size,

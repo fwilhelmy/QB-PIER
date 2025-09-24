@@ -5,12 +5,12 @@ from torch.nn import Linear, LogSoftmax, ReLU
 
 from models.quantum import ParallelVQC as QuantumParallelVQC
 
-from ..HybridLayer import HybridLayer
-from ..HybridLayerFactory import HybridLayerFactory
+from .BaseLayer import BaseLayer
+from .LayerFactory import LayerFactory
 
 
-@HybridLayerFactory.classifier("parallel_vqc")
-class ParallelVQC(HybridLayer):
+@LayerFactory.classifier("parallel_vqc")
+class ParallelVQC(BaseLayer):
     """Classifier combining a linear layer, parallel VQC, and final linear head."""
 
     def __init__(
