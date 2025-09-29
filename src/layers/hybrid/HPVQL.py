@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from regex import P
 from torch import Tensor
 from torch.nn import Linear, LogSoftmax, ReLU
 
@@ -16,7 +15,7 @@ class HPVQL(BaseLayer):
         in_features: int,
         output_size: int,
         in_qlayer: int,
-        qblock_size: int,
+        n_qblocks: int,
         n_qdepth: int = 3,
         ansatz: dict | None = None,
         embedding: str = "angle",
@@ -26,7 +25,7 @@ class HPVQL(BaseLayer):
         self.relu = ReLU()
         self.vqc = ParallelVQC(
             input_size=in_qlayer,
-            block_size=qblock_size,
+            n_qblocks=n_qblocks,
             n_layers=n_qdepth,
             ansatz=ansatz,
             embedding=embedding,
