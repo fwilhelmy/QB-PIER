@@ -18,23 +18,23 @@ class HVQL(BaseLayer):
         in_qlayer: int,
         n_qdepth: int = 3,
         ansatz: dict | None = None,
-        embedding: str = "angle",
+        embedding: str = "amplitude",
     ) -> None:
         super().__init__(in_features=in_features, output_size=output_size)
         self.fc1 = Linear(in_features, in_qlayer)
         self.relu = ReLU()
-        self.qlayer = VQC(
+        self.vqc = VQC(
             input_size=in_qlayer,
             n_layers=n_qdepth,
             embedding=embedding,
             ansatz=ansatz,
         )
-        self.fc2 = Linear(self.qlayer.output_size, output_size)
+        self.fc2 = Linear(self.vqc.output_size, output_size)
         self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, x: Tensor) -> Tensor:
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.qlayer(x)
-        x = self.fc2(x)
-        return self.logSoftmax(x)
+        output = self.fc1(x)
+        output = self.relu(output)
+        output = self.vqc(output)
+        output = self.fc2(output)
+        return self.logSoftmax(output)
