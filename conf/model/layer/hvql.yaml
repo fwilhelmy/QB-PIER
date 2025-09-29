@@ -2,6 +2,6 @@ defaults:
   - /model/ansatz@params.ansatz: basic
 name: hvql
 params:
-  in_qlayer: 16
+  in_qlayer: 1024
   n_qdepth: 3
-  embedding: angle
+  embedding: amplitude
