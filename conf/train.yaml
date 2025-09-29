@@ -21,7 +21,6 @@ hydra:
       override_dirname:
         exclude_keys:
           # Keys excluded from Hydra's output directory structure
-          - model
           - training
           - device
           - qdevice
