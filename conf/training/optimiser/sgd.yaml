@@ -1,4 +1,5 @@
 name: sgd
+learning_rate: 0.03
 optimiser_config:
   momentum: 0.0
   weight_decay: 5e-4 # 1e-3 if your model tends to overfit.

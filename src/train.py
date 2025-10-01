@@ -78,7 +78,7 @@ def train_model(cfg: DictConfig, log_dir: str):
             **model_config,
             configure={
                 "optimizer": cfg["training"]["optimiser"]["name"],
-                "learning_rate": cfg["training"]["learning_rate"],
+                "learning_rate": cfg["training"]["optimiser"].get("learning_rate", cfg["training"].get("learning_rate", 1e-3)),
                 "max_steps": cfg["training"]["n_steps"],
                 "optimiser_config": cfg["training"]["optimiser"].get("optimiser_config", {}),
                 "accelerator": cfg["device"]["accelerator"],
