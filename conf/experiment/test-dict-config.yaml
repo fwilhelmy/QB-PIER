@@ -16,4 +16,4 @@ hydra:
   mode: MULTIRUN
   sweeper:
     params:
-      training: "{learning_rate:0.001,optimiser:adam},{learning_rate:0.0003,optimiser:adam},{learning_rate:0.001,optimiser:adamw},{learning_rate:0.0003,optimiser:adamw},{learning_rate:0.03,optimiser:sgd},{learning_rate:0.03,optimiser:momentum}"
+      training: "{optimiser:{name:adam,learning_rate:0.001,optimiser_config:{weight_decay:0.0}}},{optimiser:{name:adam,learning_rate:0.0003,optimiser_config:{weight_decay:0.0}}},{optimiser:{name:adamw,learning_rate:0.001,optimiser_config:{weight_decay:0.01}}},{optimiser:{name:adamw,learning_rate:0.0003,optimiser_config:{weight_decay:0.01}}},{optimiser:{name:sgd,learning_rate:0.03,optimiser_config:{momentum:0.0,weight_decay:0.0005}}},{optimiser:{name:sgd,learning_rate:0.03,optimiser_config:{momentum:0.9,weight_decay:0.0005}}}"
