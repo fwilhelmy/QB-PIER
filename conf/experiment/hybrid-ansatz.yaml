@@ -1,0 +1,13 @@
+# @package _global_
+
+defaults:
+  - override /model: hqnn2
+  - override /training: mid
+
+expdir: hybrid-ansatz # Experiment directory
+
+hydra:
+  mode: MULTIRUN
+  sweeper:
+    params:
+      model.classifier.params.ansatz: basic, strong, random, identity, no_entangling

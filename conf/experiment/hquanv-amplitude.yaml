@@ -1,0 +1,12 @@
+# @package _global_
+
+defaults:
+  - override /model: hquanv
+  - override /training: mid
+
+expdir: hquanv-amplitude # Experiment directory
+
+model.encoder.params.patch_size: 8
+model.encoder.params.stride: 8
+model.encoder.params.n_qdepth: 2
+model.encoder.params.embedding: amplitude

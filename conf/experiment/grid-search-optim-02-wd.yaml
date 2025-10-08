@@ -1,0 +1,16 @@
+# @package _global_
+
+defaults:
+  - override /model: vqm
+  - override /training: mid
+
+exp_dir: gs-vqm-wd
+
+model:
+  n_qdepth: 50
+
+hydra:
+  mode: MULTIRUN
+  sweeper:
+    params:
+      model.weight_decay: 0.0,0.001,0.005,0.01
