@@ -7,6 +7,8 @@ import re
 from datetime import datetime
 from typing import Dict, Any, List
 
+import pandas as pd
+
 from metrics import MetricsContainer, LoggingService
 from tqdm import tqdm
 from models.ModelFactory import ModelFactory
@@ -115,4 +117,46 @@ def load_experiment(path: str, *, load: str = "final", map_location: str = "cpu"
             raise ValueError(f"Unknown load type '{load}'")
 
     return experiment
+
+
+def load_attacks(path: str) -> pd.DataFrame:
+    """Load attack results from ``path``.
+
+    Parameters
+    ----------
+    path:
+        CSV file containing previously computed attack results.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Loaded attack results.
+
+    Raises
+    ------
+    FileNotFoundError
+        If ``path`` does not exist.
+    ValueError
+        If the CSV file is missing required columns.
+    """
+
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Results path '{path}' does not exist.")
+
+    results = pd.read_csv(path)
+    expected_cols = {
+        "seed",
+        "source_model",
+        "target_model",
+        "epsilon",
+        "accuracy",
+    }
+    missing_cols = expected_cols - set(results.columns)
+    if missing_cols:
+        missing = ", ".join(sorted(missing_cols))
+        raise ValueError(
+            f"Results file at '{path}' is missing required columns: {missing}"
+        )
+
+    return results
 
