@@ -13,7 +13,7 @@ from metrics import LoggingService
 from utils import calculate_accuracy, seed_experiment
 from datasets import DatasetFactory
 from attacks import AttackFactory
-from loading import load_experiment
+from loading import load_attacks, load_experiment
 from visualisation.attacks import plot_transfer_attack_effects
 
 
@@ -25,10 +25,39 @@ def run_attacks(
     attack_params: dict,
     epsilons,
     dataset_root: str = "./data/processed",
+    results_path: str | None = None,
 ):
-    """Run pairwise transfer attacks among the trained models."""
+    """Run pairwise transfer attacks among the trained models.
+
+    If ``results_path`` is provided, existing results are loaded from the CSV file and
+    reused so that previously computed (source model, target model) pairs are not
+    recomputed.
+    """
 
     records = []
+    existing_pairs = set()
+
+    if results_path:
+        try:
+            previous_results = load_attacks(results_path)
+        except FileNotFoundError:
+            print(
+                f"Results path '{results_path}' does not exist. Proceeding without preloaded results."
+            )
+        else:
+            records.extend(previous_results.to_dict("records"))
+            existing_pairs = set(
+                zip(
+                    previous_results["seed"],
+                    previous_results["source_model"],
+                    previous_results["target_model"],
+                    previous_results["epsilon"],
+                )
+            )
+            if existing_pairs:
+                print(
+                    f"Loaded {len(previous_results)} existing attack results from '{results_path}'."
+                )
 
     models_by_seed = defaultdict(list)
     for model_seeds in trained_models.values():
@@ -54,6 +83,14 @@ def run_attacks(
             pbar = tqdm([(model, epsilon) for model in models for epsilon in epsilons],
                         desc="Attacking Models")
             for victim_model, epsilon in pbar:
+                pair_id = (
+                    seed,
+                    attacker_model.model_path,
+                    victim_model.model_path,
+                    epsilon,
+                )
+                if pair_id in existing_pairs:
+                    continue
                 pbar.set_postfix(info=victim_model.model_path)
                 adv_examples = attack.attack(attacker_model, epsilon).to(device)
                 victim_model.eval()
@@ -94,6 +131,7 @@ def main(cfg: DictConfig) -> None:
         cfg.attack,
         epsilons,
         cfg.dataset.root,
+        cfg.get("results_path", None),
     )
     attack_path = os.path.join(ls.root_dir, "attacks")
     os.makedirs(attack_path, exist_ok=True)
