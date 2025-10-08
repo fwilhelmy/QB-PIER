@@ -51,6 +51,7 @@ def run_attacks(
                     previous_results["seed"],
                     previous_results["source_model"],
                     previous_results["target_model"],
+                    previous_results["epsilon"],
                 )
             )
             if existing_pairs:
@@ -82,7 +83,12 @@ def run_attacks(
             pbar = tqdm([(model, epsilon) for model in models for epsilon in epsilons],
                         desc="Attacking Models")
             for victim_model, epsilon in pbar:
-                pair_id = (seed, attacker_model.model_path, victim_model.model_path)
+                pair_id = (
+                    seed,
+                    attacker_model.model_path,
+                    victim_model.model_path,
+                    epsilon,
+                )
                 if pair_id in existing_pairs:
                     continue
                 pbar.set_postfix(info=victim_model.model_path)
