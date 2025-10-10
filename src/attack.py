@@ -90,6 +90,7 @@ def run_attacks(
                     epsilon,
                 )
                 if pair_id in existing_pairs:
+                    print(f"Detected existing results for {pair_id}, skipping...")
                     continue
                 pbar.set_postfix(info=victim_model.model_path)
                 adv_examples = attack.attack(attacker_model, epsilon).to(device)
@@ -118,7 +119,7 @@ def main(cfg: DictConfig) -> None:
     run_dir = HydraConfig.get().run.dir
     ls = LoggingService(run_dir)
     models = load_experiment(
-        cfg.experiment_dir, load=cfg.model_load, map_location=cfg.device.device
+        cfg.expdir, load=cfg.model_load, map_location=cfg.device.device
     )
     if 100 % cfg.stride != 0:
         raise ValueError("stride must divide 100")

@@ -162,12 +162,12 @@ def plot_confusion_matrix(
     plt.savefig(os.path.join(out_dir, "confusion_matrix.png"))
     plt.close()
 
-from attacks.FGSMAttack import FGSMAttack
+from src.attacks.FGSM import FGSM
 
 @rank_zero_only
 def plot_perturbation_and_saliency(
     model,
-    attack: FGSMAttack,
+    attack: FGSM,
     device: torch.device,
     epsilon: float
 ):
