@@ -6,11 +6,11 @@ import torch
 from tqdm import tqdm
 
 class BaseDataset:
-    def __init__(self, root: str = "./data/processed", train: bool = True):
+    def __init__(self, root: str = "./data/processed", train: bool = True, **kwargs):
         self.root = root
-        self.dataset = self.load_dataset(train=train)
-        
-    def load_dataset(self, train: bool):
+        self.dataset = self.load_dataset(train=train, **kwargs)
+
+    def load_dataset(self, train: bool, **kwargs):
         raise NotImplementedError("This method should be overridden in subclasses")
     
     def __calculate_stats(self):

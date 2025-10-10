@@ -23,7 +23,7 @@ class PlusMinus(BaseDataset):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def load_dataset(self, train: bool):
+    def load_dataset(self, train: bool, **kwargs):
         [pm] = qml.data.load("other", name="plus-minus")
 
         x_np = pm.img_train if train else pm.img_test
