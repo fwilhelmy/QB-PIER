@@ -15,11 +15,11 @@ from attacks import AttackFactory, BaseAttack
 
 
 @AttackFactory.attack("fgsm")
-class FGSMAttack(BaseAttack):
+class FGSM(BaseAttack):
     """Fast Gradient Sign Method attack."""
 
-    def __init__(self, dataset: Dataset, max_samples: Optional[int] = None) -> None:
-        super().__init__("FGSM", dataset, max_samples)
+    def __init__(self, **kwargs) -> None:
+        super().__init__("FGSM", **kwargs)
         self.gradients: dict[str, List[tuple[Tensor, Tensor]]] = {}
 
     def _fgsm(self, image: Tensor, gradient: Tensor, epsilon: float) -> Tensor:
@@ -30,8 +30,7 @@ class FGSMAttack(BaseAttack):
     def compute_gradients(
         self,
         model,
-        max_x: Optional[int] = None,
-        batch_size: int = 64,
+        max_x: Optional[int] = None
     ):
         """Return gradients for ``model`` on this dataset.
 
@@ -46,15 +45,14 @@ class FGSMAttack(BaseAttack):
         gradients: List[tuple[Tensor, Tensor]] = []
         model.eval()
         state = copy.deepcopy(model.state_dict())  # save model weights
-        max_x = max_x or self.max_samples or len(self.dataset)
 
         loader = torch.utils.data.DataLoader(
-            self.dataset, batch_size=batch_size, shuffle=False
+            self.dataset, batch_size=self.batch_size, shuffle=False
         )
         processed = 0
         pbar = tqdm(loader, desc=f"Computing gradients for {model.model_path}")
         for images, targets in pbar:
-            if processed >= max_x:
+            if processed >= self.max_samples:
                 break
             images = images.clone().detach().to(torch.float32)
             images.requires_grad_(True)

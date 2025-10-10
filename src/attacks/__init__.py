@@ -2,12 +2,12 @@
 
 from .AttackFactory import AttackFactory
 from .BaseAttack import BaseAttack
-from .FGSMAttack import FGSMAttack
-from .PGDAttack import PGDAttack
+from .FGSM import FGSM
+from .PGD import PGD
 
 __all__ = [
     "AttackFactory",
     "BaseAttack",
-    "FGSMAttack",
-    "PGDAttack",
+    "FGSM",
+    "PGD",
 ]

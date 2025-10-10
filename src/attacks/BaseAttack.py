@@ -5,8 +5,8 @@ from typing import Optional
 
 import torch
 from torch import Tensor
+from torch.utils.data import Dataset
 
-from datasets.BaseDataset import BaseDataset
 
 
 class BaseAttack(ABC):
@@ -17,12 +17,15 @@ class BaseAttack(ABC):
     def __init__(
         self,
         attack_name: str,
-        dataset,
+        dataset: Dataset,
         max_samples: Optional[int] = None,
+        batch_size: int = 64,
+        **kwargs,
     ) -> None:
         self.attack_name = attack_name
         self.dataset = dataset
-        self.max_samples = max_samples
+        self.max_samples = max_samples or len(self.dataset)
+        self.batch_size = batch_size
 
     @abstractmethod
     def attack(self, model, epsilon: float, **kwargs) -> Tensor:
