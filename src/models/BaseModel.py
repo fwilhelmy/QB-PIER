@@ -40,13 +40,8 @@ class BaseModel(LightningModule):
         self.model_path = model_path
         self.input_size = input_size
         self.output_size = output_size
-
-        self.configure_directories()
-        self.metrics = MetricsContainer(self.log_dir)
-
-    def configure_directories(self) -> None:
-        # Build folder paths using class name, model_name, seed
         self.log_dir = os.path.join(LoggingService().root_dir, self.model_path)
+        self.metrics = MetricsContainer(self.log_dir)
 
     @rank_zero_only
     def _init_directories(self) -> None:
