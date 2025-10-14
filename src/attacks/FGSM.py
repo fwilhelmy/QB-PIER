@@ -50,7 +50,7 @@ class FGSM(BaseAttack):
             self.dataset, batch_size=self.batch_size, shuffle=False
         )
         processed = 0
-        pbar = tqdm(loader, desc=f"Computing gradients for {model.model_path}")
+        pbar = tqdm(loader, desc=f"Computing gradients")
         for images, targets in pbar:
             if processed >= self.max_samples:
                 break
