@@ -19,7 +19,8 @@ class LoggingService:
     def __init__(self, root_dir: str = "logs", *args, **kwargs):
         if not hasattr(self, 'initialized'):
             self.initialized = True
-            self.root_dir = root_dir
+            self._root_dir = root_dir
+            self._init_root_dir()
             self._start_time = datetime.now()
             self._info = {
                 "pipeline_version": __version__,
@@ -31,11 +32,6 @@ class LoggingService:
     @property
     def root_dir(self) -> str:
         return self._root_dir
-
-    @root_dir.setter
-    def root_dir(self, value: str):
-        self._root_dir = value
-        self._init_root_dir()
 
     @rank_zero_only
     def _init_root_dir(self):
