@@ -184,9 +184,6 @@ class BaseModel(LightningModule):
         """
         Thin wrapper that calls Lightning’s Trainer.fit(), then saves a final checkpoint and metrics.
         """
-        self._init_directories()
-        self.metrics._init_directories()
-
         with self.metrics.timeit("training_time", step=self.global_step):
             try:
                 if not hasattr(self, "trainer"):
