@@ -54,9 +54,9 @@ def run_attacks(trained_models, cfg: DictConfig):
         LoggingService().log_error(formated_message)
 
     models_by_seed = defaultdict(list)
-    for model_seeds in trained_models.values():
+    for model_name, model_seeds in trained_models.items():
         for seed, model in model_seeds.items():
-            models_by_seed[seed].append(model)
+            models_by_seed[seed].append((model_name, model))
 
     attack_args = {k: v for k, v in cfg.attack.items() if k != "name"}
 
@@ -71,22 +71,28 @@ def run_attacks(trained_models, cfg: DictConfig):
 
         attack = AttackFactory.create(cfg.attack.name, dataset=dm.dataset, **attack_args)
 
-        for attacker_model in models:
-            print(f"Attacking with source model {attacker_model.model_path}")
+        for attacker_name, attacker_model in models:
+            print(f"Attacking with source model {attacker_name}")
             attacker_model.eval()
-            pbar = tqdm([(model, epsilon) for model in models for epsilon in epsilons],
-                        desc="Attacking Models")
-            for victim_model, epsilon in pbar:
+            pbar = tqdm(
+                [
+                    (victim_name, victim_model, epsilon)
+                    for victim_name, victim_model in models
+                    for epsilon in epsilons
+                ],
+                desc="Attacking Models",
+            )
+            for victim_name, victim_model, epsilon in pbar:
                 pair_id = (
                     seed,
-                    attacker_model.model_path,
-                    victim_model.model_path,
+                    attacker_name,
+                    victim_name,
                     epsilon,
                 )
                 if pair_id in existing_pairs:
                     print(f"Detected existing results for {pair_id}, skipping...")
                     continue
-                pbar.set_postfix(info=victim_model.model_path)
+                pbar.set_postfix(info=victim_name)
                 adv_examples = attack.attack(attacker_model, epsilon).to(cfg.device.device)
                 victim_model.eval()
                 with torch.no_grad():
@@ -98,8 +104,8 @@ def run_attacks(trained_models, cfg: DictConfig):
                 records.append(
                     {
                         "seed": seed,
-                        "source_model": attacker_model.model_path,
-                        "target_model": victim_model.model_path,
+                        "source_model": attacker_name,
+                        "target_model": victim_name,
                         "epsilon": epsilon,
                         "accuracy": float(adv_acc),
                     }
