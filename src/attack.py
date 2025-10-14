@@ -3,6 +3,7 @@ from math import e
 import os
 
 import pandas as pd
+from sympy import root
 import torch
 from tqdm import tqdm
 
@@ -109,14 +110,13 @@ def run_attacks(trained_models, cfg: DictConfig):
 @hydra.main(config_path="../conf", config_name="attack", version_base=None)
 def main(cfg: DictConfig) -> None:
     """Entry point for running model transfer attacks."""
-    ls = LoggingService(cfg.expdir)
-    models = load_experiment(cfg.models_path, load=cfg.model_load, map_location=cfg.device.device
-    )
+    run_dir = HydraConfig.get().run.dir
+    ls = LoggingService(run_dir)
+    models = load_experiment(cfg.models_path, load=cfg.model_load, map_location=cfg.device.device)
     attack_results = run_attacks(models, cfg)
-    attack_path = os.path.join(ls.root_dir, "attacks")
-    os.makedirs(attack_path, exist_ok=True)
-    attack_results.to_csv(os.path.join(attack_path, "results.csv"), index=False)
-    attack_results.to_json(os.path.join(attack_path, "results.json"), index=False)
+    os.makedirs(ls.root_dir, exist_ok=True)
+    attack_results.to_csv(os.path.join(ls.root_dir, "results.csv"), index=False)
+    attack_results.to_json(os.path.join(ls.root_dir, "results.json"), index=False)
     plot_transfer_attack_effects(attack_results, title_prefix="attacks/")
 
 if __name__ == "__main__":
