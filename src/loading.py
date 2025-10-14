@@ -63,6 +63,7 @@ def load_model(path: str, *, best: bool = True, map_location: str = "cpu") -> Di
     Dict[str, Any]
         Mapping of seed value to the loaded model instance.
     """
+
     with open(os.path.join(path, ".model"), "r") as f:
         model_name = f.read().strip()
     models = {}
@@ -100,19 +101,16 @@ def load_experiment(path: str, *, load: str = "final", map_location: str = "cpu"
     :class:`~metrics.LoggingService` to store any logs inside a timestamped
     subdirectory of ``path``.
     """
-    timestamp = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
-    LoggingService(os.path.join(path, timestamp))
-
     experiment = {}
-    for root in tqdm(crawl_experiments(path), desc="Loading experiment"):
-        name = os.path.relpath(root, path)
+    for model_path in tqdm(crawl_experiments(path), desc="Loading experiment"):
+        name = os.path.relpath(model_path, path)
 
         if load == "metrics":
-            experiment[name] = load_metrics(root)
+            experiment[name] = load_metrics(model_path)
         elif load == "final":
-            experiment[name] = load_model(root, best=False, map_location=map_location)
+            experiment[name] = load_model(model_path, best=False, map_location=map_location)
         elif load == "best":
-            experiment[name] = load_model(root, best=True, map_location=map_location)
+            experiment[name] = load_model(model_path, best=True, map_location=map_location)
         else:
             raise ValueError(f"Unknown load type '{load}'")
 
