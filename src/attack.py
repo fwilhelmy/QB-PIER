@@ -27,9 +27,7 @@ def run_attacks(trained_models, cfg: DictConfig):
     recomputed.
     """
 
-    if 100 % cfg.stride != 0:
-        raise ValueError("stride must divide 100")
-    epsilons = [i / 100 for i in range(0, 101, cfg.stride)]
+    epsilons = [i / 100 for i in range(0, 101, 2)]
 
     records = []
     existing_pairs = set()
@@ -42,7 +40,6 @@ def run_attacks(trained_models, cfg: DictConfig):
                 previous_results["seed"],
                 previous_results["source_model"],
                 previous_results["target_model"],
-                previous_results["epsilon"],
             )
         )
         if existing_pairs:
@@ -74,24 +71,25 @@ def run_attacks(trained_models, cfg: DictConfig):
         for attacker_name, attacker_model in models:
             print(f"Attacking with source model {attacker_name}")
             attacker_model.eval()
-            pbar = tqdm(
-                [
-                    (victim_name, victim_model, epsilon)
-                    for victim_name, victim_model in models
-                    for epsilon in epsilons
-                ],
-                desc="Attacking Models",
-            )
-            for victim_name, victim_model, epsilon in pbar:
+            attack_plan = []
+            for victim_name, victim_model in models:
                 pair_id = (
                     seed,
                     attacker_name,
                     victim_name,
-                    epsilon,
                 )
                 if pair_id in existing_pairs:
                     print(f"Detected existing results for {pair_id}, skipping...")
                     continue
+                attack_plan.extend(
+                    (victim_name, victim_model, epsilon) for epsilon in epsilons
+                )
+
+            if not attack_plan:
+                continue
+
+            pbar = tqdm(attack_plan, desc="Attacking Models")
+            for victim_name, victim_model, epsilon in pbar:
                 pbar.set_postfix(info=victim_name)
                 adv_examples = attack.attack(attacker_model, epsilon).to(cfg.device.device)
                 victim_model.eval()
