@@ -162,7 +162,7 @@ def plot_confusion_matrix(
     plt.savefig(os.path.join(out_dir, "confusion_matrix.png"))
     plt.close()
 
-from src.attacks.FGSM import FGSM
+from attacks.FGSM import FGSM
 
 @rank_zero_only
 def plot_perturbation_and_saliency(

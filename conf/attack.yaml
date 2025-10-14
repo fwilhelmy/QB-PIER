@@ -12,6 +12,7 @@ LOGS_DIR: ./logs
 model_load: final
 stride: 2 # Stride of the epsilons (0 to 100)
 results_path: null
+models_path: ???
 
 hydra:
   run:
