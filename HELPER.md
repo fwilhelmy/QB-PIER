@@ -1,0 +1,71 @@
+# Helper Commands
+
+This document collects frequently used commands for working with the remote server and monitoring experiments.
+
+## Screen Sessions
+
+```bash
+screen [-ls] [-r]
+```
+
+## Process Monitoring
+
+```bash
+htop
+```
+
+## Server Connection
+
+```bash
+ssh -l AP09650 replica.logti.etsmtl.ca
+```
+
+## Activate Conda Environment
+
+```bash
+source miniconda3/bin/activate && conda activate QAML && cd QMLBenchmark
+```
+
+## Copy Results from Remote to Local Machine
+
+```bash
+scp -r AP09650@replica.logti.etsmtl.ca:QMLBenchmark\results C:\Users\fwilh\Desktop\GINO\
+```
+
+## Run Job in the Background
+
+```bash
+nohup python QMLBenchmark/src/main.py > funsies.out 2> oopsies.err < /dev/null &
+```
+
+## Follow Job Output
+
+```bash
+tail -f funsies.out
+```
+
+## Watch Training Locally
+
+```bash
+tensorboard --logdir=.
+```
+
+## Watch Training Remotely
+
+1. On the remote server, start TensorBoard bound to localhost on port 6006:
+
+    ```bash
+    tensorboard --logdir=. --port=6006
+    ```
+
+2. On your local machine, open a second terminal and establish an SSH tunnel that forwards a local port (for example 6006) to the remote TensorBoard port:
+
+    ```bash
+    ssh -L 6006:localhost:6006 AP09650@replica.logti.etsmtl.ca
+    ```
+
+3. Open a browser on your local machine and navigate to:
+
+    ```
+    http://localhost:6006
+    ```
