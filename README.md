@@ -19,15 +19,17 @@ The codebase focuses on benchmarking the adversarial robustness of different cla
 Results (checkpoints, figures and TensorBoard logs) are saved under a timestamped folder created by Hydra and consumed by `LoggingService`.
 
 ## Installation
-1. Create a Python 3 environment.
-2. Install the dependencies listed in `requirements.txt`:
+1. Ensure you have Python 3.8 or newer available (the provided helpers create a Python 3.10 environment).
+2. Create and activate a virtual environment. Running `make create_environment` will:
+   - create a conda environment named `QMLBenchmark` with Python 3.10 when conda is available, or
+   - create a local `.venv` directory using `python -m venv` as a fallback.
+   Use `make help` to list all available Makefile commands.
+3. Install the dependencies listed in `requirements.txt`:
    ```bash
    pip install -r requirements.txt
    ```
    Alternatively, run `make requirements` to verify the interpreter and install everything.
    The pipeline requires `hydra-core` version 1.3 or newer.
-3. For a quick virtual environment setup you can run `make create_environment`.
-   Use `make help` to list all available Makefile commands.
 4. Run `python test_environment.py` to confirm the Python interpreter meets the
    requirements.
 
@@ -54,6 +56,12 @@ Experiments are orchestrated with [Hydra](https://github.com/facebookresearch/hy
 The entry point [`main.py`](src/main.py) is decorated with `@hydra.main` and reads
 defaults from [`conf/`](conf/). Any parameter can be overridden on the command line
 to modify a run without touching the code.
+
+The top-level `Makefile` provides shortcuts that forward Hydra overrides via an
+`ARGS` variable. For example, `make train ARGS="device=colab_t4"` dispatches to
+`python -m src.train`, and `make attack ARGS="attack=pgd dataset=fmnist"` wraps
+`python -m src.attack`. Using these helpers keeps experiment commands consistent
+across machines.
 
 Device profiles under `conf/device/` make it easy to switch hardware settings:
 
@@ -138,7 +146,7 @@ The experiment root contains an `experiment_info.json` similar to:
 
 ```json
 {
-  "pipeline_version": "0.1.0",
+  "pipeline_version": "0.2.0",
   "start_time": "2025-07-04T00:46:06.599638",
   "cuda_available": false,
   "configuration": {"DATA_DIR": "./data/processed", ...}
@@ -167,11 +175,8 @@ Both commands should complete without errors once all required packages are
 available.
 
 ## Documentation
-Sphinx documentation lives in `docs/`. After installing `Sphinx`, you can build the HTML pages with:
-```bash
-cd docs
-make html
-```
+Sphinx documentation lives in `docs/`. After installing `Sphinx`, you can build the
+HTML pages with `make docs`, which runs `sphinx-build -b html docs docs/_build/html`.
 Open `_build/html/index.html` in a browser to read the generated documentation.
 
 ## Credits
