@@ -17,14 +17,6 @@ contributions can easily locate the right place for additional coverage.
 - `models/`
   - Reserved for model-specific tests.  Add new files here when covering model
     training or inference behaviour directly.
-- `services/`
-  - Logging and auxiliary service tests that exercise infrastructure helpers.
-- `use_cases/`
-  - Higher-level integration scenarios that stitch multiple components together
-    to exercise primary user workflows.
-- `utils/`
-  - Pure utility helpers and math routines that support the rest of the code
-    base.
 
 `conftest.py` remains at the root to configure shared fixtures and ensure the
 project's `src/` package is importable from any test module.
