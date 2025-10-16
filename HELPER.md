@@ -29,7 +29,7 @@ source miniconda3/bin/activate && conda activate QAML && cd QMLBenchmark
 ## Copy Results from Remote to Local Machine
 
 ```bash
-scp -r AP09650@replica.logti.etsmtl.ca:QMLBenchmark\results C:\Users\fwilh\Desktop\GINO\
+scp -r AP09650@replica.logti.etsmtl.ca:QMLBenchmark\logs C:\Users\fwilh\Desktop\REPLICA\
 ```
 
 ## Run Job in the Background
