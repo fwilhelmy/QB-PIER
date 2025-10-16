@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 import types
 from pathlib import Path
@@ -23,9 +24,17 @@ def _stub_pytorch_lightning() -> None:
 
     pl_module = types.ModuleType("pytorch_lightning")
 
-    class _LightningModule:
+    try:
+        import torch.nn as _nn  # type: ignore
+        _base = _nn.Module
+    except Exception:  # pragma: no cover - torch is a hard dependency for real tests
+        _base = object
+
+    class _LightningModule(_base):
         def __init__(self, *args, **kwargs):
+            super().__init__()
             self.hparams = {}
+            self.global_step = 0
 
         def save_hyperparameters(self, *names, **kwargs):
             for name in names:
@@ -37,13 +46,18 @@ def _stub_pytorch_lightning() -> None:
         def log(self, *args, **kwargs):
             return None
 
-        def parameters(self):
-            return []
+        def __call__(self, *args, **kwargs):
+            return self.forward(*args, **kwargs)
 
     class _Trainer:
         def __init__(self, *args, **kwargs):
-            self.callbacks = kwargs.get("callbacks", [])
+            self.callbacks = list(kwargs.get("callbacks", []))
             self.default_root_dir = kwargs.get("default_root_dir")
+            self.max_steps = kwargs.get("max_steps")
+            self.accelerator = kwargs.get("accelerator")
+            self.devices = kwargs.get("devices")
+            self.logger = kwargs.get("logger")
+            self.val_check_interval = kwargs.get("val_check_interval")
 
         def fit(self, *args, **kwargs):
             return None
@@ -54,11 +68,21 @@ def _stub_pytorch_lightning() -> None:
     pl_module.LightningModule = _LightningModule
     pl_module.Trainer = _Trainer
 
+    class _StubTensorBoardLogger:
+        def __init__(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+
     loggers_module = types.ModuleType("pytorch_lightning.loggers")
-    loggers_module.TensorBoardLogger = object
+    loggers_module.TensorBoardLogger = _StubTensorBoardLogger
+
+    class _StubModelCheckpoint:
+        def __init__(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
 
     callbacks_module = types.ModuleType("pytorch_lightning.callbacks")
-    callbacks_module.ModelCheckpoint = object
+    callbacks_module.ModelCheckpoint = _StubModelCheckpoint
 
     callback_module = types.ModuleType("pytorch_lightning.callbacks.callback")
     callback_module.Callback = type("Callback", (), {})
@@ -123,7 +147,42 @@ def _stub_matplotlib() -> None:
         return
     matplotlib_module = types.ModuleType("matplotlib")
     pyplot_module = types.ModuleType("matplotlib.pyplot")
+
+    class _Figure:
+        def __init__(self):
+            self.saved = []
+
+        def savefig(self, path):
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "wb") as handle:
+                handle.write(b"")
+            self.saved.append(path)
+
+    class _Axis:
+        def imshow(self, *args, **kwargs):
+            return None
+
+        def set_xticks(self, *args, **kwargs):
+            return None
+
+        def set_yticks(self, *args, **kwargs):
+            return None
+
+        def axis(self, *args, **kwargs):
+            return None
+
+    class _Axes(list):
+        def flatten(self):
+            return self
+
+    def _subplots(rows, cols, figsize=None):
+        fig = _Figure()
+        axes = _Axes([_Axis() for _ in range(rows * cols)])
+        return fig, axes
+
+    pyplot_module.subplots = _subplots
     pyplot_module.close = lambda *args, **kwargs: None
+    pyplot_module.tight_layout = lambda *args, **kwargs: None
     matplotlib_module.pyplot = pyplot_module
     sys.modules.update(
         {
