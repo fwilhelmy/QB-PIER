@@ -23,19 +23,19 @@ ssh -l AP09650 replica.logti.etsmtl.ca
 ## Activate Conda Environment
 
 ```bash
-source miniconda3/bin/activate && conda activate QB-PIER && cd QB-PIER
+source miniconda3/bin/activate && conda activate QAML && cd QMLBenchmark
 ```
 
 ## Copy Results from Remote to Local Machine
 
 ```bash
-scp -r AP09650@replica.logti.etsmtl.ca:QB-PIER\results C:\Users\fwilh\Desktop\GINO\
+scp -r AP09650@replica.logti.etsmtl.ca:QMLBenchmark\logs C:\Users\fwilh\Desktop\REPLICA\
 ```
 
 ## Run Job in the Background
 
 ```bash
-nohup python QB-PIER/src/main.py > funsies.out 2> oopsies.err < /dev/null &
+nohup python QMLBenchmark/src/main.py > funsies.out 2> oopsies.err < /dev/null &
 ```
 
 ## Follow Job Output
