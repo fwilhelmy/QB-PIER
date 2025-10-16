@@ -7,7 +7,7 @@
 PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 BUCKET = s3://
 PROFILE = default
-PROJECT_NAME = QMLBenchmark
+PROJECT_NAME = QB-PIER
 PYTHON_INTERPRETER = python3
 
 ifeq (,$(shell which conda))
