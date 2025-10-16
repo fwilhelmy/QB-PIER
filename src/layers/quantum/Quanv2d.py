@@ -41,9 +41,9 @@ class Quanv2d(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.ndim != 4 or x.shape[1] != self.in_channels:
-            LoggingService().log_error(
-                f"Quanv2d expects input shape (batch, {self.in_channels}, H, W)"
-            )
+            message = f"Quanv2d expects input shape (batch, {self.in_channels}, H, W)"
+            LoggingService().log_error(message)
+            raise ValueError(message)
 
         patches = F.unfold(
             x,
