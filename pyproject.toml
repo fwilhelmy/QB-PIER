@@ -3,9 +3,9 @@ requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "qmlbenchmark"
-version = "0.1.0"
-description = "Tools for evaluating the robustness of classical and quantum neural networks against adversarial attacks."
+name = "qb-pier"
+version = "0.2.0"
+description = "Quantum Benchmarking Pipeline for Integrated Evaluation of Robustness"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {file = "LICENSE"}
@@ -29,5 +29,6 @@ dependencies = [
 docs = ["sphinx"]
 
 [tool.setuptools.packages.find]
-include = ["src*"]
+include = ["*"]
+where = ["src"]
 

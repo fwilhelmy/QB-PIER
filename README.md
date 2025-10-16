@@ -138,7 +138,7 @@ The experiment root contains an `experiment_info.json` similar to:
 
 ```json
 {
-  "pipeline_version": "0.1.0",
+  "pipeline_version": "0.2.0",
   "start_time": "2025-07-04T00:46:06.599638",
   "cuda_available": false,
   "configuration": {"DATA_DIR": "./data/processed", ...}
