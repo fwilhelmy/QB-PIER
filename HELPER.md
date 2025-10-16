@@ -74,5 +74,24 @@ tensorboard --logdir=.
 
     ```bash
     pip --disable-pip-version-check list --outdated --format=json | python -c "import json, sys; print('`n'.join([x['name'] for x in json.load(sys.stdin)]))" | ForEach-Object { pip install -U $_ }
-
     ```
+
+
+    ```bash
+    pip --disable-pip-version-check list --outdated --format=json | python -c "import json, sys; print('\n'.join([x['name'] for x in json.load(sys.stdin)]))" | xargs -n1 pip install -U
+    ```
+
+## Profiling
+
+scalene ./src/train.py
+
+--cpu --gpu --memory for profiling all the different things to profile
+
+--profile-all to profile external libs instead of just getting python/native
+--profile-all --profile-only pennylane,torch,lightning,pytorch_lightning,numpy
+
+HTML report written where you choose:
+scalene --cli --html --outfile /path/to/reports/profile.html your_program.py
+
+JSON instead (useful for automation):
+scalene --cli --json --outfile /path/to/reports/profile.json your_program.py
