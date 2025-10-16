@@ -29,6 +29,6 @@ dependencies = [
 docs = ["sphinx"]
 
 [tool.setuptools.packages.find]
-include = ["src*"]
+include = ["*"]
 where = ["src"]
 
