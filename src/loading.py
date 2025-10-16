@@ -95,6 +95,7 @@ def load_metrics(path: str) -> Dict[Any, MetricsContainer]:
 
 def load_experiment(path: str, *, load: str = "final", map_location: str = "cpu") -> Dict[str, Dict[Any, Any]]:
     experiment = {}
+
     for model_path in tqdm(crawl_experiments(path), desc="Loading experiment"):
         name = os.path.relpath(model_path, path)
 
