@@ -94,13 +94,6 @@ def load_metrics(path: str) -> Dict[Any, MetricsContainer]:
     return metrics
 
 def load_experiment(path: str, *, load: str = "final", map_location: str = "cpu") -> Dict[str, Dict[Any, Any]]:
-    """Load every experiment under ``path`` discovered via ``crawl_experiments``.
-
-    The returned dictionary is keyed by the relative directory of each model
-    with respect to ``path``. Additionally, this function configures the
-    :class:`~metrics.LoggingService` to store any logs inside a timestamped
-    subdirectory of ``path``.
-    """
     experiment = {}
     for model_path in tqdm(crawl_experiments(path), desc="Loading experiment"):
         name = os.path.relpath(model_path, path)
