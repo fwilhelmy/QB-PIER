@@ -1,4 +1,4 @@
-.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3 test
+.PHONY: clean lint requirements sync_data_to_s3 sync_data_from_s3 test
 
 #################################################################################
 # GLOBALS                                                                       #
@@ -24,10 +24,6 @@ endif
 requirements: test_environment
 	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
 	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
-
-## Make Dataset
-data: requirements
-	$(PYTHON_INTERPRETER) src/data/make_dataset.py data/raw data/processed
 
 ## Delete all compiled Python files
 clean:
