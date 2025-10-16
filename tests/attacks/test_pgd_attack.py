@@ -3,36 +3,13 @@ import pytest
 torch = pytest.importorskip("torch")
 
 from src.attacks.PGD import PGD
-
-
-class DummyDatasetManager:
-    def __init__(self, dataset):
-        self.dataset = dataset
-
-    def compute_gradients(self, model, max_x=None, hot_reload: bool = False):
-        return []
-
-
-class DummyModel(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc = torch.nn.Linear(28 * 28, 10)
-        self.model_path = "dummy"
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = x.view(x.size(0), -1)
-        return self.fc(x)
-
-    @property
-    def loss_fn(self):
-        return torch.nn.functional.cross_entropy
+from tests.datasets.DummyDataset import DummyDataset, DummyDatasetManager
+from tests.models.DummyModel import DummyModel
 
 
 def test_pgd_iterative_updates():
     model = DummyModel()
-    images = torch.zeros(1, 1, 28, 28)
-    labels = torch.tensor([1])
-    dataset = torch.utils.data.TensorDataset(images, labels)
+    dataset = DummyDataset()
     dm = DummyDatasetManager(dataset)
 
     pgd_one = PGD(
