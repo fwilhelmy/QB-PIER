@@ -69,3 +69,10 @@ tensorboard --logdir=.
     ```
     http://localhost:6006
     ```
+
+## Update pip packages
+
+    ```bash
+    pip --disable-pip-version-check list --outdated --format=json | python -c "import json, sys; print('`n'.join([x['name'] for x in json.load(sys.stdin)]))" | ForEach-Object { pip install -U $_ }
+
+    ```
