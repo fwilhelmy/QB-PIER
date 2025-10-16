@@ -57,6 +57,12 @@ The entry point [`main.py`](src/main.py) is decorated with `@hydra.main` and rea
 defaults from [`conf/`](conf/). Any parameter can be overridden on the command line
 to modify a run without touching the code.
 
+The top-level `Makefile` provides shortcuts that forward Hydra overrides via an
+`ARGS` variable. For example, `make train ARGS="device=colab_t4"` dispatches to
+`python -m src.train`, and `make attack ARGS="attack=pgd dataset=fmnist"` wraps
+`python -m src.attack`. Using these helpers keeps experiment commands consistent
+across machines.
+
 Device profiles under `conf/device/` make it easy to switch hardware settings:
 
 ```bash
@@ -169,11 +175,8 @@ Both commands should complete without errors once all required packages are
 available.
 
 ## Documentation
-Sphinx documentation lives in `docs/`. After installing `Sphinx`, you can build the HTML pages with:
-```bash
-cd docs
-make html
-```
+Sphinx documentation lives in `docs/`. After installing `Sphinx`, you can build the
+HTML pages with `make docs`, which runs `sphinx-build -b html docs docs/_build/html`.
 Open `_build/html/index.html` in a browser to read the generated documentation.
 
 ## Credits

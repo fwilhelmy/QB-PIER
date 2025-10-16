@@ -1,4 +1,4 @@
-.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3 test
+.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3 test train attack docs
 
 #################################################################################
 # GLOBALS                                                                       #
@@ -29,6 +29,14 @@ requirements: test_environment
 data: requirements
 	$(PYTHON_INTERPRETER) src/data/make_dataset.py data/raw data/processed
 
+## Train models through Hydra overrides
+train:
+	$(PYTHON_INTERPRETER) -m src.train $(ARGS)
+
+## Launch adversarial attacks with Hydra overrides
+attack:
+	$(PYTHON_INTERPRETER) -m src.attack $(ARGS)
+
 ## Delete all compiled Python files
 clean:
 	find . -type f -name "*.py[co]" -delete
@@ -41,6 +49,10 @@ lint:
 ## Run unit tests
 test:
 	pytest -v
+
+## Build HTML documentation with Sphinx
+docs:
+	sphinx-build -b html docs docs/_build/html
 
 ## Set up python interpreter environment
 create_environment:
