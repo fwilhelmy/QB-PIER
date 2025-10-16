@@ -102,6 +102,7 @@ def load_experiment(path: str, *, load: str = "final", map_location: str = "cpu"
     subdirectory of ``path``.
     """
     experiment = {}
+
     for model_path in tqdm(crawl_experiments(path), desc="Loading experiment"):
         name = os.path.relpath(model_path, path)
 

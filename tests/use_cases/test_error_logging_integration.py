@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 # Ensure src directory is importable
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 from metrics.LoggingService import LoggingService
 from metrics.MetricsContainer import MetricsContainer
