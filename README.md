@@ -38,6 +38,7 @@ Results (checkpoints, figures and TensorBoard logs) are saved under a timestampe
 │   ├── data/             # Dataset management
 │   ├── metrics/          # Metric containers and logging utilities
 │   ├── models/           # Classical, quantum and hybrid models
+│   ├── layers/           # Layer abstractions and implementations (classical, quantum, hybrid)
 │   ├── visualisation/    # Figure generation helpers
 │   └── experiments/      # Experiment utilities
 ├── conf/                 # Hydra configuration files
