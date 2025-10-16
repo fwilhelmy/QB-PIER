@@ -9,7 +9,7 @@ description = "Tools for evaluating the robustness of classical and quantum neur
 readme = "README.md"
 requires-python = ">=3.8"
 license = {file = "LICENSE"}
-authors = [ {name = "F\u00e9lix Wilhelmy"} ]
+authors = [ {name = "Felix Wilhelmy"} ]
 dependencies = [
     "pandas",
     "fastparquet",
