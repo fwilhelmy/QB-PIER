@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from models.quantum.ansatz import BasicEntanglingAnsatz
+from src.layers.quantum.ansatz import BasicEntanglingAnsatz
 
 
 def test_circuit_depth_returns_int():
