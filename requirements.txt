@@ -4,6 +4,7 @@ pennylane
 # Machine learning and deep learning libraries
 torch
 torchvision
+torch-summary
 lightning
 scikit-learn
 umap-learn

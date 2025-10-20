@@ -48,7 +48,7 @@ class LoggingService:
     def save_file(self, content, title, path=None):
         file_dir = os.path.join(self._root_dir, path) if path else self._root_dir
         os.makedirs(file_dir, exist_ok=True)
-        with open(os.path.join(file_dir, title), "w") as file:
+        with open(os.path.join(file_dir, title), "w", encoding="utf-8") as file:
             file.write(content)
 
     @rank_zero_only
