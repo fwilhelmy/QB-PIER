@@ -14,4 +14,4 @@ hydra:
   sweeper:
     params:
       training/optimiser: adam,adamw
-      training.optimiser.optimiser_config.learning_rate: 0.001,0.0003
+      training.optimiser.learning_rate: 0.001,0.0003
