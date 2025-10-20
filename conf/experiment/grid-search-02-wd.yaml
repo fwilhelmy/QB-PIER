@@ -9,9 +9,6 @@ exp_dir: gs-vqm-wd
 model:
   n_qdepth: 50
 
-training:
-  seeds: [0]
-
 hydra:
   mode: MULTIRUN
   sweeper:
