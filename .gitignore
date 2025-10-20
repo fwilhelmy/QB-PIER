@@ -6,9 +6,7 @@ lightning_logs/
 multirun/
 outputs/
 profiles/
-
-todo.txt
-changelog.txt
+notes/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
