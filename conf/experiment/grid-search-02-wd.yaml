@@ -13,4 +13,4 @@ hydra:
   mode: MULTIRUN
   sweeper:
     params:
-      model.weight_decay: 0.0,0.001,0.005,0.01
+      training.optimiser.optimiser_config.weight_decay: 0.0,0.001,0.005,0.01

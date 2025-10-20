@@ -1,0 +1,16 @@
+# @package _global_
+
+defaults:
+  - override /model: vqm
+  - override /training: mid
+
+exp_dir: gs-vqm-optim
+
+model:
+  n_qdepth: 50
+
+hydra:
+  mode: MULTIRUN
+  sweeper:
+    params:
+      training/optimiser: sgd,momentum
