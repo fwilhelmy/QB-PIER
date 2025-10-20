@@ -1,5 +1,5 @@
 defaults:
-  - /model/ansatz@params.ansatz: basic
+  - /model/ansatz@params.ansatz: strong
 name: hpvql
 params:
   in_qlayer: 1024
