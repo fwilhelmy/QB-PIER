@@ -8,7 +8,10 @@ exp_dir: gs-vqm-optim
 
 model:
   n_qdepth: 50
-  
+
+training:
+  log_interval: 1.0
+
 hydra:
   mode: MULTIRUN
   sweeper:
