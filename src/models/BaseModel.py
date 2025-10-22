@@ -7,6 +7,7 @@ from torch.nn import CrossEntropyLoss
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.profilers import AdvancedProfiler
 from pytorch_lightning.utilities import rank_zero_only
 
 import torch.optim as optim
@@ -71,6 +72,8 @@ class BaseModel(LightningModule):
         # Create loggers
         tb_logger = TensorBoardLogger(save_dir=self.log_dir, name=None, version="tensorboard")
         tr_logger = TrainingLogger(ratio=self.hparams["log_interval"])
+
+        profiler = AdvancedProfiler(dirpath=self.log_dir, filename="profile.txt")
         
         # Checkpoint callback
         ckpt_dir = os.path.join(self.log_dir, "checkpoints")
@@ -94,6 +97,7 @@ class BaseModel(LightningModule):
             callbacks=[checkpoint_cb, tr_logger],
             val_check_interval=self.hparams["log_interval"],
             enable_model_summary=False,
+            profiler=profiler,
         )
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
