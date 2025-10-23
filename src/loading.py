@@ -96,9 +96,6 @@ def load_metrics(path: str) -> Dict[Any, MetricsContainer]:
 def load_experiment(path: str, *, load: str = "final", map_location: str = "cpu") -> Dict[str, Dict[Any, Any]]:
     experiment = {}
 
-    log_root = os.path.join(path, datetime.now().strftime("%Y-%m-%d@%H-%M-%S"))
-    LoggingService(root_dir=log_root)
-
     for model_path in tqdm(crawl_experiments(path), desc="Loading experiment"):
         name = os.path.relpath(model_path, path)
 
