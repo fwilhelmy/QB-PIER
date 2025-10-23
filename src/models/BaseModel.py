@@ -6,7 +6,7 @@ from torch.nn import CrossEntropyLoss
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, DeviceStatsMonitor
 from pytorch_lightning.profilers import AdvancedProfiler
 from pytorch_lightning.utilities import rank_zero_only
 
@@ -87,6 +87,9 @@ class BaseModel(LightningModule):
             mode="min"
         )
 
+        # Device stats monitor callback (logs hardware utilization)
+        device_monitor = DeviceStatsMonitor()
+
         # Build the Trainer
         self.trainer: Trainer = Trainer(
             max_steps=self.hparams["max_steps"],
@@ -94,7 +97,7 @@ class BaseModel(LightningModule):
             devices=self.hparams["devices"],
             logger=[tb_logger],
             default_root_dir=self.log_dir,
-            callbacks=[checkpoint_cb, tr_logger],
+            callbacks=[checkpoint_cb, tr_logger, device_monitor],
             val_check_interval=self.hparams["log_interval"],
             enable_model_summary=False,
             profiler=profiler,

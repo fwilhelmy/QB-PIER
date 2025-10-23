@@ -23,6 +23,7 @@ def _stub_pytorch_lightning() -> None:
         return
 
     pl_module = types.ModuleType("pytorch_lightning")
+    pl_module.__path__ = []  # treat as package for submodule imports
 
     try:
         import torch.nn as _nn  # type: ignore
@@ -34,7 +35,7 @@ def _stub_pytorch_lightning() -> None:
         def __init__(self, *args, **kwargs):
             super().__init__()
             self.hparams = {}
-            self.global_step = 0
+            self._global_step = 0
 
         def save_hyperparameters(self, *names, **kwargs):
             for name in names:
@@ -48,6 +49,14 @@ def _stub_pytorch_lightning() -> None:
 
         def __call__(self, *args, **kwargs):
             return self.forward(*args, **kwargs)
+
+        @property
+        def global_step(self):
+            return self._global_step
+
+        @global_step.setter
+        def global_step(self, value):
+            self._global_step = value
 
     class _Trainer:
         def __init__(self, *args, **kwargs):
@@ -84,6 +93,22 @@ def _stub_pytorch_lightning() -> None:
     callbacks_module = types.ModuleType("pytorch_lightning.callbacks")
     callbacks_module.ModelCheckpoint = _StubModelCheckpoint
 
+    class _StubDeviceStatsMonitor:
+        def __init__(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+
+    callbacks_module.DeviceStatsMonitor = _StubDeviceStatsMonitor
+
+    profilers_module = types.ModuleType("pytorch_lightning.profilers")
+
+    class _StubAdvancedProfiler:
+        def __init__(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+
+    profilers_module.AdvancedProfiler = _StubAdvancedProfiler
+
     callback_module = types.ModuleType("pytorch_lightning.callbacks.callback")
     callback_module.Callback = type("Callback", (), {})
 
@@ -104,6 +129,7 @@ def _stub_pytorch_lightning() -> None:
             "pytorch_lightning.loggers": loggers_module,
             "pytorch_lightning.callbacks": callbacks_module,
             "pytorch_lightning.callbacks.callback": callback_module,
+            "pytorch_lightning.profilers": profilers_module,
             "pytorch_lightning.utilities": utilities_module,
         }
     )
