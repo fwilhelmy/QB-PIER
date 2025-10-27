@@ -17,6 +17,9 @@ from datasets import DatasetFactory
 from visualisation.training import plot_training_curves, generate_gradient_flow_plots
 from models.ModelFactory import ModelFactory
 
+import logging
+log = logging.getLogger(__name__)
+
 
 def train_model(cfg: DictConfig, log_dir: str):
     """
@@ -49,7 +52,7 @@ def train_model(cfg: DictConfig, log_dir: str):
         torch.set_num_threads(num_threads)
 
     for idx, seed in enumerate(seeds, start=1):
-        print(f"({idx}/{len(seeds)}); Seed = {seed}  ...")
+        log.info(f"({idx}/{len(seeds)}); Seed = {seed}  ...")
 
         # 1) Seeding
         seed_experiment(seed)
@@ -86,7 +89,7 @@ def train_model(cfg: DictConfig, log_dir: str):
             "accelerator": cfg["device"]["accelerator"],
             "devices": cfg["device"]["devices"],
             "fast_dev_run": cfg["training"].get("fast_dev_run", False),
-        }
+        })
 
         # 4) Training
         start_time = time.time()
@@ -109,7 +112,7 @@ def train_model(cfg: DictConfig, log_dir: str):
     else:
         info += "\nTraining time per epoch: N/A"
     info += f"\nTotal training time (per seed): {avg_time:.2f} seconds"
-    LoggingService().save_file(info, "info.txt", path=log_dir)
+    LoggingService().save_file(info, "model.info", path=log_dir)
 
     return trained
 
@@ -124,7 +127,7 @@ def main(cfg: DictConfig) -> None:
     if HydraConfig.get().mode  == RunMode.MULTIRUN and subdir:
         model_name += f" ({subdir})"
         log_dir = os.path.join(log_dir, subdir)
-    print(f">>> Starting experiment '{model_name}'")
+    log.info(f"Starting experiment '{model_name}'")
 
     trained = train_model(cfg, log_dir)
     plot_training_curves(cfg["model"]["model_class"], trained, log_dir)

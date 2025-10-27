@@ -110,4 +110,4 @@ class LoggingService:
         if self._errors:
             self.save_file("\n".join(self._errors), "errors.log")
 
-        self.save_file(json.dumps(self._info, indent=2), "experiment_info.json")
+        self.save_file(json.dumps(self._info, indent=2), "training.info")

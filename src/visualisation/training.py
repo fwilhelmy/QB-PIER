@@ -136,7 +136,6 @@ def line_with_std(ax, x, mean, std, label=None, **plot_kwargs):
     ax.plot(x, mean, label=label, **plot_kwargs)
     ax.fill_between(x, mean - std, mean + std, alpha=0.2)
 
-
 import numpy as np
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 
