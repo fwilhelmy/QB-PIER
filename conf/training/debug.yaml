@@ -1,0 +1,6 @@
+defaults:
+  - optimiser: adamw
+
+seeds: [0]
+epochs: 1
+fast_dev_run: true

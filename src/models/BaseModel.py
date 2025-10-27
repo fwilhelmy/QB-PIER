@@ -54,12 +54,12 @@ class BaseModel(LightningModule):
     ) -> None:
         self.hparams.update({
             'optimizer': config.get("optimizer", "adam").lower(),
-            'max_steps': config.get("max_steps", 1000),
+            'max_epochs': config.get("max_epochs", 1),
             'learning_rate': config.get("learning_rate", 1e-3),
             'optimiser_config': config.get("optimiser_config", {}),
             'accelerator': config.get("accelerator", "auto"),
             'devices': config.get("devices", 1),
-            'log_interval': config.get("log_interval", 1.0),
+            'fast_dev_run': config.get("fast_dev_run", False),
         })
 
         self._init_training()
@@ -71,7 +71,7 @@ class BaseModel(LightningModule):
 
         # Create loggers
         tb_logger = TensorBoardLogger(save_dir=self.log_dir, name=None, version="tensorboard")
-        tr_logger = TrainingLogger(ratio=self.hparams["log_interval"])
+        tr_logger = TrainingLogger()
 
         profiler = PyTorchProfiler(
             dirpath=self.log_dir,        # where to save files
@@ -99,13 +99,13 @@ class BaseModel(LightningModule):
 
         # Build the Trainer
         self.trainer: Trainer = Trainer(
-            max_steps=self.hparams["max_steps"],
+            max_epochs=self.hparams["max_epochs"],
             accelerator=self.hparams["accelerator"],
             devices=self.hparams["devices"],
             logger=[tb_logger],
             default_root_dir=self.log_dir,
             callbacks=[checkpoint_cb, tr_logger, device_monitor],
-            val_check_interval=self.hparams["log_interval"],
+            fast_dev_run=self.hparams["fast_dev_run"],
             enable_model_summary=False,
             profiler=profiler,
         )
@@ -170,9 +170,9 @@ class BaseModel(LightningModule):
 
     def on_train_epoch_end(self):
         self.metrics.log_epoch(self.global_step)
-        # Log last computed gradient norms captured during backprop. When
-        # log_interval=1.0, gradients are typically cleared by the time we
-        # reach epoch end, so we cache them in on_after_backward.
+        # Log last computed gradient norms captured during backprop. Gradients
+        # are typically cleared by the time we reach epoch end, so we cache
+        # them in on_after_backward.
         if hasattr(self, "_last_grad_l2") and self._last_grad_l2:
             self.metrics.log_dict("grad_l2", self._last_grad_l2, step=self.global_step)
         else:

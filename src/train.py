@@ -79,11 +79,11 @@ def train_model(cfg: DictConfig, log_dir: str):
             configure={
                 "optimizer": cfg["training"]["optimiser"]["name"],
                 "learning_rate": cfg["training"]["optimiser"].get("learning_rate", cfg["training"].get("learning_rate", 1e-3)),
-                "max_steps": cfg["training"]["n_steps"],
+                "max_epochs": cfg["training"]["epochs"],
                 "optimiser_config": cfg["training"]["optimiser"].get("optimiser_config", {}),
                 "accelerator": cfg["device"]["accelerator"],
                 "devices": cfg["device"]["devices"],
-                "log_interval": cfg["training"]["log_interval"],
+                "fast_dev_run": cfg["training"].get("fast_dev_run", False),
             }
         )
         model = model.to(cfg["device"]["device"])
@@ -96,10 +96,18 @@ def train_model(cfg: DictConfig, log_dir: str):
         trained[seed] = model
 
     avg_time = sum(seed_times.values()) / len(seed_times) if seed_times else 0.0
-    epochs = model.trainer.current_epoch if trained else 0
+    if trained:
+        # current_epoch is zero-indexed; add one to report completed epochs
+        epochs_trained = getattr(model.trainer, "current_epoch", -1) + 1
+        epochs = epochs_trained if epochs_trained > 0 else cfg["training"].get("epochs", 0)
+    else:
+        epochs = 0
     info = str(summary(model, input_data=tuple(cfg["dataset"]["input_shape"]), col_names=("num_params","input_size","output_size"),verbose=0))
     info += f"\nTrained epochs: {epochs}"
-    info += f"\nTraining time per epoch: {avg_time/epochs:.2f} seconds"
+    if epochs:
+        info += f"\nTraining time per epoch: {avg_time/epochs:.2f} seconds"
+    else:
+        info += "\nTraining time per epoch: N/A"
     info += f"\nTotal training time (per seed): {avg_time:.2f} seconds"
     LoggingService().save_file(info, "info.txt", path=log_dir)
 
