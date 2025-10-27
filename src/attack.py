@@ -10,6 +10,7 @@ from tqdm import tqdm
 import hydra
 from omegaconf import DictConfig
 from hydra.core.hydra_config import HydraConfig
+from hydra.utils import log
 
 from metrics import LoggingService
 from utils import calculate_accuracy, seed_experiment
@@ -48,7 +49,7 @@ def run_attacks(trained_models, cfg: DictConfig):
             )
     except Exception as ex:
         formated_message = f"Problem loading existing results from '{cfg.results_path}': {ex}"
-        LoggingService().log_error(formated_message)
+        log.error(formated_message)
 
     models_by_seed = defaultdict(list)
     for model_name, model_seeds in trained_models.items():

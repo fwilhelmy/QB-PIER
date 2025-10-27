@@ -2,8 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from hydra.utils import log
+
 from .VQC import VQC
-from metrics import LoggingService
 
 class Quanv2d(nn.Module):
     """Quantum 2D convolution layer using a VQC on image patches."""
@@ -42,7 +43,7 @@ class Quanv2d(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.ndim != 4 or x.shape[1] != self.in_channels:
             message = f"Quanv2d expects input shape (batch, {self.in_channels}, H, W)"
-            LoggingService().log_error(message)
+            log.error(message)
             raise ValueError(message)
 
         patches = F.unfold(

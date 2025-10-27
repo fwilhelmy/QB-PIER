@@ -9,6 +9,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, DeviceStatsMonitor
 from pytorch_lightning.profilers import AdvancedProfiler, SimpleProfiler, PyTorchProfiler
 from pytorch_lightning.utilities import rank_zero_only
+from hydra.utils import log
 
 import torch.optim as optim
 
@@ -120,7 +121,7 @@ class BaseModel(LightningModule):
         if 'log_dir' in checkpoint['hyper_parameters']:
             self.metrics.load_metrics(checkpoint['hyper_parameters']['log_dir'])
         else:
-            LoggingService().log_error("No log directory provided in checkpoint.")
+            log.error("No log directory provided in checkpoint.")
 
     def configure_loss_fn(self) -> None:
         self.loss_fn = CrossEntropyLoss()
@@ -199,8 +200,8 @@ class BaseModel(LightningModule):
         with self.metrics.timeit("training_time", step=self.global_step):
             try:
                 self.trainer.fit(self, train_dataloaders, val_dataloaders)
-            except Exception as e:
-                LoggingService().log_error(f"Error during training: {e}")
+            except Exception as err:
+                log.exception(RuntimeError(f"Error during training: {err}"))
             finally:
                 # self.profiler.teardown(stage=None)
                 self.metrics.save_metrics()
