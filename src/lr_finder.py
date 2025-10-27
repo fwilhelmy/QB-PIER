@@ -1,22 +1,23 @@
 """Standalone script for running PyTorch Lightning's learning rate finder."""
 
 import json
+import logging
 import os
 from typing import Any, Dict
 
 import hydra
-from omegaconf import DictConfig
 import torch
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
 from hydra.core.hydra_config import HydraConfig
 from hydra.types import RunMode
-from hydra.utils import log
+from omegaconf import DictConfig
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 from datasets import DatasetFactory
 from metrics import LoggingService
 from models.ModelFactory import ModelFactory
 from utils import seed_experiment
+
+log = logging.getLogger(__name__)
 
 
 def _build_dataloaders(cfg: DictConfig):

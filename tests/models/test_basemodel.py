@@ -185,6 +185,6 @@ def test_checkpoint_round_trip(simple_model, tmp_path, caplog):
     assert loader.paths == [str(tmp_path)]
 
     simple_model.metrics = loader
-    with caplog.at_level("ERROR", logger="hydra.utils"):
+    with caplog.at_level("ERROR", logger="models.BaseModel"):
         simple_model.on_load_checkpoint({"hyper_parameters": {}})
     assert "No log directory provided in checkpoint." in caplog.text

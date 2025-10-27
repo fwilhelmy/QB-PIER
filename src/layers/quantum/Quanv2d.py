@@ -1,10 +1,12 @@
+import logging
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from hydra.utils import log
-
 from .VQC import VQC
+
+log = logging.getLogger(__name__)
 
 class Quanv2d(nn.Module):
     """Quantum 2D convolution layer using a VQC on image patches."""

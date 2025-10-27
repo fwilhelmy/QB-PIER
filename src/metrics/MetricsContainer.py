@@ -1,15 +1,17 @@
-import os
-import time
 import json
+import logging
+import os
 import pickle
+import time
 from contextlib import contextmanager
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
-import psutil
 import pandas as pd
+import psutil
 import torch
-from hydra.utils import log
 from lightning.pytorch.utilities import rank_zero_only
+
+log = logging.getLogger(__name__)
 
 class MetricsContainer():
     def __init__(

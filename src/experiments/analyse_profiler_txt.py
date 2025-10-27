@@ -1,10 +1,12 @@
+import logging
 import re
-import pandas as pd
-import numpy as np
-from pathlib import Path
 from io import StringIO
+from pathlib import Path
 
-from hydra.utils import log
+import numpy as np
+import pandas as pd
+
+log = logging.getLogger(__name__)
 
 def parse_profiler_txt(path: str) -> pd.DataFrame:
     """

@@ -6,14 +6,15 @@ import logging
 import os
 import re
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 import pandas as pd
-
-from hydra.utils import log
-from metrics import MetricsContainer, LoggingService
 from tqdm import tqdm
+
+from metrics import LoggingService, MetricsContainer
 from models.ModelFactory import ModelFactory
+
+log = logging.getLogger(__name__)
 
 
 def crawl_experiments(path: str) -> List[str]:

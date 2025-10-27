@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import argparse
+import logging
+
 import pandas as pd
 
-from hydra.utils import log
+log = logging.getLogger(__name__)
 
 def main():
     ap = argparse.ArgumentParser(description="Union two CSVs, keeping file1's rows on key conflicts.")

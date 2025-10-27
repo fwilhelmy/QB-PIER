@@ -1,23 +1,24 @@
 from collections import defaultdict
+import logging
 from math import e
 import os
 
+import hydra
 import pandas as pd
-from sympy import root
 import torch
+from hydra.core.hydra_config import HydraConfig
+from omegaconf import DictConfig
+from sympy import root
 from tqdm import tqdm
 
-import hydra
-from omegaconf import DictConfig
-from hydra.core.hydra_config import HydraConfig
-from hydra.utils import log
-
+from attacks import AttackFactory
+from datasets import DatasetFactory
+from loading import load_attacks, load_experiment
 from metrics import LoggingService
 from utils import calculate_accuracy, seed_experiment
-from datasets import DatasetFactory
-from attacks import AttackFactory
-from loading import load_attacks, load_experiment
 from visualisation.attacks import plot_transfer_attack_effects
+
+log = logging.getLogger(__name__)
 
 
 def run_attacks(trained_models, cfg: DictConfig):
