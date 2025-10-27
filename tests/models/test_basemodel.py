@@ -35,19 +35,21 @@ def simple_model(stub_lightning_components, logging_service_root):
 def test_configure_training_sets_up_trainer(simple_model):
     config = {
         "optimizer": "adam",
-        "max_steps": 5,
+        "max_epochs": 5,
         "learning_rate": 1e-2,
         "accelerator": "cpu",
         "devices": 1,
-        "log_interval": 0.25,
+        "fast_dev_run": True,
     }
 
     simple_model.configure_training(config)
 
     assert simple_model.hparams["optimizer"] == "adam"
-    assert simple_model.hparams["max_steps"] == 5
+    assert simple_model.hparams["max_epochs"] == 5
+    assert simple_model.hparams["fast_dev_run"] is True
     assert isinstance(simple_model.loss_fn, torch.nn.CrossEntropyLoss)
     assert simple_model.trainer.default_root_dir == simple_model.log_dir
+    assert simple_model.trainer.fast_dev_run is True
 
     simple_model._init_directories()
     assert os.path.isdir(simple_model.log_dir)
