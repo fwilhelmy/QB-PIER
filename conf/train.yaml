@@ -4,6 +4,7 @@ defaults:
   - dataset: mnist
   - model: lenet
   - training: dev
+  - logging: verbose
   - _self_
 
 expdir: training # Experiment directory

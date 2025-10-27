@@ -11,6 +11,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 from hydra.core.hydra_config import HydraConfig
 from hydra.types import RunMode
+from hydra.utils import log
 
 from datasets import DatasetFactory
 from metrics import LoggingService
@@ -96,10 +97,10 @@ def _run_for_seed(
             early_stop_threshold=lr_cfg.get("early_stop_threshold", 4.0),
         )
     except MisconfigurationException as exc:
-        LoggingService().log_error(f"LR finder misconfiguration: {exc}")
+        log.error("LR finder misconfiguration: %s", exc)
         return {"error": str(exc)}
     except Exception as exc:  # pragma: no cover - robustness
-        LoggingService().log_error(f"Unexpected error during LR finder: {exc}")
+        log.exception("Unexpected error during LR finder")
         return {"error": str(exc)}
 
     suggestion = lr_finder.suggestion()

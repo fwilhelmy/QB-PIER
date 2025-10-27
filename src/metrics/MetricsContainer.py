@@ -8,8 +8,8 @@ from typing import Optional, Dict, Any
 import psutil
 import pandas as pd
 import torch
+from hydra.utils import log
 from lightning.pytorch.utilities import rank_zero_only
-from .LoggingService import LoggingService
 
 class MetricsContainer():
     def __init__(
@@ -96,8 +96,8 @@ class MetricsContainer():
             with open(pkl_path, "rb") as f:
                 data = pickle.load(f)
             self._raw = data.get("_raw", {})
-        except Exception as e:
-            LoggingService().log_error(f"Error loading metrics: {e}")
+        except Exception as err:
+            log.exception(RuntimeError(f"Error loading metrics: {err}"))
         
     @rank_zero_only
     def format_metrics(self) -> pd.DataFrame:

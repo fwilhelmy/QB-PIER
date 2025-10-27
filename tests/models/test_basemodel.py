@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib
 import os
 
 import pytest
@@ -159,7 +158,7 @@ def test_on_after_backward_caches_gradient_norms(simple_model):
     assert simple_model._last_grad_l2
 
 
-def test_checkpoint_round_trip(simple_model, monkeypatch, tmp_path):
+def test_checkpoint_round_trip(simple_model, tmp_path, caplog):
     simple_model.configure_training({})
 
     checkpoint = {}
@@ -185,14 +184,7 @@ def test_checkpoint_round_trip(simple_model, monkeypatch, tmp_path):
     assert isinstance(simple_model.loss_fn, torch.nn.CrossEntropyLoss)
     assert loader.paths == [str(tmp_path)]
 
-    errors = []
-
-    def _log_error(self, message):
-        errors.append(message)
-
-    base_module = importlib.import_module("models.BaseModel")
-    monkeypatch.setattr(base_module.LoggingService, "log_error", _log_error, raising=False)
-
     simple_model.metrics = loader
-    simple_model.on_load_checkpoint({"hyper_parameters": {}})
-    assert errors
+    with caplog.at_level("ERROR", logger="hydra.utils"):
+        simple_model.on_load_checkpoint({"hyper_parameters": {}})
+    assert "No log directory provided in checkpoint." in caplog.text
