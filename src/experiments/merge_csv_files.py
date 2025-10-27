@@ -2,6 +2,8 @@
 import argparse
 import pandas as pd
 
+from hydra.utils import log
+
 def main():
     ap = argparse.ArgumentParser(description="Union two CSVs, keeping file1's rows on key conflicts.")
     ap.add_argument("file1", help="Origin CSV (authoritative)")
@@ -36,8 +38,11 @@ def main():
         combined = combined.sort_values(args.keys, kind="stable")
 
     combined.to_csv(args.out, index=False)
-    print(f"Wrote {args.out} with {len(combined)} rows "
-          f"(file1 rows preserved on key conflicts).")
+    log.info(
+        "Wrote %s with %s rows (file1 rows preserved on key conflicts).",
+        args.out,
+        len(combined),
+    )
 
 if __name__ == "__main__":
     main()

@@ -2,16 +2,17 @@ import torch
 import matplotlib.pyplot as plt
 import random
 from lightning.pytorch.utilities import rank_zero_only
+from hydra.utils import log
 from metrics.LoggingService import LoggingService
 
 # Function to print general information about the dataset
 @rank_zero_only
 def print_dataset_info(dataset):
-    print("Dataset Information:")
-    print(f"Number of samples: {len(dataset)}")
+    log.info("Dataset Information:")
+    log.info("Number of samples: %s", len(dataset))
     if hasattr(dataset, 'classes'):
-        print(f"Number of classes: {len(dataset.classes)}")
-        print(f"Classes: {dataset.classes}")
+        log.info("Number of classes: %s", len(dataset.classes))
+        log.info("Classes: %s", dataset.classes)
 
 # Function to plot class distribution histogram
 @rank_zero_only

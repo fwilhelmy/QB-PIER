@@ -44,8 +44,10 @@ def run_attacks(trained_models, cfg: DictConfig):
             )
         )
         if existing_pairs:
-            print(
-                f"Loaded {len(previous_results)} existing attack results from '{cfg.results_path}'."
+            log.info(
+                "Loaded %s existing attack results from '%s'.",
+                len(previous_results),
+                cfg.results_path,
             )
     except Exception as ex:
         formated_message = f"Problem loading existing results from '{cfg.results_path}': {ex}"
@@ -59,7 +61,7 @@ def run_attacks(trained_models, cfg: DictConfig):
     attack_args = {k: v for k, v in cfg.attack.items() if k != "name"}
 
     for seed, models in models_by_seed.items():
-        print(f"\n>>> Running attacks for seed : {seed}")
+        log.info("\n>>> Running attacks for seed : %s", seed)
         seed_experiment(seed)
 
         dm = DatasetFactory.create(cfg.dataset.dataset, root=cfg.dataset.root)
@@ -70,7 +72,7 @@ def run_attacks(trained_models, cfg: DictConfig):
         attack = AttackFactory.create(cfg.attack.name, dataset=dm.dataset, **attack_args)
 
         for attacker_name, attacker_model in models:
-            print(f"Attacking with source model {attacker_name}")
+            log.info("Attacking with source model %s", attacker_name)
             attacker_model.eval()
             attack_plan = []
             for victim_name, victim_model in models:
@@ -80,7 +82,7 @@ def run_attacks(trained_models, cfg: DictConfig):
                     victim_name,
                 )
                 if pair_id in existing_pairs:
-                    print(f"Detected existing results for {pair_id}, skipping...")
+                    log.info("Detected existing results for %s, skipping...", pair_id)
                     continue
                 attack_plan.extend(
                     (victim_name, victim_model, epsilon) for epsilon in epsilons

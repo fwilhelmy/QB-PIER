@@ -73,7 +73,7 @@ def _run_for_seed(
     base_log_dir: str,
     lr_cfg: Dict[str, Any],
 ) -> Dict[str, Any]:
-    print(f"Running LR finder for seed={seed} ...")
+    log.info("Running LR finder for seed=%s ...", seed)
     seed_experiment(seed)
 
     train_loader, eval_loader = _build_dataloaders(cfg)
@@ -133,9 +133,9 @@ def _run_for_seed(
         reset_fn()
 
     if suggestion is not None:
-        print(f"Suggested learning rate for seed {seed}: {suggestion:.2e}")
+        log.info("Suggested learning rate for seed %s: %.2e", seed, suggestion)
     else:
-        print(f"No learning rate suggestion found for seed {seed}.")
+        log.info("No learning rate suggestion found for seed %s.", seed)
 
     return payload
 
@@ -177,7 +177,10 @@ def main(cfg: DictConfig) -> None:
     if HydraConfig.get().mode == RunMode.MULTIRUN and subdir:
         log_dir = os.path.join(log_dir, subdir)
 
-    print(f">>> Exploring learning rates for '{cfg['model']['model_class']}'")
+    log.info(
+        ">>> Exploring learning rates for '%s'",
+        cfg["model"]["model_class"],
+    )
     run_lr_sweep(cfg, log_dir)
     logging_service.save_experiment()
 

@@ -10,6 +10,7 @@ from torchsummary import summary
 
 from hydra.types import RunMode
 from hydra.core.hydra_config import HydraConfig
+from hydra.utils import log
 
 from metrics import LoggingService
 from utils import seed_experiment
@@ -49,7 +50,7 @@ def train_model(cfg: DictConfig, log_dir: str):
         torch.set_num_threads(num_threads)
 
     for idx, seed in enumerate(seeds, start=1):
-        print(f"({idx}/{len(seeds)}); Seed = {seed}  ...")
+        log.info("(%s/%s); Seed = %s  ...", idx, len(seeds), seed)
 
         # 1) Seeding
         seed_experiment(seed)
@@ -124,7 +125,10 @@ def main(cfg: DictConfig) -> None:
     if HydraConfig.get().mode  == RunMode.MULTIRUN and subdir:
         model_name += f" ({subdir})"
         log_dir = os.path.join(log_dir, subdir)
-    print(f">>> Starting experiment '{model_name}'")
+    log.info(
+        ">>> Starting experiment '%s'",
+        model_name,
+    )
 
     trained = train_model(cfg, log_dir)
     plot_training_curves(cfg["model"]["model_class"], trained, log_dir)
