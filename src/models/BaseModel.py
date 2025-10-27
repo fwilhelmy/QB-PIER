@@ -194,10 +194,10 @@ class BaseModel(LightningModule):
         """
         Thin wrapper that calls Lightning’s Trainer.fit(), then saves a final checkpoint and metrics.
         """
+        if not hasattr(self, "trainer"):
+            raise ValueError("Trainer not configured. Call configure_training() first.")
         with self.metrics.timeit("training_time", step=self.global_step):
             try:
-                if not hasattr(self, "trainer"):
-                    raise ValueError("Trainer not configured. Call configure_training() first.")
                 self.trainer.fit(self, train_dataloaders, val_dataloaders)
             except Exception as e:
                 LoggingService().log_error(f"Error during training: {e}")
