@@ -16,14 +16,11 @@ class ModelFactory(HydraFactory[BaseModel]):
     def create(
         cls,
         name: str,
-        *,
-        configure: Dict[str, Any],
         **kwargs: Any,
     ) -> BaseModel:
         """Instantiate and optionally configure a registered model."""
         model_cls = cls._get(name)
         model = model_cls(**kwargs)
-        model.configure_training(configure)
         # Ensure directories are created for logging
         model._init_directories()
         model.metrics._init_directories()

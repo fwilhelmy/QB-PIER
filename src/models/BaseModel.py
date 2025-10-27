@@ -73,14 +73,15 @@ class BaseModel(LightningModule):
         tb_logger = TensorBoardLogger(save_dir=self.log_dir, name=None, version="tensorboard")
         tr_logger = TrainingLogger()
 
-        profiler = PyTorchProfiler(
-            dirpath=self.log_dir,        # where to save files
-            filename="trace",               # base name
-            export_to_chrome=True,          # export .json file for Chrome Trace
-            record_module_names=True,
-            row_limit=1000,                 # or whatever you need
-            # optionally you can pass profiler kwargs for torch.profiler.profile
-        )
+        # profiler_dirpath = os.path.join(self.log_dir, "profiler")
+        # self.profiler = PyTorchProfiler(
+        #     dirpath=profiler_dirpath,        # where to save files
+        #     filename="trace",               # base name
+        #     export_to_chrome=True,          # export .json file for Chrome Trace
+        #     record_module_names=True,
+        #     row_limit=1000,                 # or whatever you need
+        #     # optionally you can pass profiler kwargs for torch.profiler.profile
+        # )
         
         # Checkpoint callback
         ckpt_dir = os.path.join(self.log_dir, "checkpoints")
@@ -107,7 +108,7 @@ class BaseModel(LightningModule):
             callbacks=[checkpoint_cb, tr_logger, device_monitor],
             fast_dev_run=self.hparams["fast_dev_run"],
             enable_model_summary=False,
-            profiler=profiler,
+            # profiler=self.profiler,
         )
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
@@ -193,13 +194,14 @@ class BaseModel(LightningModule):
         """
         Thin wrapper that calls Lightning’s Trainer.fit(), then saves a final checkpoint and metrics.
         """
+        if not hasattr(self, "trainer"):
+            raise ValueError("Trainer not configured. Call configure_training() first.")
         with self.metrics.timeit("training_time", step=self.global_step):
             try:
-                if not hasattr(self, "trainer"):
-                    raise ValueError("Trainer not configured. Call configure_training() first.")
                 self.trainer.fit(self, train_dataloaders, val_dataloaders)
             except Exception as e:
                 LoggingService().log_error(f"Error during training: {e}")
             finally:
+                # self.profiler.teardown(stage=None)
                 self.metrics.save_metrics()
                 self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")

@@ -1,0 +1,19 @@
+# @package _global_
+
+defaults:
+  - override /training: dev
+
+exp_dir: device-stress-test
+
+training:
+  n_steps: 600
+  seeds: [0]
+
+hydra:
+  mode: MULTIRUN
+  sweeper:
+    params:
+      device: local,colab,ets
+      device.devices: 1,2,3,5
+      device.num_workers: 0,2,4,8
+      device.num_threads: 2,4,8,16

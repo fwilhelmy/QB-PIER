@@ -76,17 +76,17 @@ def train_model(cfg: DictConfig, log_dir: str):
             input_size=cfg["dataset"]["input_shape"],
             output_size=cfg["dataset"]["classes"],
             **model_config,
-            configure={
-                "optimizer": cfg["training"]["optimiser"]["name"],
-                "learning_rate": cfg["training"]["optimiser"].get("learning_rate", cfg["training"].get("learning_rate", 1e-3)),
-                "max_epochs": cfg["training"]["epochs"],
-                "optimiser_config": cfg["training"]["optimiser"].get("optimiser_config", {}),
-                "accelerator": cfg["device"]["accelerator"],
-                "devices": cfg["device"]["devices"],
-                "fast_dev_run": cfg["training"].get("fast_dev_run", False),
-            }
         )
-        model = model.to(cfg["device"]["device"])
+        
+        model.configure_training(config={
+            "optimizer": cfg["training"]["optimiser"]["name"],
+            "learning_rate": cfg["training"]["optimiser"].get("learning_rate", cfg["training"].get("learning_rate", 1e-3)),
+            "max_epochs": cfg["training"]["epochs"],
+            "optimiser_config": cfg["training"]["optimiser"].get("optimiser_config", {}),
+            "accelerator": cfg["device"]["accelerator"],
+            "devices": cfg["device"]["devices"],
+            "fast_dev_run": cfg["training"].get("fast_dev_run", False),
+        }
 
         # 4) Training
         start_time = time.time()
