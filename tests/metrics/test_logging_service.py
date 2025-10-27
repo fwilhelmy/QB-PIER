@@ -7,9 +7,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import types
 sys.modules.setdefault("psutil", types.ModuleType("psutil"))
 
-from hydra.utils import log
-
 from src.metrics.LoggingService import LoggingService
+
+log = logging.getLogger(__name__)
 
 
 def test_logging_service_writes_errors(tmp_path, caplog):

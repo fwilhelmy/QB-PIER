@@ -1,22 +1,23 @@
 from collections import defaultdict
+import logging
 import os
 import time
 from typing import Dict, List
 
 import hydra
-from omegaconf import DictConfig
 import torch
+from hydra.core.hydra_config import HydraConfig
+from hydra.types import RunMode
+from omegaconf import DictConfig
 from torchsummary import summary
 
-from hydra.types import RunMode
-from hydra.core.hydra_config import HydraConfig
-from hydra.utils import log
-
-from metrics import LoggingService
-from utils import seed_experiment
 from datasets import DatasetFactory
-from visualisation.training import plot_training_curves, generate_gradient_flow_plots
+from metrics import LoggingService
 from models.ModelFactory import ModelFactory
+from utils import seed_experiment
+from visualisation.training import generate_gradient_flow_plots, plot_training_curves
+
+log = logging.getLogger(__name__)
 
 
 def train_model(cfg: DictConfig, log_dir: str):

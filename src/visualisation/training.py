@@ -1,11 +1,15 @@
-import numpy as np
+import logging
+import math
+
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 from lightning.pytorch.utilities import rank_zero_only
-from hydra.utils import log
+from matplotlib.ticker import FixedLocator, MaxNLocator, NullFormatter, NullLocator
+
 from metrics.LoggingService import LoggingService
-from matplotlib.ticker import FixedLocator, NullFormatter, NullLocator, MaxNLocator
-import math
+
+log = logging.getLogger(__name__)
 
 @rank_zero_only
 def plot_models_together(trained_models):

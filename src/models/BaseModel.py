@@ -1,20 +1,20 @@
-from typing import Any, Dict, Tuple, Union
+import logging
 import os
+from typing import Any, Dict, Tuple, Union
 
 import torch
+import torch.optim as optim
+from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.callbacks import DeviceStatsMonitor, ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.profilers import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
+from pytorch_lightning.utilities import rank_zero_only
 from torch.nn import CrossEntropyLoss
 
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.callbacks import ModelCheckpoint, DeviceStatsMonitor
-from pytorch_lightning.profilers import AdvancedProfiler, SimpleProfiler, PyTorchProfiler
-from pytorch_lightning.utilities import rank_zero_only
-from hydra.utils import log
-
-import torch.optim as optim
-
+from metrics import LoggingService, MetricsContainer, TrainingLogger
 from utils import calculate_accuracy
-from metrics import TrainingLogger, MetricsContainer, LoggingService
+
+log = logging.getLogger(__name__)
 
 class BaseModel(LightningModule):
     """

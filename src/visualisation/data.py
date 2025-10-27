@@ -1,9 +1,13 @@
-import torch
-import matplotlib.pyplot as plt
+import logging
 import random
+
+import matplotlib.pyplot as plt
+import torch
 from lightning.pytorch.utilities import rank_zero_only
-from hydra.utils import log
+
 from metrics.LoggingService import LoggingService
+
+log = logging.getLogger(__name__)
 
 # Function to print general information about the dataset
 @rank_zero_only
