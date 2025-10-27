@@ -4,6 +4,8 @@ import numpy as np
 from pathlib import Path
 from io import StringIO
 
+from hydra.utils import log
+
 def parse_profiler_txt(path: str) -> pd.DataFrame:
     """
     Parse a PyTorch Lightning or cProfile-like profiler text output.
@@ -98,7 +100,7 @@ def print_filtered_summary(
             buf.write("\n" + "=" * 80 + "\n")
 
     Path(output_path).write_text(buf.getvalue())
-    print(f"[+] Summary written to {output_path}")
+    log.info("[+] Summary written to %s", output_path)
 
 
 if __name__ == "__main__":
