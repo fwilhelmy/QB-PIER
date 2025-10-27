@@ -1,23 +1,22 @@
 from collections import defaultdict
+import logging
 import os
 import time
 from typing import Dict, List
 
 import hydra
-from omegaconf import DictConfig
 import torch
+from hydra.core.hydra_config import HydraConfig
+from hydra.types import RunMode
+from omegaconf import DictConfig
 from torchsummary import summary
 
-from hydra.types import RunMode
-from hydra.core.hydra_config import HydraConfig
-
-from metrics import LoggingService
-from utils import seed_experiment
 from datasets import DatasetFactory
-from visualisation.training import plot_training_curves, generate_gradient_flow_plots
+from metrics import LoggingService
 from models.ModelFactory import ModelFactory
+from utils import seed_experiment
+from visualisation.training import generate_gradient_flow_plots, plot_training_curves
 
-import logging
 log = logging.getLogger(__name__)
 
 
@@ -52,7 +51,7 @@ def train_model(cfg: DictConfig, log_dir: str):
         torch.set_num_threads(num_threads)
 
     for idx, seed in enumerate(seeds, start=1):
-        log.info(f"({idx}/{len(seeds)}); Seed = {seed}  ...")
+        print(f"({idx}/{len(seeds)}); Seed = {seed}  ...")
 
         # 1) Seeding
         seed_experiment(seed)
@@ -127,7 +126,7 @@ def main(cfg: DictConfig) -> None:
     if HydraConfig.get().mode  == RunMode.MULTIRUN and subdir:
         model_name += f" ({subdir})"
         log_dir = os.path.join(log_dir, subdir)
-    log.info(f"Starting experiment '{model_name}'")
+    print(f">>> Starting experiment '{model_name}'")
 
     trained = train_model(cfg, log_dir)
     plot_training_curves(cfg["model"]["model_class"], trained, log_dir)

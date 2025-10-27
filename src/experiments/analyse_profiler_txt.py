@@ -1,8 +1,12 @@
+import logging
 import re
-import pandas as pd
-import numpy as np
-from pathlib import Path
 from io import StringIO
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+log = logging.getLogger(__name__)
 
 def parse_profiler_txt(path: str) -> pd.DataFrame:
     """
@@ -98,7 +102,7 @@ def print_filtered_summary(
             buf.write("\n" + "=" * 80 + "\n")
 
     Path(output_path).write_text(buf.getvalue())
-    print(f"[+] Summary written to {output_path}")
+    log.info("[+] Summary written to %s", output_path)
 
 
 if __name__ == "__main__":

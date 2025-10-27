@@ -1,17 +1,22 @@
-import torch
-import matplotlib.pyplot as plt
+import logging
 import random
+
+import matplotlib.pyplot as plt
+import torch
 from lightning.pytorch.utilities import rank_zero_only
+
 from metrics.LoggingService import LoggingService
+
+log = logging.getLogger(__name__)
 
 # Function to print general information about the dataset
 @rank_zero_only
 def print_dataset_info(dataset):
-    print("Dataset Information:")
-    print(f"Number of samples: {len(dataset)}")
+    log.info("Dataset Information:")
+    log.info("Number of samples: %s", len(dataset))
     if hasattr(dataset, 'classes'):
-        print(f"Number of classes: {len(dataset.classes)}")
-        print(f"Classes: {dataset.classes}")
+        log.info("Number of classes: %s", len(dataset.classes))
+        log.info("Classes: %s", dataset.classes)
 
 # Function to plot class distribution histogram
 @rank_zero_only

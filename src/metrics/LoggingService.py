@@ -6,8 +6,9 @@ from typing import Union
 
 import matplotlib.pyplot as plt
 import torch
-from hydra.utils import log
 from pytorch_lightning.utilities import rank_zero_only
+
+log = logging.getLogger(__name__)
 
 from . import __version__
 

@@ -6,13 +6,15 @@ import logging
 import os
 import re
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 import pandas as pd
-
-from metrics import MetricsContainer, LoggingService
 from tqdm import tqdm
+
+from metrics import LoggingService, MetricsContainer
 from models.ModelFactory import ModelFactory
+
+log = logging.getLogger(__name__)
 
 
 def crawl_experiments(path: str) -> List[str]:
@@ -171,7 +173,7 @@ if __name__ == "__main__":
 
     LoggingService("logs/HQNN")
     data = load_experiment("logs/HQNN", load="final")
-    print(f"Loaded data for {len(data)} model configurations.")
+    log.info("Loaded data for %s model configurations.", len(data))
     from visualisation.training import plot_models_together
     data = {x:y for x,y in zip(['HQE','HPQNN','HQNN','HQUANV'],list(data.values()))}
     plot_models_together(data)

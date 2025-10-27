@@ -1,10 +1,15 @@
-import numpy as np
+import logging
+import math
+
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 from lightning.pytorch.utilities import rank_zero_only
+from matplotlib.ticker import FixedLocator, MaxNLocator, NullFormatter, NullLocator
+
 from metrics.LoggingService import LoggingService
-from matplotlib.ticker import FixedLocator, NullFormatter, NullLocator, MaxNLocator
-import math
+
+log = logging.getLogger(__name__)
 
 @rank_zero_only
 def plot_models_together(trained_models):
@@ -277,7 +282,7 @@ def plot_gradient_flow(grad_dict, title):
 @rank_zero_only
 def generate_gradient_flow_plots(model, fig_dir=None):
     if not hasattr(model.metrics._raw, 'grad_l2'):
-        print(f"No gradient data found in model metrics. Skipping gradient flow plots.")
+        log.info("No gradient data found in model metrics. Skipping gradient flow plots.")
         return
     grad_norms = model.metrics._raw['grad_l2']
 
@@ -288,8 +293,8 @@ def generate_gradient_flow_plots(model, fig_dir=None):
     LoggingService().save_figure(weight_fig, "gradient_flow_weight.png", fig_dir)
 
     bias_grads = {k: v for k, v in grad_norms.items() if 'bias' in k and 'bn' not in k and 'norm' not in k}
-    if bias_grads == {}: 
-        print(f"No bias gradients found.") 
+    if bias_grads == {}:
+        log.info("No bias gradients found.")
         return
     bias_title = f"Gradient Flow of Biases"
     bias_fig, bias_axes = plot_gradient_flow(bias_grads, bias_title)
