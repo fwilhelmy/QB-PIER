@@ -1,2 +1,2 @@
 name: fgsm
-batch_size: 256
+batch_size: ${dataset.eval_batch_size}
