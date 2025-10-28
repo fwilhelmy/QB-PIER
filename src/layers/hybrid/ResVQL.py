@@ -32,7 +32,6 @@ class ResVQL(BaseLayer):
             embedding=embedding,
             ansatz=ansatz,
         )
-        self.fc2 = Linear(self.vqc.output_size, output_size)
         self.residual_proj = Linear(in_features, output_size)
         self.residual_scale = torch.nn.Parameter(
             torch.tensor(residual_init, dtype=torch.float32)
@@ -44,8 +43,6 @@ class ResVQL(BaseLayer):
         main = self.bn(main)
         main = self.relu(main)
         main = self.vqc(main)
-        main = self.fc2(main)
-
         residual = self.residual_proj(x)
         output = main + self.residual_scale * residual
         return self.logSoftmax(output)
