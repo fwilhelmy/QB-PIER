@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from torch import Tensor
-from torch.nn import Linear, LogSoftmax, ReLU
+from torch.nn import BatchNorm1d, Linear, LogSoftmax, ReLU
 
 from layers import BaseLayer, LayerFactory
 from layers.quantum import ParallelVQC
@@ -22,6 +22,7 @@ class HPVQL(BaseLayer):
     ) -> None:
         super().__init__(in_features=in_features, output_size=output_size)
         self.fc1 = Linear(in_features=in_features, out_features=in_qlayer)
+        self.bn = BatchNorm1d(in_qlayer)
         self.relu = ReLU()
         self.vqc = ParallelVQC(
             input_size=in_qlayer,
@@ -35,6 +36,7 @@ class HPVQL(BaseLayer):
 
     def forward(self, x: Tensor) -> Tensor:
         output = self.fc1(x)
+        output = self.bn(output)
         output = self.relu(output)
         output = self.vqc(output)
         output = self.fc2(output)
