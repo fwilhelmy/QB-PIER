@@ -1,15 +1,15 @@
 """Purely quantum neural network layers and utilities."""
 
-from .VQC import VQC
-from .ParallelVQC import ParallelVQC
-from .Quanv2d import Quanv2d
+from .VQL import VQC, VQL
+from .ParallelVQL import ParallelVQC, ParallelVQL
+from .Quanvolution import Quanv2d
 from . import ansatz
 from . import embedding
 
 __all__ = [
-    "VQC",
-    "ParallelVQC",
-    "Quanv2d",
+    "VQL",
+    "ParallelVQL",
+    "Quanvolution",
     "ansatz",
     "embedding",
 ]

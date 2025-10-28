@@ -3,7 +3,7 @@ import pytest
 torch = pytest.importorskip("torch")
 pytest.importorskip("pennylane")
 
-from src.layers.quantum.Quanv2d import Quanv2d
+from src.layers.quantum.Quanvolution import Quanv2d
 
 
 def test_quanv2d_forward_shape():
