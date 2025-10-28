@@ -1,4 +1,5 @@
 import logging
+import warnings
 import os
 import json
 from datetime import datetime
@@ -11,23 +12,6 @@ from pytorch_lightning.utilities import rank_zero_only
 log = logging.getLogger(__name__)
 
 from . import __version__
-
-
-class _ErrorAccumulator(logging.Handler):
-    """Collect error-level log records emitted during an experiment."""
-
-    def __init__(self, collector):
-        super().__init__(level=logging.ERROR)
-        self._collector = collector
-        # Keep formatting simple so stack traces are preserved via Formatter.format.
-        self.setFormatter(logging.Formatter("%(message)s"))
-
-    def emit(self, record: logging.LogRecord) -> None:  # pragma: no cover - logging internals
-        try:
-            message = self.format(record)
-        except Exception:  # pragma: no cover - defensive fallback
-            message = record.getMessage()
-        self._collector(message)
 
 class LoggingService:
     _instance = None
@@ -48,8 +32,8 @@ class LoggingService:
                 "start_time": self._start_time.isoformat(),
                 "cuda_available": torch.cuda.is_available(),
             }
-            self._errors = []
-            self._attach_error_handler()
+            logging.captureWarnings(True)
+            warnings.simplefilter("default")
 
     @property
     def root_dir(self) -> str:
@@ -72,24 +56,6 @@ class LoggingService:
         os.makedirs(file_dir, exist_ok=True)
         with open(os.path.join(file_dir, title), "w", encoding="utf-8") as file:
             file.write(content)
-
-    def _attach_error_handler(self) -> None:
-        """Attach an in-memory handler that mirrors error logs to ``errors.log``."""
-        root_logger = logging.getLogger()
-        if not any(isinstance(handler, _ErrorAccumulator) for handler in root_logger.handlers):
-            self._error_handler = _ErrorAccumulator(self._errors.append)
-            root_logger.addHandler(self._error_handler)
-        else:
-            # Reuse the existing handler to continue accumulating within the singleton.
-            for handler in root_logger.handlers:
-                if isinstance(handler, _ErrorAccumulator):
-                    self._error_handler = handler
-                    break
-
-    @rank_zero_only
-    def log_error(self, error: Union[Exception, str]):
-        message = str(error)
-        log.error(message)
 
     @rank_zero_only
     def save_experiment(self):
