@@ -12,7 +12,7 @@ handlers:
   file:
     class: logging.FileHandler
     formatter: simple
-    filename: ${hydra.runtime.output_dir}/run.log
+    filename: ${hydra.runtime.output_dir}/training.log
 root:
   level: INFO
   handlers: [console, file]
