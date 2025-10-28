@@ -4,8 +4,7 @@ import torch.nn as nn
 from torch import Tensor
 
 from layers import BaseLayer, LayerFactory
-from layers.quantum import ParallelVQC, VQC
-
+from layers.quantum import VQC
 
 class VQC(nn.Module):
     """Single quantum circuit module (Variational Quantum Circuit).
@@ -45,7 +44,6 @@ class VQC(nn.Module):
 
         return self.qlayer(x)
 
-@LayerFactory.classifier("vqc")
 @LayerFactory.classifier("vql")
 class VQL(BaseLayer):
     """Expose a single variational quantum circuit as a classifier layer."""

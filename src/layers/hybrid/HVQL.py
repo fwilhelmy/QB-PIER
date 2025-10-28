@@ -10,7 +10,7 @@ from torch.nn import Module
 
 from layers import LayerFactory
 from .HVQL import HVQL
-from layers.quantum import ParallelVQC
+from layers.quantum import ParaVQC
 
 
 @LayerFactory.classifier("hvql")
@@ -105,7 +105,7 @@ class HPVQL(HVQL):
         if unused_kwargs:
             unexpected = ", ".join(sorted(unused_kwargs))
             raise TypeError(f"Unexpected keyword arguments for HPVQL: {unexpected}")
-        return ParallelVQC(
+        return ParaVQC(
             input_size=input_size,
             n_qblocks=n_qblocks,
             n_layers=n_layers,

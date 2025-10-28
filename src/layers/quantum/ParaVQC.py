@@ -7,7 +7,7 @@ from layers import LayerFactory, BaseLayer
 from src.layers.quantum.VQL import VQC
 from torch import Tensor
 
-class ParallelVQC(nn.Module):
+class ParaVQC(nn.Module):
     """Stacks multiple :class:`VQC` blocks to process larger inputs.
 
     The input feature vector is split into ``n_qblocks`` chunks with comparable
@@ -77,8 +77,8 @@ class ParallelVQC(nn.Module):
             outputs.append(block(chunk))
         return torch.cat(outputs, dim=1)
 
-@LayerFactory.classifier("pvqc")
-class ParallelVQL(BaseLayer):
+@LayerFactory.classifier("pvql")
+class ParaVQL(BaseLayer):
     """Expose a parallel VQC stack as a classifier layer."""
 
     def __init__(
@@ -90,7 +90,7 @@ class ParallelVQL(BaseLayer):
         embedding: str = "angle",
     ) -> None:
         super().__init__(in_features=in_features)
-        self.vqc = ParallelVQC(
+        self.vqc = ParaVQC(
             input_size=in_features,
             n_qblocks=n_qblocks,
             n_layers=n_qdepth,
