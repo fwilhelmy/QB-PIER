@@ -1,0 +1,6 @@
+defaults:
+  - /model/ansatz@params.ansatz: strong
+name: vql
+params:
+  n_qdepth: 50
+  embedding: angle
