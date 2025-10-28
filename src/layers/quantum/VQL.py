@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
-from layers import BaseLayer, LayerFactory
-from layers.quantum import ParallelVQC, VQC
+from ..BaseLayer import BaseLayer
+from ..LayerFactory import LayerFactory
 
 
 class VQC(nn.Module):

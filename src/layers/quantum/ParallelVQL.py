@@ -3,9 +3,11 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from layers import LayerFactory, BaseLayer
-from src.layers.quantum.VQL import VQC
 from torch import Tensor
+
+from ..BaseLayer import BaseLayer
+from ..LayerFactory import LayerFactory
+from .VQL import VQC
 
 class ParallelVQC(nn.Module):
     """Stacks multiple :class:`VQC` blocks to process larger inputs.
