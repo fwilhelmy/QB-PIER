@@ -108,6 +108,7 @@ class BaseModel(LightningModule):
             default_root_dir=self.log_dir,
             callbacks=[checkpoint_cb, tr_logger, device_monitor],
             fast_dev_run=self.hparams["fast_dev_run"],
+            detect_anomaly=True,
             enable_model_summary=False,
             # profiler=self.profiler,
         )
@@ -144,6 +145,8 @@ class BaseModel(LightningModule):
         y_hat = self(x)
         loss = self.loss_fn(y_hat, y)
         acc = calculate_accuracy(y_hat, y)
+        if torch.isnan(loss).any():
+            log.error("NaN loss encountered during training.")
         
         weights_l2 = sum((p.norm(2).item() ** 2) for p in self.parameters() if p.requires_grad)
         weights_l2 = weights_l2 ** 0.5
@@ -186,6 +189,10 @@ class BaseModel(LightningModule):
     def on_after_backward(self) -> None:
         # Cache gradient L2 norms right after backward, before optimizer.zero_grad()
         self._last_grad_l2 = self._gradient_norms()
+        # check if any grad is nan
+        for name, norm in self._last_grad_l2.items():
+            if torch.isnan(torch.tensor(norm)):
+                log.error(f"NaN gradient encountered in parameter: {name}")
 
     def fit(
         self,
