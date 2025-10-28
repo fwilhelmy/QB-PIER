@@ -2,5 +2,5 @@ defaults:
   - optimiser: adamw
 
 seeds: [0, 42]
-epochs: 30
+epochs: 40
 fast_dev_run: false
