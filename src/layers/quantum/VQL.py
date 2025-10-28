@@ -1,6 +1,11 @@
 from .ansatz import AnsatzFactory
 import torch
 import torch.nn as nn
+from torch import Tensor
+
+from layers import BaseLayer, LayerFactory
+from layers.quantum import ParallelVQC, VQC
+
 
 class VQC(nn.Module):
     """Single quantum circuit module (Variational Quantum Circuit).
@@ -40,3 +45,26 @@ class VQC(nn.Module):
 
         return self.qlayer(x)
 
+@LayerFactory.classifier("vqc")
+@LayerFactory.classifier("vql")
+class VQL(BaseLayer):
+    """Expose a single variational quantum circuit as a classifier layer."""
+
+    def __init__(
+        self,
+        in_features: int,
+        n_qdepth: int = 3,
+        ansatz: dict | None = None,
+        embedding: str = "angle",
+    ) -> None:
+        super().__init__(in_features=in_features)
+        self.vqc = VQC(
+            input_size=in_features,
+            n_layers=n_qdepth,
+            embedding=embedding,
+            ansatz=ansatz,
+        )
+        self.output_size = self.vqc.output_size
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self.vqc(x)

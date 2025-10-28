@@ -3,8 +3,9 @@
 import numpy as np
 import torch
 import torch.nn as nn
-
-from .VQC import VQC
+from layers import LayerFactory, BaseLayer
+from src.layers.quantum.VQL import VQC
+from torch import Tensor
 
 class ParallelVQC(nn.Module):
     """Stacks multiple :class:`VQC` blocks to process larger inputs.
@@ -76,3 +77,27 @@ class ParallelVQC(nn.Module):
             outputs.append(block(chunk))
         return torch.cat(outputs, dim=1)
 
+@LayerFactory.classifier("pvqc")
+class ParallelVQL(BaseLayer):
+    """Expose a parallel VQC stack as a classifier layer."""
+
+    def __init__(
+        self,
+        in_features: int,
+        n_qblocks: int,
+        n_qdepth: int = 3,
+        ansatz: dict | None = None,
+        embedding: str = "angle",
+    ) -> None:
+        super().__init__(in_features=in_features)
+        self.vqc = ParallelVQC(
+            input_size=in_features,
+            n_qblocks=n_qblocks,
+            n_layers=n_qdepth,
+            embedding=embedding,
+            ansatz=ansatz,
+        )
+        self.output_size = self.vqc.output_size
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self.vqc(x)
