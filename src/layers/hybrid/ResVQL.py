@@ -4,8 +4,9 @@ import torch
 from torch import Tensor
 from torch.nn import BatchNorm1d, Linear, LogSoftmax, ReLU
 
-from layers import BaseLayer, LayerFactory
-from layers.quantum import VQC
+from ..BaseLayer import BaseLayer
+from ..LayerFactory import LayerFactory
+from ..quantum.VQL import VQC
 
 
 @LayerFactory.classifier("resqblock")
@@ -46,3 +47,7 @@ class ResVQL(BaseLayer):
         residual = self.residual_proj(x)
         output = main + self.residual_scale * residual
         return self.logSoftmax(output)
+
+
+ResQBlock = ResVQL
+

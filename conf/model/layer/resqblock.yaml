@@ -1,0 +1,8 @@
+defaults:
+  - /model/ansatz@params.ansatz: strong
+name: resqblock
+params:
+  in_qlayer: 1024
+  n_qdepth: 50
+  embedding: amplitude
+  residual_init: 0.5
