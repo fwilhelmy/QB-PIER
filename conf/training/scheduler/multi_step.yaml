@@ -1,0 +1,6 @@
+scheduler:
+  name: MultiStepLR
+  milestones: [30, 60, 90]
+  gamma: 0.1
+  interval: epoch
+  frequency: 1

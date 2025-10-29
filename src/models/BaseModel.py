@@ -11,8 +11,10 @@ from pytorch_lightning.profilers import AdvancedProfiler, PyTorchProfiler, Simpl
 from pytorch_lightning.utilities import rank_zero_only
 from torch.nn import CrossEntropyLoss
 
-from metrics import LoggingService, MetricsContainer, TrainingLogger
 from utils import calculate_accuracy
+from metrics import TrainingLogger, MetricsContainer, LoggingService
+from models.OptimiserFactory import OptimiserFactory
+from models.SchedulerFactory import SchedulerFactory
 
 log = logging.getLogger(__name__)
 
@@ -60,6 +62,8 @@ class BaseModel(LightningModule):
             'optimiser_config': config.get("optimiser_config", {}),
             'accelerator': config.get("accelerator", "auto"),
             'devices': config.get("devices", 1),
+            'log_interval': config.get("log_interval", 1.0),
+            'lr_scheduler': config.get("lr_scheduler"),
             'fast_dev_run': config.get("fast_dev_run", False),
         })
 
@@ -128,14 +132,19 @@ class BaseModel(LightningModule):
         self.loss_fn = CrossEntropyLoss()
 
     def configure_optimizers(self) -> Any:
-        name = self.hparams["optimizer"].lower()
-        if name == "adamw":
-            return optim.AdamW(self.parameters(), lr=self.hparams["learning_rate"], **self.hparams.get("optimiser_config", {}))
-        if name == "adam":
-            return optim.Adam(self.parameters(), lr=self.hparams["learning_rate"], **self.hparams.get("optimiser_config", {}))
-        if name == "sgd":
-            return optim.SGD(self.parameters(), lr=self.hparams["learning_rate"], **self.hparams.get("optimiser_config", {}))
-        raise ValueError(f"Unsupported optimizer: {name}")
+        optimizer = OptimiserFactory.create(
+            self.hparams["optimizer"],
+            self.parameters(),
+            self.hparams["learning_rate"],
+            self.hparams.get("optimiser_config", {}),
+        )
+
+        scheduler_cfg = self.hparams.get("lr_scheduler")
+        scheduler_config = SchedulerFactory.create(scheduler_cfg, optimizer)
+        if scheduler_config is None:
+            return optimizer
+
+        return {"optimizer": optimizer, "lr_scheduler": scheduler_config}
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError # must be implemented by each subclass
