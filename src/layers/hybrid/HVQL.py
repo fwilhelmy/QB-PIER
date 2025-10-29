@@ -28,43 +28,21 @@ class HVQL(BaseLayer):
         self.fc1 = Linear(in_features, in_qlayer)
         self.bn = BatchNorm1d(in_qlayer)
         self.relu = ReLU()
-        self.vqc = self._init_qlayer(input_size=in_qlayer, **qlayer_kwargs)
-        self.fc2 = Linear(self.vqc.output_size, output_size)
+        self.qlayer = self._qcls(input_size=in_qlayer, **qlayer_kwargs)
+        self.fc2 = Linear(self.qlayer.output_size, output_size)
         self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, x: Tensor) -> Tensor:
         output = self.fc1(x)
         output = self.bn(output)
         output = self.relu(output)
-        output = self.vqc(output)
+        output = self.qlayer(output)
         output = self.fc2(output)
         return self.logSoftmax(output)
 
-    def _init_qlayer(
-        self,
-        *,
-        input_size: int,
-        n_qdepth: int | None = None,
-        embedding: str = "amplitude",
-        ansatz: dict | None = None,
-        **unused_kwargs,
-    ) -> Module:
-        if unused_kwargs:
-            unexpected = ", ".join(sorted(unused_kwargs))
-            raise TypeError(f"Unexpected keyword arguments for HVQL: {unexpected}")
-
-        n_layers = 3 if n_qdepth is None else n_qdepth
-
-        if n_layers < 1:
-            raise ValueError("Number of layers must be a positive integer")
-
-        return VQC(
-            input_size=input_size,
-            n_layers=n_layers,
-            embedding=embedding,
-            ansatz=ansatz,
-        )
-
+    @property
+    def _qcls(self) -> Module:
+        return VQC
 
 @LayerFactory.classifier("hpvql")
 class HPVQL(HVQL):
@@ -75,43 +53,15 @@ class HPVQL(HVQL):
         in_features: int,
         output_size: int,
         in_qlayer: int,
-        n_qblocks: int,
         **qlayer_kwargs,
     ) -> None:
-        qlayer_kwargs.setdefault("embedding", "angle")
         super().__init__(
             in_features=in_features,
             output_size=output_size,
             in_qlayer=in_qlayer,
-            n_qblocks=n_qblocks,
             **qlayer_kwargs,
         )
 
-    def _init_qlayer(
-        self,
-        *,
-        input_size: int,
-        n_qdepth: int | None = None,
-        embedding: str = "angle",
-        ansatz: dict | None = None,
-        n_qblocks: int | None = None,
-        **unused_kwargs,
-    ) -> Module:
-        n_layers = 3 if n_qdepth is None else n_qdepth
-
-        if n_qblocks is None:
-            raise TypeError("HPVQL requires the 'n_qblocks' keyword argument")
-
-        if n_qblocks < 1:
-            raise ValueError("n_qblocks must be a positive integer")
-
-        if unused_kwargs:
-            unexpected = ", ".join(sorted(unused_kwargs))
-            raise TypeError(f"Unexpected keyword arguments for HPVQL: {unexpected}")
-        return ParallelVQC(
-            input_size=input_size,
-            n_qblocks=n_qblocks,
-            n_layers=n_layers,
-            ansatz=ansatz,
-            embedding=embedding,
-        )
+    @property
+    def _qcls(self) -> Module:
+        return ParallelVQC
