@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib
 import os
 
 import pytest
@@ -35,19 +34,21 @@ def simple_model(stub_lightning_components, logging_service_root):
 def test_configure_training_sets_up_trainer(simple_model):
     config = {
         "optimizer": "adam",
-        "max_steps": 5,
+        "max_epochs": 5,
         "learning_rate": 1e-2,
         "accelerator": "cpu",
         "devices": 1,
-        "log_interval": 0.25,
+        "fast_dev_run": True,
     }
 
     simple_model.configure_training(config)
 
     assert simple_model.hparams["optimizer"] == "adam"
-    assert simple_model.hparams["max_steps"] == 5
+    assert simple_model.hparams["max_epochs"] == 5
+    assert simple_model.hparams["fast_dev_run"] is True
     assert isinstance(simple_model.loss_fn, torch.nn.CrossEntropyLoss)
     assert simple_model.trainer.default_root_dir == simple_model.log_dir
+    assert simple_model.trainer.fast_dev_run is True
 
     simple_model._init_directories()
     assert os.path.isdir(simple_model.log_dir)
@@ -180,7 +181,7 @@ def test_on_after_backward_caches_gradient_norms(simple_model):
     assert simple_model._last_grad_l2
 
 
-def test_checkpoint_round_trip(simple_model, monkeypatch, tmp_path):
+def test_checkpoint_round_trip(simple_model, tmp_path, caplog):
     simple_model.configure_training({})
 
     checkpoint = {}
@@ -206,14 +207,7 @@ def test_checkpoint_round_trip(simple_model, monkeypatch, tmp_path):
     assert isinstance(simple_model.loss_fn, torch.nn.CrossEntropyLoss)
     assert loader.paths == [str(tmp_path)]
 
-    errors = []
-
-    def _log_error(self, message):
-        errors.append(message)
-
-    base_module = importlib.import_module("models.BaseModel")
-    monkeypatch.setattr(base_module.LoggingService, "log_error", _log_error, raising=False)
-
     simple_model.metrics = loader
-    simple_model.on_load_checkpoint({"hyper_parameters": {}})
-    assert errors
+    with caplog.at_level("ERROR", logger="models.BaseModel"):
+        simple_model.on_load_checkpoint({"hyper_parameters": {}})
+    assert "No log directory provided in checkpoint." in caplog.text

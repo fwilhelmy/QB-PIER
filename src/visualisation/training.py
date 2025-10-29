@@ -1,10 +1,15 @@
-import numpy as np
+import logging
+import math
+
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 from lightning.pytorch.utilities import rank_zero_only
+from matplotlib.ticker import FixedLocator, MaxNLocator, NullFormatter, NullLocator
+
 from metrics.LoggingService import LoggingService
-from matplotlib.ticker import FixedLocator, NullFormatter, NullLocator, MaxNLocator
-import math
+
+log = logging.getLogger(__name__)
 
 @rank_zero_only
 def plot_models_together(trained_models):
@@ -23,23 +28,62 @@ def plot_models_together(trained_models):
     ax_val_loss.set_ylabel('')   # no ylabel on the two right-hand plots
     ax_val_acc.set_ylabel('')
 
+    def _ensure_array(data, dtype=None):
+        if isinstance(data, dict) or data is None:
+            return np.array([], dtype=dtype if dtype is not None else float)
+        arr = np.asarray(data)
+        if dtype is not None:
+            arr = arr.astype(dtype, copy=False)
+        return arr
+
     # Plot each model’s mean±std curves
     for name, seed_dict in trained_models.items():
         losses_tr, losses_val, accs_tr, accs_val = [], [], [], []
+        train_steps_ref, val_steps_ref = None, None
+
         for s in seed_dict.values():
-            m = s.metrics.format_metrics()
-            losses_tr.append(  np.array(m['train_loss']))
-            losses_val.append( np.array(m['val_loss']))
-            accs_tr.append(    np.array(m['train_acc']))
-            accs_val.append(   np.array(m['val_acc']))
+            metrics = s.metrics
+
+            train_steps = _ensure_array(metrics['train/step'])
+            val_steps   = _ensure_array(metrics['val/step'])
+            train_loss  = _ensure_array(metrics['train/loss'])
+            val_loss    = _ensure_array(metrics['val/loss'])
+            train_acc   = _ensure_array(metrics['train/acc'])
+            val_acc     = _ensure_array(metrics['val/acc'])
+
+            if train_loss.shape != train_steps.shape or train_acc.shape != train_steps.shape:
+                raise ValueError("Training metrics and steps lengths do not match")
+            if val_loss.shape != val_steps.shape or val_acc.shape != val_steps.shape:
+                raise ValueError("Validation metrics and steps lengths do not match")
+
+            if train_steps_ref is None:
+                train_steps_ref = train_steps
+            elif train_steps.shape != train_steps_ref.shape or not np.array_equal(train_steps, train_steps_ref):
+                raise ValueError("Inconsistent training step counts across seeds")
+
+            if val_steps_ref is None:
+                val_steps_ref = val_steps
+            elif val_steps.shape != val_steps_ref.shape or not np.array_equal(val_steps, val_steps_ref):
+                raise ValueError("Inconsistent validation step counts across seeds")
+
+            losses_tr.append(train_loss)
+            losses_val.append(val_loss)
+            accs_tr.append(train_acc)
+            accs_val.append(val_acc)
+
+        if (
+            train_steps_ref is None or val_steps_ref is None
+            or train_steps_ref.size == 0 or val_steps_ref.size == 0
+        ):
+            continue
+
         Ltr = np.vstack(losses_tr);   Lval = np.vstack(losses_val)
         Atr = np.vstack(accs_tr);     AVal = np.vstack(accs_val)
-        steps = np.array(next(iter(seed_dict.values())).metrics.format_metrics()['step'])
 
-        line_with_std(ax_train_loss, steps, Ltr.mean(0),   Ltr.std(0),   label=name)
-        line_with_std(ax_val_loss,   steps, Lval.mean(0),  Lval.std(0),  label=name)
-        line_with_std(ax_train_acc,  steps, Atr.mean(0),   Atr.std(0),   label=name)
-        line_with_std(ax_val_acc,    steps, AVal.mean(0),  AVal.std(0),  label=name)
+        line_with_std(ax_train_loss, train_steps_ref, Ltr.mean(0),   Ltr.std(0),   label=name)
+        line_with_std(ax_val_loss,   val_steps_ref,   Lval.mean(0),  Lval.std(0),  label=name)
+        line_with_std(ax_train_acc,  train_steps_ref, Atr.mean(0),   Atr.std(0),   label=name)
+        line_with_std(ax_val_acc,    val_steps_ref,   AVal.mean(0),  AVal.std(0),  label=name)
 
     # Decide which epochs to show (max 8 ticks)
     first_model   = list(next(iter(trained_models.values())).values())[0]
@@ -96,7 +140,6 @@ def line_with_std(ax, x, mean, std, label=None, **plot_kwargs):
     """Plot a line with a shaded standard deviation band."""
     ax.plot(x, mean, label=label, **plot_kwargs)
     ax.fill_between(x, mean - std, mean + std, alpha=0.2)
-
 
 import numpy as np
 from matplotlib.ticker import MaxNLocator, FuncFormatter
@@ -239,7 +282,7 @@ def plot_gradient_flow(grad_dict, title):
 @rank_zero_only
 def generate_gradient_flow_plots(model, fig_dir=None):
     if not hasattr(model.metrics._raw, 'grad_l2'):
-        print(f"No gradient data found in model metrics. Skipping gradient flow plots.")
+        log.info("No gradient data found in model metrics. Skipping gradient flow plots.")
         return
     grad_norms = model.metrics._raw['grad_l2']
 
@@ -250,8 +293,8 @@ def generate_gradient_flow_plots(model, fig_dir=None):
     LoggingService().save_figure(weight_fig, "gradient_flow_weight.png", fig_dir)
 
     bias_grads = {k: v for k, v in grad_norms.items() if 'bias' in k and 'bn' not in k and 'norm' not in k}
-    if bias_grads == {}: 
-        print(f"No bias gradients found.") 
+    if bias_grads == {}:
+        log.info("No bias gradients found.")
         return
     bias_title = f"Gradient Flow of Biases"
     bias_fig, bias_axes = plot_gradient_flow(bias_grads, bias_title)

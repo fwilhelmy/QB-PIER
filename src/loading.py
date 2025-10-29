@@ -2,16 +2,19 @@ from __future__ import annotations
 
 """Utility helpers for loading models and experiment data."""
 
+import logging
 import os
 import re
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 import pandas as pd
-
-from metrics import MetricsContainer, LoggingService
 from tqdm import tqdm
+
+from metrics import LoggingService, MetricsContainer
 from models.ModelFactory import ModelFactory
+
+log = logging.getLogger(__name__)
 
 
 def crawl_experiments(path: str) -> List[str]:
@@ -151,4 +154,27 @@ def load_attacks(path: str) -> pd.DataFrame:
         )
 
     return results
+
+if __name__ == "__main__":
+    # import argparse
+    # 
+    # parser = argparse.ArgumentParser(description="Load experiment data.")
+    # parser.add_argument("path", type=str, help="Path to the experiment directory.")
+    # parser.add_argument(
+    #     "--load",
+    #     type=str,
+    #     choices=["final", "best", "metrics"],
+    #     default="metrics",
+    #     help="Type of data to load.",
+    # )
+    # args = parser.parse_args()
+
+    # data = load_experiment(args.path, load=args.load)
+
+    LoggingService("logs/HQNN")
+    data = load_experiment("logs/HQNN", load="final")
+    log.info("Loaded data for %s model configurations.", len(data))
+    from visualisation.training import plot_models_together
+    data = {x:y for x,y in zip(['HQE','HPQNN','HQNN','HQUANV'],list(data.values()))}
+    plot_models_together(data)
 

@@ -1,19 +1,22 @@
-from typing import Any, Dict, Tuple, Union
+import logging
 import os
+from typing import Any, Dict, Tuple, Union
 
 import torch
-from torch.nn import CrossEntropyLoss
-
+import torch.optim as optim
 from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.callbacks import DeviceStatsMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.profilers import AdvancedProfiler
+from pytorch_lightning.profilers import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.utilities import rank_zero_only
+from torch.nn import CrossEntropyLoss
 
 from utils import calculate_accuracy
 from metrics import TrainingLogger, MetricsContainer, LoggingService
 from models.OptimiserFactory import OptimiserFactory
 from models.SchedulerFactory import SchedulerFactory
+
+log = logging.getLogger(__name__)
 
 class BaseModel(LightningModule):
     """
@@ -54,13 +57,14 @@ class BaseModel(LightningModule):
     ) -> None:
         self.hparams.update({
             'optimizer': config.get("optimizer", "adam").lower(),
-            'max_steps': config.get("max_steps", 1000),
+            'max_epochs': config.get("max_epochs", 1),
             'learning_rate': config.get("learning_rate", 1e-3),
             'optimiser_config': config.get("optimiser_config", {}),
             'accelerator': config.get("accelerator", "auto"),
             'devices': config.get("devices", 1),
             'log_interval': config.get("log_interval", 1.0),
             'lr_scheduler': config.get("lr_scheduler"),
+            'fast_dev_run': config.get("fast_dev_run", False),
         })
 
         self._init_training()
@@ -72,9 +76,17 @@ class BaseModel(LightningModule):
 
         # Create loggers
         tb_logger = TensorBoardLogger(save_dir=self.log_dir, name=None, version="tensorboard")
-        tr_logger = TrainingLogger(ratio=self.hparams["log_interval"])
+        tr_logger = TrainingLogger()
 
-        profiler = AdvancedProfiler(dirpath=self.log_dir, filename="profile.txt")
+        # profiler_dirpath = os.path.join(self.log_dir, "profiler")
+        # self.profiler = PyTorchProfiler(
+        #     dirpath=profiler_dirpath,        # where to save files
+        #     filename="trace",               # base name
+        #     export_to_chrome=True,          # export .json file for Chrome Trace
+        #     record_module_names=True,
+        #     row_limit=1000,                 # or whatever you need
+        #     # optionally you can pass profiler kwargs for torch.profiler.profile
+        # )
         
         # Checkpoint callback
         ckpt_dir = os.path.join(self.log_dir, "checkpoints")
@@ -88,17 +100,21 @@ class BaseModel(LightningModule):
             mode="min"
         )
 
+        # Device stats monitor callback (logs hardware utilization)
+        device_monitor = DeviceStatsMonitor()
+
         # Build the Trainer
         self.trainer: Trainer = Trainer(
-            max_steps=self.hparams["max_steps"],
+            max_epochs=self.hparams["max_epochs"],
             accelerator=self.hparams["accelerator"],
             devices=self.hparams["devices"],
             logger=[tb_logger],
             default_root_dir=self.log_dir,
-            callbacks=[checkpoint_cb, tr_logger],
-            val_check_interval=self.hparams["log_interval"],
+            callbacks=[checkpoint_cb, tr_logger, device_monitor],
+            fast_dev_run=self.hparams["fast_dev_run"],
+            detect_anomaly=True,
             enable_model_summary=False,
-            profiler=profiler,
+            # profiler=self.profiler,
         )
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
@@ -110,7 +126,7 @@ class BaseModel(LightningModule):
         if 'log_dir' in checkpoint['hyper_parameters']:
             self.metrics.load_metrics(checkpoint['hyper_parameters']['log_dir'])
         else:
-            LoggingService().log_error("No log directory provided in checkpoint.")
+            log.error("No log directory provided in checkpoint.")
 
     def configure_loss_fn(self) -> None:
         self.loss_fn = CrossEntropyLoss()
@@ -138,6 +154,8 @@ class BaseModel(LightningModule):
         y_hat = self(x)
         loss = self.loss_fn(y_hat, y)
         acc = calculate_accuracy(y_hat, y)
+        if torch.isnan(loss).any():
+            log.error("NaN loss encountered during training.")
         
         weights_l2 = sum((p.norm(2).item() ** 2) for p in self.parameters() if p.requires_grad)
         weights_l2 = weights_l2 ** 0.5
@@ -166,9 +184,9 @@ class BaseModel(LightningModule):
 
     def on_train_epoch_end(self):
         self.metrics.log_epoch(self.global_step)
-        # Log last computed gradient norms captured during backprop. When
-        # log_interval=1.0, gradients are typically cleared by the time we
-        # reach epoch end, so we cache them in on_after_backward.
+        # Log last computed gradient norms captured during backprop. Gradients
+        # are typically cleared by the time we reach epoch end, so we cache
+        # them in on_after_backward.
         if hasattr(self, "_last_grad_l2") and self._last_grad_l2:
             self.metrics.log_dict("grad_l2", self._last_grad_l2, step=self.global_step)
         else:
@@ -180,6 +198,10 @@ class BaseModel(LightningModule):
     def on_after_backward(self) -> None:
         # Cache gradient L2 norms right after backward, before optimizer.zero_grad()
         self._last_grad_l2 = self._gradient_norms()
+        # check if any grad is nan
+        for name, norm in self._last_grad_l2.items():
+            if torch.isnan(torch.tensor(norm)):
+                log.error(f"NaN gradient encountered in parameter: {name}")
 
     def fit(
         self,
@@ -189,13 +211,14 @@ class BaseModel(LightningModule):
         """
         Thin wrapper that calls Lightning’s Trainer.fit(), then saves a final checkpoint and metrics.
         """
+        if not hasattr(self, "trainer"):
+            raise ValueError("Trainer not configured. Call configure_training() first.")
         with self.metrics.timeit("training_time", step=self.global_step):
             try:
-                if not hasattr(self, "trainer"):
-                    raise ValueError("Trainer not configured. Call configure_training() first.")
                 self.trainer.fit(self, train_dataloaders, val_dataloaders)
-            except Exception as e:
-                LoggingService().log_error(f"Error during training: {e}")
+            except Exception as err:
+                log.exception(RuntimeError(f"Error during training: {err}"))
             finally:
+                # self.profiler.teardown(stage=None)
                 self.metrics.save_metrics()
                 self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")

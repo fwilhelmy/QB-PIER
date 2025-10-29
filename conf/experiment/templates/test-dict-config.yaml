@@ -10,7 +10,7 @@ model:
   n_qdepth: 50
 
 training:
-  n_steps: 5000
+  epochs: 5000
 
 hydra:
   mode: MULTIRUN

@@ -1,4 +1,5 @@
 from collections import defaultdict
+import logging
 import os
 import time
 from typing import Dict, List
@@ -6,16 +7,18 @@ from typing import Dict, List
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import torch
+from hydra.core.hydra_config import HydraConfig
+from hydra.types import RunMode
+from omegaconf import DictConfig
 from torchsummary import summary
 
-from hydra.types import RunMode
-from hydra.core.hydra_config import HydraConfig
-
-from metrics import LoggingService
-from utils import seed_experiment
 from datasets import DatasetFactory
-from visualisation.training import plot_training_curves, generate_gradient_flow_plots
+from metrics import LoggingService
 from models.ModelFactory import ModelFactory
+from utils import seed_experiment
+from visualisation.training import generate_gradient_flow_plots, plot_training_curves
+
+log = logging.getLogger(__name__)
 
 
 def train_model(cfg: DictConfig, log_dir: str):
@@ -80,18 +83,18 @@ def train_model(cfg: DictConfig, log_dir: str):
             input_size=cfg["dataset"]["input_shape"],
             output_size=cfg["dataset"]["classes"],
             **model_config,
-            configure={
-                "optimizer": cfg["training"]["optimiser"]["name"],
-                "learning_rate": cfg["training"]["optimiser"].get("learning_rate", cfg["training"].get("learning_rate", 1e-3)),
-                "max_steps": cfg["training"]["n_steps"],
-                "optimiser_config": cfg["training"]["optimiser"].get("optimiser_config", {}),
-                "lr_scheduler": scheduler_cfg,
-                "accelerator": cfg["device"]["accelerator"],
-                "devices": cfg["device"]["devices"],
-                "log_interval": cfg["training"]["log_interval"],
-            }
         )
-        model = model.to(cfg["device"]["device"])
+        
+        model.configure_training(config={
+            "optimizer": cfg["training"]["optimiser"]["name"],
+            "learning_rate": cfg["training"]["optimiser"].get("learning_rate", cfg["training"].get("learning_rate", 1e-3)),
+            "max_epochs": cfg["training"]["epochs"],
+            "optimiser_config": cfg["training"]["optimiser"].get("optimiser_config", {}),
+            "accelerator": cfg["device"]["accelerator"],
+            "devices": cfg["device"]["devices"],
+            "lr_scheduler": scheduler_cfg,
+            "fast_dev_run": cfg["training"].get("fast_dev_run", False),
+        })
 
         # 4) Training
         start_time = time.time()
@@ -101,12 +104,20 @@ def train_model(cfg: DictConfig, log_dir: str):
         trained[seed] = model
 
     avg_time = sum(seed_times.values()) / len(seed_times) if seed_times else 0.0
-    epochs = model.trainer.current_epoch if trained else 0
+    if trained:
+        # current_epoch is zero-indexed; add one to report completed epochs
+        epochs_trained = getattr(model.trainer, "current_epoch", -1) + 1
+        epochs = epochs_trained if epochs_trained > 0 else cfg["training"].get("epochs", 0)
+    else:
+        epochs = 0
     info = str(summary(model, input_data=tuple(cfg["dataset"]["input_shape"]), col_names=("num_params","input_size","output_size"),verbose=0))
     info += f"\nTrained epochs: {epochs}"
-    info += f"\nTraining time per epoch: {avg_time/epochs:.2f} seconds"
+    if epochs:
+        info += f"\nTraining time per epoch: {avg_time/epochs:.2f} seconds"
+    else:
+        info += "\nTraining time per epoch: N/A"
     info += f"\nTotal training time (per seed): {avg_time:.2f} seconds"
-    LoggingService().save_file(info, "info.txt", path=log_dir)
+    LoggingService().save_file(info, "model.info", path=log_dir)
 
     return trained
 

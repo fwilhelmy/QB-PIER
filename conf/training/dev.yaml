@@ -3,5 +3,5 @@ defaults:
   - scheduler: none
 
 seeds: [0]
-n_steps: 142
-log_interval: 1.0
+epochs: 4
+fast_dev_run: false

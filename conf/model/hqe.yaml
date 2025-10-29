@@ -14,5 +14,3 @@ encoder:
 classifier:
   params:
     in_qlayer: 1024
-    n_qdepth: 2
-    embedding: amplitude

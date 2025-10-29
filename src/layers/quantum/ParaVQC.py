@@ -3,10 +3,13 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from torch import Tensor
 
-from .VQC import VQC
+from ..BaseLayer import BaseLayer
+from ..LayerFactory import LayerFactory
+from .VQL import VQC
 
-class ParallelVQC(nn.Module):
+class ParaVQC(nn.Module):
     """Stacks multiple :class:`VQC` blocks to process larger inputs.
 
     The input feature vector is split into ``n_qblocks`` chunks with comparable
@@ -76,3 +79,27 @@ class ParallelVQC(nn.Module):
             outputs.append(block(chunk))
         return torch.cat(outputs, dim=1)
 
+@LayerFactory.classifier("pvql")
+class ParaVQL(BaseLayer):
+    """Expose a parallel VQC stack as a classifier layer."""
+
+    def __init__(
+        self,
+        in_features: int,
+        n_qblocks: int,
+        n_qdepth: int = 3,
+        ansatz: dict | None = None,
+        embedding: str = "angle",
+    ) -> None:
+        super().__init__(in_features=in_features)
+        self.vqc = ParaVQC(
+            input_size=in_features,
+            n_qblocks=n_qblocks,
+            n_layers=n_qdepth,
+            embedding=embedding,
+            ansatz=ansatz,
+        )
+        self.output_size = self.vqc.output_size
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self.vqc(x)

@@ -1,9 +1,16 @@
+import logging
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .VQC import VQC
-from metrics import LoggingService
+from .VQL import VQC
+import torch
+from torch import Tensor, flatten
+from layers import BaseLayer, LayerFactory
+
+
+log = logging.getLogger(__name__)
 
 class Quanv2d(nn.Module):
     """Quantum 2D convolution layer using a VQC on image patches."""
@@ -42,7 +49,7 @@ class Quanv2d(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.ndim != 4 or x.shape[1] != self.in_channels:
             message = f"Quanv2d expects input shape (batch, {self.in_channels}, H, W)"
-            LoggingService().log_error(message)
+            log.error(message)
             raise ValueError(message)
 
         patches = F.unfold(
@@ -72,3 +79,41 @@ class Quanv2d(nn.Module):
         )
         out = out.reshape(B, self.out_channels, H_out, W_out)
         return out
+
+@LayerFactory.encoder("quanv")
+class Quanvolution(BaseLayer):
+    """Hybrid layer using a quantum convolution block."""
+
+    def __init__(
+        self,
+        input_size: tuple[int, int, int],
+        patch_size: int = 2,
+        stride: int | None = None,
+        n_qdepth: int = 1,
+        ansatz: dict | None = None,
+        embedding: str = "angle",
+        rotation: str = "X",
+    ) -> None:
+        super().__init__(input_size=input_size)
+        if self.input_size is None:
+            raise RuntimeError("Input size must be specified for Quanvolution")
+        channels, height, width = self.input_size
+        stride = stride or patch_size
+        ansatz = ansatz or {}
+        self.quanv = Quanv2d(
+            in_channels=channels,
+            out_channels=patch_size * patch_size,
+            kernel_size=patch_size,
+            stride=stride,
+            padding=0,
+            dilation=1,
+            n_layers=n_qdepth,
+            embedding=embedding,
+            ansatz=ansatz,
+        )
+        n_patches = (height - patch_size) // stride + 1
+        self.output_size = self.quanv.out_channels * n_patches * n_patches
+
+    def forward(self, x: Tensor) -> Tensor:
+        x = self.quanv(x)
+        return flatten(x.to(torch.float32), 1)

@@ -1,15 +1,17 @@
-import os
-import time
 import json
+import logging
+import os
 import pickle
+import time
 from contextlib import contextmanager
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
-import psutil
 import pandas as pd
+import psutil
 import torch
 from lightning.pytorch.utilities import rank_zero_only
-from .LoggingService import LoggingService
+
+log = logging.getLogger(__name__)
 
 class MetricsContainer():
     def __init__(
@@ -96,8 +98,8 @@ class MetricsContainer():
             with open(pkl_path, "rb") as f:
                 data = pickle.load(f)
             self._raw = data.get("_raw", {})
-        except Exception as e:
-            LoggingService().log_error(f"Error loading metrics: {e}")
+        except Exception as err:
+            log.exception(RuntimeError(f"Error loading metrics: {err}"))
         
     @rank_zero_only
     def format_metrics(self) -> pd.DataFrame:

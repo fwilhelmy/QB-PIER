@@ -3,7 +3,8 @@ defaults:
   - qdevice: sim
   - dataset: mnist
   - model: lenet
-  - training: dev
+  - training: debug
+  - logging: verbose
   - _self_
 
 expdir: training # Experiment directory

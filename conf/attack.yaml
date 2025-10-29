@@ -3,6 +3,7 @@ defaults:
   - qdevice: sim
   - dataset: mnist
   - attack: fgsm
+  - logging: verbose
   - _self_
 
 expdir: attacks # Experiment directory
