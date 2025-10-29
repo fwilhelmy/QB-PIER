@@ -10,6 +10,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profilers import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.utilities import rank_zero_only
 from torch.nn import CrossEntropyLoss
+from lightning.pytorch.callbacks import RichProgressBar
 
 from metrics import LoggingService, MetricsContainer, TrainingLogger
 from utils import calculate_accuracy
