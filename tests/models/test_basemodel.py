@@ -70,6 +70,29 @@ def test_configure_optimizers_returns_expected_instance(simple_model, optimizer_
     assert isinstance(optimiser, expected_cls)
 
 
+def test_configure_optimizers_with_scheduler(simple_model):
+    simple_model.hparams.update(
+        {
+            "learning_rate": 1e-2,
+            "optimizer": "adam",
+            "lr_scheduler": {
+                "name": "StepLR",
+                "step_size": 3,
+                "gamma": 0.1,
+            },
+        }
+    )
+
+    optimiser_config = simple_model.configure_optimizers()
+
+    assert isinstance(optimiser_config, dict)
+    assert isinstance(optimiser_config["optimizer"], torch.optim.Adam)
+    scheduler = optimiser_config["lr_scheduler"]["scheduler"]
+    assert isinstance(scheduler, torch.optim.lr_scheduler.StepLR)
+    assert optimiser_config["lr_scheduler"]["interval"] == "epoch"
+    assert optimiser_config["lr_scheduler"]["frequency"] == 1
+
+
 def test_configure_optimizers_with_unknown_name(simple_model):
     simple_model.hparams["learning_rate"] = 1e-2
     simple_model.hparams["optimizer"] = "bogus"

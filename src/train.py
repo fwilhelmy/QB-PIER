@@ -4,7 +4,7 @@ import time
 from typing import Dict, List
 
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 import torch
 from torchsummary import summary
 
@@ -70,6 +70,10 @@ def train_model(cfg: DictConfig, log_dir: str):
         )
 
         # 3) Instantiate & configure the model
+        scheduler_cfg = cfg["training"].get("scheduler")
+        if isinstance(scheduler_cfg, DictConfig):
+            scheduler_cfg = OmegaConf.to_container(scheduler_cfg, resolve=True)
+
         model = ModelFactory.create(
             model_name,
             model_path=os.path.join(log_dir, str(seed)),
@@ -81,6 +85,7 @@ def train_model(cfg: DictConfig, log_dir: str):
                 "learning_rate": cfg["training"]["optimiser"].get("learning_rate", cfg["training"].get("learning_rate", 1e-3)),
                 "max_steps": cfg["training"]["n_steps"],
                 "optimiser_config": cfg["training"]["optimiser"].get("optimiser_config", {}),
+                "lr_scheduler": scheduler_cfg,
                 "accelerator": cfg["device"]["accelerator"],
                 "devices": cfg["device"]["devices"],
                 "log_interval": cfg["training"]["log_interval"],

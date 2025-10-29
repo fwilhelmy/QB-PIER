@@ -1,5 +1,6 @@
 defaults:
   - optimiser: adamw
+  - scheduler: none
 
 seeds: [0]
 n_steps: 142
