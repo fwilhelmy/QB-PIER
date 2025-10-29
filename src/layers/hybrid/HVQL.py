@@ -44,17 +44,19 @@ class HVQL(BaseLayer):
         self,
         *,
         input_size: int,
-        n_layers: int | None = None,
         n_qdepth: int | None = None,
         embedding: str = "amplitude",
         ansatz: dict | None = None,
         **unused_kwargs,
     ) -> Module:
-        n_layers = self._resolve_n_layers(n_layers, n_qdepth)
-
         if unused_kwargs:
             unexpected = ", ".join(sorted(unused_kwargs))
             raise TypeError(f"Unexpected keyword arguments for HVQL: {unexpected}")
+
+        n_layers = 3 if n_qdepth is None else n_qdepth
+
+        if n_layers < 1:
+            raise ValueError("Number of layers must be a positive integer")
 
         return VQC(
             input_size=input_size,
@@ -62,25 +64,6 @@ class HVQL(BaseLayer):
             embedding=embedding,
             ansatz=ansatz,
         )
-
-    @staticmethod
-    def _resolve_n_layers(
-        n_layers: int | None,
-        n_qdepth: int | None,
-        *,
-        default: int = 3,
-    ) -> int:
-        if n_layers is None:
-            n_layers = n_qdepth if n_qdepth is not None else default
-        elif n_qdepth is not None and n_layers != n_qdepth:
-            raise ValueError(
-                "Received conflicting values for 'n_layers' and 'n_qdepth'. "
-                "Please provide only one or ensure they match."
-            )
-
-        if n_layers < 1:
-            raise ValueError("Number of layers must be a positive integer")
-        return n_layers
 
 
 @LayerFactory.classifier("hpvql")
@@ -108,14 +91,13 @@ class HPVQL(HVQL):
         self,
         *,
         input_size: int,
-        n_layers: int | None = None,
         n_qdepth: int | None = None,
         embedding: str = "angle",
         ansatz: dict | None = None,
         n_qblocks: int | None = None,
         **unused_kwargs,
     ) -> Module:
-        n_layers = self._resolve_n_layers(n_layers, n_qdepth)
+        n_layers = 3 if n_qdepth is None else n_qdepth
 
         if n_qblocks is None:
             raise TypeError("HPVQL requires the 'n_qblocks' keyword argument")
