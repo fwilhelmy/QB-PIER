@@ -52,7 +52,7 @@ def train_model(cfg: DictConfig, log_dir: str):
         torch.set_num_threads(num_threads)
 
     for idx, seed in enumerate(seeds, start=1):
-        print(f"({idx}/{len(seeds)}); Seed = {seed}  ...")
+        log.info(f"Starting training for seed {seed} ({idx}/{len(seeds)});")
 
         # 1) Seeding
         seed_experiment(seed)
@@ -132,7 +132,7 @@ def main(cfg: DictConfig) -> None:
     if HydraConfig.get().mode  == RunMode.MULTIRUN and subdir:
         model_name += f" ({subdir})"
         log_dir = os.path.join(log_dir, subdir)
-    print(f">>> Starting experiment '{model_name}'")
+    log.info(f"Starting experiment '{model_name}'")
 
     trained = train_model(cfg, log_dir)
     plot_training_curves(cfg["model"]["model_class"], trained, log_dir)

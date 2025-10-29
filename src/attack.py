@@ -62,7 +62,7 @@ def run_attacks(trained_models, cfg: DictConfig):
     attack_args = {k: v for k, v in cfg.attack.items() if k != "name"}
 
     for seed, models in models_by_seed.items():
-        log.info("\n>>> Running attacks for seed : %s", seed)
+        log.info("\nRunning attacks for seed %s", seed)
         seed_experiment(seed)
 
         dm = DatasetFactory.create(cfg.dataset.dataset, root=cfg.dataset.root)
