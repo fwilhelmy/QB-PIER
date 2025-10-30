@@ -12,6 +12,7 @@ from pytorch_lightning.utilities import rank_zero_only
 from torch.nn import CrossEntropyLoss
 from torch.optim import lr_scheduler as lr_schedulers
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from lightning.pytorch.callbacks import RichProgressBar
 
 from utils import calculate_accuracy
 from metrics import TrainingLogger, MetricsContainer, LoggingService

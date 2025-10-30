@@ -1,0 +1,29 @@
+====== BENCHMARKING OPTIMISATION ======
+python src/train.py -m expdir="benchmark" model=vqm model.n_qdepth=50 training=mid training/optimiser=sgd,momentum
+python src/train.py -m expdir="benchmark" model=vqm model.n_qdepth=50 training=mid training.optimiser.optimiser_config.weight_decay=0.0,0.001,0.005,0.01
+
+python src/train.py -m expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=128, training.optimiser.learning_rate=0.000075
+python src/train.py -m expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=256, training.optimiser.learning_rate=0.00015
+python src/train.py -m expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=512, training.optimiser.learning_rate=0.0003
+python src/train.py -m expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=1024, training.optimiser.learning_rate=0.0006
+
+- Testing the different learning Rate Schedulers with the best configuration
+
+====== VQM BENCHMARKS ======
+python src/train.py -m expdir="benchmark" model=vqm training=mid model/ansatz=basic,strong,random,identity,no_entangling
+
+
+====== HYBRID BENCHMARKS ======
+- Different Ansatzs with HQNNs
+- Shallow VS Deep VQCs in HQNNs
+
+- With dropout
+- With residuals
+
+====== DEVICES STRESS TEST (IF TIME) ======
+python src/train.py -m expdir="device-tests" model=vqm,lenet training=dev training.epochs=10 
+- What shoud I test there? need to investigate
+      device: local,colab,ets
+      device.devices: 1,2,3,5
+      device.num_workers: 0,2,4,8
+      device.num_threads: 2,4,8,16

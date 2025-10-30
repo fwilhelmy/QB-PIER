@@ -179,7 +179,7 @@ def main(cfg: DictConfig) -> None:
         log_dir = os.path.join(log_dir, subdir)
 
     log.info(
-        ">>> Exploring learning rates for '%s'",
+        "Exploring learning rates for '%s'",
         cfg["model"]["model_class"],
     )
     run_lr_sweep(cfg, log_dir)

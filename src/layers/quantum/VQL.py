@@ -4,7 +4,6 @@ import torch.nn as nn
 from torch import Tensor
 
 from layers import BaseLayer, LayerFactory
-from layers.quantum import VQC
 
 class VQC(nn.Module):
     """Single quantum circuit module (Variational Quantum Circuit).

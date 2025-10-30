@@ -1,15 +1,12 @@
 """Hybrid quantum-classical layer implementations."""
 
 from .HVQL import HVQL, HPVQL
-from .ResVQL import ResQBlock, ResVQL
-from ..quantum.ParallelVQL import ParallelVQL
-from ..quantum.VQL import VQL
+from .ResVQL import ResVQL
+from .DropVQL import DropVQL
 
 __all__ = [
+    "DropVQL",
     "HPVQL",
     "HVQL",
-    "ResQBlock",
     "ResVQL",
-    "VQL",
-    "ParallelVQL",
 ]

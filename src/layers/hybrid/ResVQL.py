@@ -9,7 +9,7 @@ from ..LayerFactory import LayerFactory
 from ..quantum.VQL import VQC
 
 
-@LayerFactory.classifier("resqblock")
+@LayerFactory.classifier("resvql")
 class ResVQL(BaseLayer):
     """Hybrid classifier with a learnable residual around a quantum block."""
 
@@ -47,7 +47,3 @@ class ResVQL(BaseLayer):
         residual = self.residual_proj(x)
         output = main + self.residual_scale * residual
         return self.logSoftmax(output)
-
-
-ResQBlock = ResVQL
-

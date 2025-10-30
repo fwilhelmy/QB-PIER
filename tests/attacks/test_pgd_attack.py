@@ -18,7 +18,6 @@ def test_pgd_iterative_updates():
         num_iter=1,
         alpha=0.1,
         random_start=False,
-        max_samples=len(dm.dataset),
     )
     adv1 = pgd_one.attack(model, epsilon=0.2)
 
@@ -28,7 +27,6 @@ def test_pgd_iterative_updates():
         num_iter=3,
         alpha=0.1,
         random_start=False,
-        max_samples=len(dm.dataset),
     )
     adv3 = pgd_three.attack(model, epsilon=0.2)
 

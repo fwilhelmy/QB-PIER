@@ -1,0 +1,8 @@
+defaults:
+  - /model/ansatz@params.ansatz: strong
+name: dropvql
+params:
+  in_qlayer: 1024
+  n_qdepth: 50
+  embedding: amplitude
+  dropout: 0.1
