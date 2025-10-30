@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from typing import Optional
-
 import copy
 
 import torch
 from torch import Tensor
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
 from attacks.AttackFactory import AttackFactory
 from attacks.BaseAttack import BaseAttack
@@ -57,9 +55,7 @@ class PGD(BaseAttack):
         model.eval()
         state = copy.deepcopy(model.state_dict())  # save original weights
         loader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=False)
-        for idx, (images, labels) in enumerate(loader):
-            if idx >= self.max_samples:
-                break
+        for images, labels in loader:
             images = images.to(device=device, dtype=torch.float32)
             labels = labels.to(device)
             adv = self._pgd(model, images, labels, epsilon)

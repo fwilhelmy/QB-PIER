@@ -10,14 +10,30 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profilers import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.utilities import rank_zero_only
 from torch.nn import CrossEntropyLoss
+from torch.optim import lr_scheduler as lr_schedulers
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from lightning.pytorch.callbacks import RichProgressBar
 
 from utils import calculate_accuracy
 from metrics import TrainingLogger, MetricsContainer, LoggingService
-from models.OptimiserFactory import OptimiserFactory
-from models.SchedulerFactory import SchedulerFactory
 
 log = logging.getLogger(__name__)
+
+
+AVAILABLE_OPTIMISERS = {
+    "adam": optim.Adam,
+    "adamw": optim.AdamW,
+    "sgd": optim.SGD,
+}
+
+
+AVAILABLE_SCHEDULERS = {
+    "cosineannealinglr": lr_schedulers.CosineAnnealingLR,
+    "exponentiallr": lr_schedulers.ExponentialLR,
+    "multisteplr": lr_schedulers.MultiStepLR,
+    "reducelronplateau": lr_schedulers.ReduceLROnPlateau,
+    "steplr": lr_schedulers.StepLR,
+}
 
 class BaseModel(LightningModule):
     """
@@ -133,17 +149,49 @@ class BaseModel(LightningModule):
         self.loss_fn = CrossEntropyLoss()
 
     def configure_optimizers(self) -> Any:
-        optimizer = OptimiserFactory.create(
-            self.hparams["optimizer"],
-            self.parameters(),
-            self.hparams["learning_rate"],
-            self.hparams.get("optimiser_config", {}),
-        )
+        name = self.hparams["optimizer"].lower()
+        optimiser_cls = AVAILABLE_OPTIMISERS.get(name)
+        if optimiser_cls is None:
+            available = ", ".join(sorted(AVAILABLE_OPTIMISERS))
+            raise ValueError(f"Unsupported optimizer: {name}. Available: {available}")
+
+        optimiser_kwargs = dict(self.hparams.get("optimiser_config", {}))
+        optimizer = optimiser_cls(self.parameters(), lr=self.hparams["learning_rate"], **optimiser_kwargs)
 
         scheduler_cfg = self.hparams.get("lr_scheduler")
-        scheduler_config = SchedulerFactory.create(scheduler_cfg, optimizer)
-        if scheduler_config is None:
+        if not scheduler_cfg:
             return optimizer
+
+        cfg = dict(scheduler_cfg)
+        scheduler_name = cfg.pop("name", None)
+        if not scheduler_name:
+            raise ValueError("Scheduler configuration requires a 'name' field.")
+
+        scheduler_cls = AVAILABLE_SCHEDULERS.get(scheduler_name.lower())
+        if scheduler_cls is None:
+            available = ", ".join(sorted(AVAILABLE_SCHEDULERS))
+            raise ValueError(
+                f"Unsupported scheduler: {scheduler_name}. Available: {available}"
+            )
+
+        interval = cfg.pop("interval", "epoch")
+        frequency = cfg.pop("frequency", 1)
+        monitor = cfg.pop("monitor", None)
+        strict = cfg.pop("strict", False)
+
+        scheduler = scheduler_cls(optimizer, **cfg)
+
+        scheduler_config: Dict[str, Any] = {
+            "scheduler": scheduler,
+            "interval": interval,
+            "frequency": frequency,
+            "strict": strict,
+        }
+
+        if monitor is not None:
+            scheduler_config["monitor"] = monitor
+        elif isinstance(scheduler, ReduceLROnPlateau):
+            scheduler_config["monitor"] = "val/loss"
 
         return {"optimizer": optimizer, "lr_scheduler": scheduler_config}
 

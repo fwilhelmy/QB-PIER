@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import copy
-from typing import List, Optional
+from typing import List
 
 import torch
 from torch import Tensor
 from tqdm import tqdm
-
-from torch.utils.data import Dataset
 
 from attacks import AttackFactory, BaseAttack
 
@@ -30,12 +28,10 @@ class FGSM(BaseAttack):
     def compute_gradients(
         self,
         model,
-        max_x: Optional[int] = None
     ):
         """Return gradients for ``model`` on this dataset.
 
         Gradients are computed once and cached unless ``hot_reload`` is True.
-        ``max_x`` limits the number of samples used when computing them.
         ``batch_size`` controls how many samples are processed at once.
         """
 
@@ -49,11 +45,8 @@ class FGSM(BaseAttack):
         loader = torch.utils.data.DataLoader(
             self.dataset, batch_size=self.batch_size, shuffle=False
         )
-        processed = 0
         pbar = tqdm(loader, desc=f"Computing gradients")
         for images, targets in pbar:
-            if processed >= self.max_samples:
-                break
             images = images.clone().detach().to(torch.float32)
             images.requires_grad_(True)
             outputs = model(images)
@@ -63,16 +56,13 @@ class FGSM(BaseAttack):
             grads = images.grad.detach()
             for img, grad in zip(images, grads):
                 gradients.append((img.cpu(), grad.cpu()))
-                processed += 1
-                if processed >= max_x:
-                    break
             model.load_state_dict(state)
 
         self.gradients[model.model_path] = gradients
         return gradients
 
     def attack(self, model, epsilon: float, **kwargs) -> Tensor:
-        gradients = self.compute_gradients(model, max_x=self.max_samples)
+        gradients = self.compute_gradients(model)
         adv_examples = []
         for image, gradient in gradients:
             perturbed_image = self._fgsm(image, gradient, epsilon)
