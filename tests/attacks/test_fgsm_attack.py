@@ -11,7 +11,7 @@ def test_fgsm_epsilon_variation():
     model = DummyModel()
     dataset = DummyDataset()
 
-    fgsm = FGSM(dataset=dataset, max_samples=len(dataset))
+    fgsm = FGSM(dataset=dataset)
     adv_small = fgsm.attack(model, epsilon=0.1)
     adv_large = fgsm.attack(model, epsilon=0.3)
 
