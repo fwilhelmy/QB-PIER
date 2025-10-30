@@ -14,7 +14,7 @@ from pytorch_lightning.utilities import rank_zero_only
 
 log = logging.getLogger(__name__)
 
-from . import __version__
+from .metrics import __version__
 
 class LoggingService:
     _instance = None

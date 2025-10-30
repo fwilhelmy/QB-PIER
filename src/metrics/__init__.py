@@ -11,12 +11,9 @@ __version__ = "0.2.0"
 # expose these classes at package level
 from .MetricsContainer import MetricsContainer
 from .TrainingLogger import TrainingLogger
-from .LoggingService import LoggingService
 
 # what gets imported with `from logging import *`
 __all__ = [
     "MetricsContainer",
-    "EpochTimingCallback",
     "TrainingLogger",
-    "LoggingService",
 ]
