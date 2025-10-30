@@ -214,12 +214,13 @@ class BaseModel(LightningModule):
         """
         if not hasattr(self, "trainer"):
             raise ValueError("Trainer not configured. Call configure_training() first.")
-        with self.metrics.timeit("training_time", step=self.global_step):
-            try:
-                self.trainer.fit(self, train_dataloaders, val_dataloaders)
-            except Exception as err:
-                log.exception(RuntimeError(f"Error during training: {err}"))
-            finally:
-                # self.profiler.teardown(stage=None)
-                self.metrics.save_metrics()
-                self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")
+        try:
+            self.trainer.fit(self, train_dataloaders, val_dataloaders)
+            log.info(f"Training completed successfully, saving to {self.log_dir}")
+        except Exception as err:
+            log.exception(err)
+            raise err
+        finally:
+            # self.profiler.teardown(stage=None)
+            self.metrics.save_metrics()
+            self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")
