@@ -19,17 +19,15 @@ class _ConcreteAttack(BaseAttack):
         return model
 
 
-def test_base_attack_defaults_to_dataset_length():
+def test_base_attack_defaults():
     dataset = _DummyDataset(length=10)
     attack = _ConcreteAttack(
         attack_name="dummy",
         dataset=dataset,
-        max_samples=None,
     )
 
     assert attack.attack_name == "dummy"
     assert attack.dataset is dataset
-    assert attack.max_samples == len(dataset)
     assert attack.batch_size == 64
 
 
@@ -38,9 +36,7 @@ def test_base_attack_respects_explicit_configuration():
     attack = _ConcreteAttack(
         attack_name="dummy",
         dataset=dataset,
-        max_samples=5,
         batch_size=16,
     )
 
-    assert attack.max_samples == 5
     assert attack.batch_size == 16
