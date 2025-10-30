@@ -15,7 +15,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from lightning.pytorch.callbacks import RichProgressBar
 
 from utils import calculate_accuracy
-from metrics import TrainingLogger, MetricsContainer, LoggingService
+from metrics import TrainingLogger, MetricsContainer
 
 log = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ class BaseModel(LightningModule):
 
     def __init__(
         self,
-        model_path: str,
+        log_dir: str,
         input_size: Tuple[int, int, int],
         output_size: int,
         **kwargs
@@ -57,11 +57,10 @@ class BaseModel(LightningModule):
             Number of outputs produced by the model.
         """
         super().__init__()
-        self.save_hyperparameters("model_path", "input_size", "output_size")
-        self.model_path = model_path
+        self.save_hyperparameters("log_dir", "input_size", "output_size")
+        self.log_dir = log_dir
         self.input_size = input_size
         self.output_size = output_size
-        self.log_dir = os.path.join(LoggingService().root_dir, self.model_path)
         self.metrics = MetricsContainer(self.log_dir)
 
     @rank_zero_only
@@ -143,7 +142,7 @@ class BaseModel(LightningModule):
         if 'log_dir' in checkpoint['hyper_parameters']:
             self.metrics.load_metrics(checkpoint['hyper_parameters']['log_dir'])
         else:
-            log.error("No log directory provided in checkpoint.")
+            log.warning("Could not load metrics. No directory provided in checkpoint.")
 
     def configure_loss_fn(self) -> None:
         self.loss_fn = CrossEntropyLoss()
@@ -164,15 +163,10 @@ class BaseModel(LightningModule):
 
         cfg = dict(scheduler_cfg)
         scheduler_name = cfg.pop("name", None)
-        if not scheduler_name:
-            raise ValueError("Scheduler configuration requires a 'name' field.")
-
         scheduler_cls = AVAILABLE_SCHEDULERS.get(scheduler_name.lower())
         if scheduler_cls is None:
             available = ", ".join(sorted(AVAILABLE_SCHEDULERS))
-            raise ValueError(
-                f"Unsupported scheduler: {scheduler_name}. Available: {available}"
-            )
+            raise ValueError(f"Unsupported scheduler: {scheduler_name}. Available: {available}")
 
         interval = cfg.pop("interval", "epoch")
         frequency = cfg.pop("frequency", 1)
@@ -203,8 +197,6 @@ class BaseModel(LightningModule):
         y_hat = self(x)
         loss = self.loss_fn(y_hat, y)
         acc = calculate_accuracy(y_hat, y)
-        if torch.isnan(loss).any():
-            log.error("NaN loss encountered during training.")
         
         weights_l2 = sum((p.norm(2).item() ** 2) for p in self.parameters() if p.requires_grad)
         weights_l2 = weights_l2 ** 0.5
@@ -236,21 +228,13 @@ class BaseModel(LightningModule):
         # Log last computed gradient norms captured during backprop. Gradients
         # are typically cleared by the time we reach epoch end, so we cache
         # them in on_after_backward.
-        if hasattr(self, "_last_grad_l2") and self._last_grad_l2:
-            self.metrics.log_dict("grad_l2", self._last_grad_l2, step=self.global_step)
-        else:
-            # Fallback: compute if available (may be empty at epoch end)
-            grad_snapshot = self._gradient_norms()
-            if grad_snapshot:
-                self.metrics.log_dict("grad_l2", grad_snapshot, step=self.global_step)
+        grad_l2 = self._last_grad_l2 if hasattr(self, "_last_grad_l2") else self._gradient_norms()
+        if grad_l2: self.metrics.log_dict("grad_l2", grad_l2, step=self.global_step)
+        else: log.warning("No gradients found to log at epoch %d", self.current_epoch)
 
     def on_after_backward(self) -> None:
         # Cache gradient L2 norms right after backward, before optimizer.zero_grad()
         self._last_grad_l2 = self._gradient_norms()
-        # check if any grad is nan
-        for name, norm in self._last_grad_l2.items():
-            if torch.isnan(torch.tensor(norm)):
-                log.error(f"NaN gradient encountered in parameter: {name}")
 
     def fit(
         self,
@@ -264,7 +248,6 @@ class BaseModel(LightningModule):
             raise ValueError("Trainer not configured. Call configure_training() first.")
         try:
             self.trainer.fit(self, train_dataloaders, val_dataloaders)
-            log.info(f"Training completed successfully, saving to {self.log_dir}")
         except Exception as err:
             log.exception(err)
             raise err
