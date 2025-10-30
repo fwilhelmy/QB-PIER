@@ -45,27 +45,6 @@ class MetricsContainer():
     def log_epoch(self, step: int) -> None:
         self.log_scalar("epoch", step)
 
-    @contextmanager
-    def timeit(self, name: str, step: Optional[int] = None):
-        start = time.time()
-        yield
-        elapsed = time.time() - start
-        self.log_scalar("time", elapsed, group=name)
-        if step is not None:
-            self.log_scalar("step", step, group=name)
-
-    def log_resources(self, step: Optional[int] = None) -> None:
-        cpu_pct = psutil.cpu_percent(interval=None)
-        mem = psutil.virtual_memory()
-        mem_used_gb = (mem.total - mem.available) / (1024 ** 3)
-        metrics = {
-            "cpu_percent": cpu_pct,
-            "mem_used_gb": mem_used_gb
-        }
-        if torch.cuda.is_available():
-            metrics["gpu_mem_allocated_gb"] = torch.cuda.memory_allocated() / (1024 ** 3)
-        self.log_dict("performance", metrics, step=step)
-
     def to_csv(self, path: Optional[str] = None) -> None:
         df = self.format_metrics()
         if df is None or df.empty:

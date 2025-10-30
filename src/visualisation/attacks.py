@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
 from lightning.pytorch.utilities import rank_zero_only
-from metrics.LoggingService import LoggingService
+from src.LoggingService import LoggingService
 from visualisation.training import line_with_std
 
 @rank_zero_only

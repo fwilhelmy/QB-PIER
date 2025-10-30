@@ -7,7 +7,7 @@ import seaborn as sns
 from lightning.pytorch.utilities import rank_zero_only
 from matplotlib.ticker import FixedLocator, MaxNLocator, NullFormatter, NullLocator
 
-from metrics.LoggingService import LoggingService
+from src.LoggingService import LoggingService
 
 log = logging.getLogger(__name__)
 
