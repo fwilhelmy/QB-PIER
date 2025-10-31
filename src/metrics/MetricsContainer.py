@@ -4,7 +4,7 @@ import os
 import pickle
 import time
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import pandas as pd
 import psutil
@@ -46,7 +46,7 @@ class MetricsContainer():
         self.log_scalar("epoch", step)
 
     def to_csv(self, path: Optional[str] = None) -> None:
-        df = self.format_metrics()
+        df = self.to_pandas()
         if df is None or df.empty:
             return
         out = path or os.path.join(self.log_dir, "metrics.csv")
@@ -81,45 +81,73 @@ class MetricsContainer():
             log.exception(RuntimeError(f"Error loading metrics: {err}"))
         
     @rank_zero_only
-    def format_metrics(self) -> pd.DataFrame:
-        """
-        Formats and merges training and validation metrics into a single pandas DataFrame.
+    def to_pandas(self) -> pd.DataFrame:
+        """Compile the logged metrics into a pandas DataFrame indexed by epoch.
 
-        Returns:
-            pd.DataFrame: A DataFrame containing merged and renamed columns for training and validation metrics,
-            with an 'epoch' column and a sanity-check row at the top. If no training data is present, returns an empty DataFrame.
+        All metric groups present in the container are converted to DataFrames, aligned on the
+        epoch column and merged together. Validation sanity-check rows are kept at the top of the
+        resulting DataFrame, mirroring the behaviour of the previous :meth:`format_metrics`.
         """
-        train = pd.DataFrame(self._raw.get("train", {}))
-        if train.empty:
+
+        def _assign_epochs(steps: pd.Series, epoch_steps: List[int]) -> List[int]:
+            epochs, bi = [], 0
+            n_epochs = len(epoch_steps)
+            for step in steps:
+                while bi < n_epochs and step > epoch_steps[bi]:
+                    bi += 1
+                epochs.append(bi)
+            return epochs
+
+        epoch_steps = self._raw.get("epoch", [])
+        if not epoch_steps:
             return pd.DataFrame()
-        train = train.sort_values("step").reset_index(drop=True)
-        train = train.rename(columns={c: f"train_{c}" for c in train.columns if c != "step"})
-        
-        val = pd.DataFrame(self._raw.get("val", {}))
-        if val.empty:
-            return train
-        val = val.sort_values("step").reset_index(drop=True)
-        val = val.rename(columns={c: f"val_{c}" for c in val.columns if c != "step"})
 
-        # Sanity check first row
-        sanity_row = val.iloc[[0]].copy()
-        val = val.iloc[1:].reset_index(drop=True)
+        frames = []
+        sanity_row: Optional[pd.DataFrame] = None
 
-        # Merging train and val dataframes
-        merged = pd.merge_asof(train, val, on="step", direction="nearest", tolerance=1)
+        for group, metrics in self._raw.items():
+            if group == "epoch" or not isinstance(metrics, dict):
+                continue
+            df = pd.DataFrame(metrics)
+            if df.empty:
+                continue
+            if "step" not in df.columns:
+                continue
 
-        # Assign epochs by walking through epoch-step bindings
-        n_epochs = len(self._raw['epoch'])
-        epochs, bi = [], 0
-        for step in merged["step"]:
-            while step > self._raw['epoch'][bi] and bi < n_epochs:
-                bi += 1
-            epochs.append(bi)
-        merged.insert(0, "epoch", epochs)
+            df = df.sort_values("step").reset_index(drop=True)
+            df.insert(0, "epoch", _assign_epochs(df["step"], epoch_steps))
 
-        # Re-insert the sanity-check row at the top (epoch 0)
-        sanity_row.insert(0, "epoch", 0)
-        merged = pd.concat([sanity_row, merged], ignore_index=True, sort=False)
+            prefix = f"{group}_" if group else ""
+            rename_map = {}
+            for col in df.columns:
+                if col == "epoch":
+                    continue
+                if col == "step":
+                    if group == "train":
+                        rename_map[col] = "step"
+                    else:
+                        rename_map[col] = f"{prefix}step" if prefix else col
+                else:
+                    rename_map[col] = f"{prefix}{col}"
+            df = df.rename(columns=rename_map)
+
+            if group == "val":
+                sanity_row = df.iloc[[0]].copy()
+                df = df.iloc[1:].reset_index(drop=True)
+
+            frames.append(df)
+
+        if not frames:
+            return sanity_row.reset_index(drop=True) if sanity_row is not None else pd.DataFrame()
+
+        merged = frames[0]
+        for frame in frames[1:]:
+            merged = pd.merge(merged, frame, on="epoch", how="outer", sort=True)
+
+        merged = merged.sort_values("epoch").reset_index(drop=True)
+
+        if sanity_row is not None:
+            merged = pd.concat([sanity_row, merged], ignore_index=True, sort=False)
 
         return merged.reset_index(drop=True)
 
