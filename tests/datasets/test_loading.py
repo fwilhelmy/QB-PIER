@@ -10,8 +10,19 @@ def test_crawl_experiments(tmp_path, monkeypatch):
     metrics_stub = types.ModuleType("metrics")
     metrics_stub.MetricsContainer = object
     metrics_stub.LoggingService = object
-    metrics_stub.TrainingLogger = object
     monkeypatch.setitem(sys.modules, "metrics", metrics_stub)
+
+    pandas_stub = types.ModuleType("pandas")
+    pandas_stub.DataFrame = object
+    pandas_stub.read_csv = lambda *a, **k: types.SimpleNamespace(columns=set())
+    monkeypatch.setitem(sys.modules, "pandas", pandas_stub)
+
+    models_pkg = types.ModuleType("models")
+    model_factory_module = types.ModuleType("models.ModelFactory")
+    model_factory_module.ModelFactory = types.SimpleNamespace(load=lambda *a, **k: None)
+    models_pkg.ModelFactory = model_factory_module
+    monkeypatch.setitem(sys.modules, "models", models_pkg)
+    monkeypatch.setitem(sys.modules, "models.ModelFactory", model_factory_module)
 
     monkeypatch.setitem(sys.modules, "tqdm", types.SimpleNamespace(tqdm=lambda x, **k: x))
     monkeypatch.setitem(sys.modules, "main", types.SimpleNamespace(run_attacks=lambda *a, **k: None))
