@@ -15,7 +15,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from lightning.pytorch.callbacks import RichProgressBar
 
 from utils import calculate_accuracy
-from metrics import TrainingLogger, MetricsContainer
+from metrics import TrainingLogger, MetricsContainer, CompactDeviceStats
 
 log = logging.getLogger(__name__)
 
@@ -117,7 +117,7 @@ class BaseModel(LightningModule):
         )
 
         # Device stats monitor callback (logs hardware utilization)
-        device_monitor = DeviceStatsMonitor()
+        device_monitor = CompactDeviceStats()
 
         # Build the Trainer
         self.trainer: Trainer = Trainer(
