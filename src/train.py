@@ -73,9 +73,10 @@ def train_model(cfg: DictConfig, log_dir: str):
         )
 
         # 3) Instantiate & configure the model
+        model_dir = os.path.join(LoggingService().root_dir, log_dir, str(seed))
         model = ModelFactory.create(
             model_name,
-            model_path=os.path.join(log_dir, str(seed)),
+            log_dir=model_dir,
             input_size=cfg["dataset"]["input_shape"],
             output_size=cfg["dataset"]["classes"],
             **model_config,
@@ -122,12 +123,8 @@ def main(cfg: DictConfig) -> None:
     root_dir = HydraConfig.get().run.dir.rsplit("/",1)[0]
     logging_service = LoggingService(root_dir=root_dir)
 
-    model_name = log_dir = cfg["model"]["model_class"]
-    subdir = HydraConfig.get().job.override_dirname
-    if HydraConfig.get().mode  == RunMode.MULTIRUN and subdir:
-        model_name += f" ({subdir})"
-        log_dir = os.path.join(log_dir, subdir)
-    log.info(f"Starting experiment '{model_name}'")
+    log_dir = HydraConfig.get().job.override_dirname if HydraConfig.get().mode  == RunMode.MULTIRUN else cfg["model"]["model_class"]
+    log.info(f"Starting experiment ({log_dir})")
 
     trained = train_model(cfg, log_dir)
     plot_training_curves(cfg["model"]["model_class"], trained, log_dir)
