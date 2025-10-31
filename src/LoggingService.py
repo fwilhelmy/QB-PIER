@@ -13,8 +13,7 @@ import torch
 from pytorch_lightning.utilities import rank_zero_only
 
 log = logging.getLogger(__name__)
-
-from .metrics import __version__
+from __init__ import __version__
 
 class LoggingService:
     _instance = None
@@ -60,14 +59,14 @@ class LoggingService:
         with open(os.path.join(file_dir, title), "w", encoding="utf-8") as file:
             file.write(content)
 
-    @contextmanager
-    def timeit(self, name: str, step: Optional[int] = None):
-        start = time.time()
-        yield
-        elapsed = time.time() - start
-        self.log_scalar("time", elapsed, group=name)
-        if step is not None:
-            self.log_scalar("step", step, group=name)
+    # @contextmanager
+    # def timeit(self, name: str, step: Optional[int] = None):
+    #     start = time.time()
+    #     yield
+    #     elapsed = time.time() - start
+    #     self.log_scalar("time", elapsed, group=name)
+    #     if step is not None:
+    #         self.log_scalar("step", step, group=name)
 
     @rank_zero_only
     def save_experiment(self):

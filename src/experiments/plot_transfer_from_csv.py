@@ -16,7 +16,7 @@ import os
 import sys
 import pandas as pd
 
-from src.LoggingService import LoggingService
+from LoggingService import LoggingService
 from visualisation.attacks import plot_transfer_attack_effects
 
 
