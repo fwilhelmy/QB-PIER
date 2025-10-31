@@ -282,7 +282,7 @@ def plot_gradient_flow(grad_dict, title):
 @rank_zero_only
 def generate_gradient_flow_plots(model, fig_dir=None):
     if not hasattr(model.metrics._raw, 'grad_l2'):
-        log.info("No gradient data found in model metrics. Skipping gradient flow plots.")
+        log.warning("No gradient data found in model metrics. Skipping gradient flow plots.")
         return
     grad_norms = model.metrics._raw['grad_l2']
 
