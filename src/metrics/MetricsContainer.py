@@ -9,17 +9,69 @@ from typing import Any, Callable, Dict, List, Optional
 import pandas as pd
 import psutil
 import torch
+from pytorch_lightning.loggers.logger import Logger
 from lightning.pytorch.utilities import rank_zero_only
 
 log = logging.getLogger(__name__)
 
-class MetricsContainer():
+
+class MetricsContainer(Logger):
     def __init__(
         self,
         log_dir: str,
     ):
+        super().__init__()
         self._raw: Dict[str, Any] = {}
+        self._last_logged_step: Dict[str, Optional[int]] = {}
         self.log_dir = os.path.join(log_dir, "metrics")
+        self._init_directories()
+
+    @property
+    def name(self) -> str:
+        return "metrics"
+
+    @property
+    def version(self) -> str:
+        return "0"
+
+    @property
+    def experiment(self) -> "MetricsContainer":
+        return self
+
+    @rank_zero_only
+    def log_hyperparams(self, params: Dict[str, Any]) -> None:
+        # Hyperparameters are tracked elsewhere; no-op to satisfy the logger interface.
+        return
+
+    @rank_zero_only
+    def log_metrics(self, metrics: Dict[str, Any], step: Optional[int]) -> None:
+        if not metrics:
+            return
+
+        grouped_steps: Dict[str, int] = {}
+        for key, value in metrics.items():
+            if torch.is_tensor(value):
+                if value.numel() == 1:
+                    value = value.item()
+                else:
+                    value = value.detach().cpu().tolist()
+            elif isinstance(value, (torch.Tensor,)):
+                value = value.detach().cpu().tolist()
+
+            group: Optional[str] = None
+            metric_name = key
+            if "/" in key:
+                group, metric_name = key.split("/", 1)
+
+            self.log_scalar(metric_name, value, group=group)
+
+            if group is not None and step is not None:
+                grouped_steps.setdefault(group, step)
+
+        for group, group_step in grouped_steps.items():
+            if self._last_logged_step.get(group) != group_step:
+                self._raw.setdefault(group, {}).setdefault("step", []).append(group_step)
+                self._last_logged_step[group] = group_step
 
     @rank_zero_only
     def _init_directories(self) -> None:

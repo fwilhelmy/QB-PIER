@@ -3,7 +3,6 @@ logging — custom training-time instrumentation.
 
 Contains:
   - MetricsContainer: collects and aggregates metrics per step/epoch
-  - TrainingLogger: orchestrates TensorBoard/CSV logging
 """
 
 # expose these classes at package level

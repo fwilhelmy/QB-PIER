@@ -15,6 +15,9 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from lightning.pytorch.callbacks import RichProgressBar
 
 from utils import calculate_accuracy
+from metrics import MetricsContainer
+from models.OptimiserFactory import OptimiserFactory
+from models.SchedulerFactory import SchedulerFactory
 from metrics import TrainingLogger, MetricsContainer, CompactDeviceStats
 
 log = logging.getLogger(__name__)
@@ -92,7 +95,6 @@ class BaseModel(LightningModule):
 
         # Create loggers
         tb_logger = TensorBoardLogger(save_dir=self.log_dir, name=None, version="tensorboard")
-        tr_logger = TrainingLogger()
 
         # profiler_dirpath = os.path.join(self.log_dir, "profiler")
         # self.profiler = PyTorchProfiler(
@@ -124,9 +126,9 @@ class BaseModel(LightningModule):
             max_epochs=self.hparams["max_epochs"],
             accelerator=self.hparams["accelerator"],
             devices=self.hparams["devices"],
-            logger=[tb_logger],
+            logger=[tb_logger, self.metrics],
             default_root_dir=self.log_dir,
-            callbacks=[checkpoint_cb, tr_logger, device_monitor],
+            callbacks=[checkpoint_cb, device_monitor],
             fast_dev_run=self.hparams["fast_dev_run"],
             enable_model_summary=False,
             # profiler=self.profiler,
@@ -200,6 +202,10 @@ class BaseModel(LightningModule):
         weights_l2 = sum((p.norm(2).item() ** 2) for p in self.parameters() if p.requires_grad)
         weights_l2 = weights_l2 ** 0.5
 
+        self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=False)
+        self.log("train/acc", acc, on_step=False, on_epoch=True, prog_bar=True, sync_dist=False)
+        self.log("train/weights_l2", weights_l2, on_step=False, on_epoch=True, prog_bar=False, sync_dist=False)
+
         return {"loss": loss, "acc": acc, "weights_l2": weights_l2}
 
     def validation_step(self, batch: Any, batch_idx: int):
@@ -208,6 +214,9 @@ class BaseModel(LightningModule):
         loss = self.loss_fn(y_hat, y)
         acc = calculate_accuracy(y_hat, y)
 
+        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=False)
+        self.log("val/acc", acc, on_step=False, on_epoch=True, prog_bar=True, sync_dist=False)
+
         return {"loss": loss, "acc": acc}
 
     def test_step(self, batch: Any, batch_idx: int):
@@ -215,6 +224,9 @@ class BaseModel(LightningModule):
         y_hat = self(x)
         loss = self.loss_fn(y_hat, y)
         acc = calculate_accuracy(y_hat, y)
+
+        self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=False)
+        self.log("test/acc", acc, on_step=False, on_epoch=True, prog_bar=True, sync_dist=False)
 
         return {"loss": loss, "acc": acc}
     
