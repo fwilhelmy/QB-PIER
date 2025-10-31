@@ -158,7 +158,7 @@ def plot_training_curves(model_name, seed_dict, fig_dir=None):
     train_w2_seeds = []
     step_lists = []
     for seed in seeds:
-        df = seed_dict[seed].metrics.format_metrics()
+        df = seed_dict[seed].metrics.to_pandas()
         step_lists.append(df["step"].to_numpy())
         train_loss_seeds.append(df["train_loss"].to_numpy())
         val_loss_seeds.append(  df["val_loss"].to_numpy())
