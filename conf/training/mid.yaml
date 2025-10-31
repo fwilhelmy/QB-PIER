@@ -1,6 +1,6 @@
 defaults:
   - optimiser: adamw
-  - scheduler: none
+  - scheduler: null
 
 seeds: [0, 42]
 epochs: 40
