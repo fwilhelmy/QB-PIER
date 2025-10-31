@@ -14,7 +14,7 @@ from tqdm import tqdm
 from attacks import AttackFactory
 from datasets import DatasetFactory
 from loading import load_attacks, load_experiment
-from metrics import LoggingService
+from LoggingService import LoggingService
 from utils import calculate_accuracy, seed_experiment
 from visualisation.attacks import plot_transfer_attack_effects
 

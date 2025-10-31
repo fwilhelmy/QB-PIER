@@ -7,7 +7,7 @@ import seaborn as sns
 from lightning.pytorch.utilities import rank_zero_only
 from matplotlib.ticker import FixedLocator, MaxNLocator, NullFormatter, NullLocator
 
-from metrics.LoggingService import LoggingService
+from LoggingService import LoggingService
 
 log = logging.getLogger(__name__)
 
@@ -158,7 +158,7 @@ def plot_training_curves(model_name, seed_dict, fig_dir=None):
     train_w2_seeds = []
     step_lists = []
     for seed in seeds:
-        df = seed_dict[seed].metrics.format_metrics()
+        df = seed_dict[seed].metrics.to_pandas()
         step_lists.append(df["step"].to_numpy())
         train_loss_seeds.append(df["train_loss"].to_numpy())
         val_loss_seeds.append(  df["val_loss"].to_numpy())
@@ -282,7 +282,7 @@ def plot_gradient_flow(grad_dict, title):
 @rank_zero_only
 def generate_gradient_flow_plots(model, fig_dir=None):
     if not hasattr(model.metrics._raw, 'grad_l2'):
-        log.info("No gradient data found in model metrics. Skipping gradient flow plots.")
+        log.warning("No gradient data found in model metrics. Skipping gradient flow plots.")
         return
     grad_norms = model.metrics._raw['grad_l2']
 

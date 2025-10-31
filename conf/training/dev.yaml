@@ -1,7 +1,7 @@
 defaults:
   - optimiser: adamw
-  - scheduler: none
+  - scheduler: null
 
 seeds: [0]
-epochs: 4
+epochs: 2
 fast_dev_run: false

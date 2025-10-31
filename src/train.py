@@ -13,7 +13,7 @@ from omegaconf import DictConfig
 from torchsummary import summary
 
 from datasets import DatasetFactory
-from metrics import LoggingService
+from LoggingService import LoggingService
 from models.ModelFactory import ModelFactory
 from utils import seed_experiment
 from visualisation.training import generate_gradient_flow_plots, plot_training_curves
@@ -51,8 +51,8 @@ def train_model(cfg: DictConfig, log_dir: str):
     if num_threads is not None:
         torch.set_num_threads(num_threads)
 
-    for idx, seed in enumerate(seeds, start=1):
-        log.info(f"Starting training for seed {seed} ({idx}/{len(seeds)});")
+    for seed in seeds:
+        log.info(f"Starting training for model %s (seed=%s)", model_name, seed)
 
         # 1) Seeding
         seed_experiment(seed)
@@ -73,13 +73,10 @@ def train_model(cfg: DictConfig, log_dir: str):
         )
 
         # 3) Instantiate & configure the model
-        scheduler_cfg = cfg["training"].get("scheduler")
-        if isinstance(scheduler_cfg, DictConfig):
-            scheduler_cfg = OmegaConf.to_container(scheduler_cfg, resolve=True)
-
+        model_dir = os.path.join(LoggingService().root_dir, log_dir, str(seed))
         model = ModelFactory.create(
             model_name,
-            model_path=os.path.join(log_dir, str(seed)),
+            log_dir=model_dir,
             input_size=cfg["dataset"]["input_shape"],
             output_size=cfg["dataset"]["classes"],
             **model_config,
@@ -92,32 +89,31 @@ def train_model(cfg: DictConfig, log_dir: str):
             "optimiser_config": cfg["training"]["optimiser"].get("optimiser_config", {}),
             "accelerator": cfg["device"]["accelerator"],
             "devices": cfg["device"]["devices"],
-            "lr_scheduler": scheduler_cfg,
+            "lr_scheduler": cfg["training"].get("scheduler"),
             "fast_dev_run": cfg["training"].get("fast_dev_run", False),
         })
 
         # 4) Training
         start_time = time.time()
-        model.fit(train_loader, eval_loader)
-        elapsed = time.time() - start_time
-        seed_times[seed] = elapsed
-        trained[seed] = model
+        try:
+            model.fit(train_loader, eval_loader)
+            trained[seed] = model
+            log.info("Training completed for model %s (seed=%s).", model_name, seed)
+        except Exception as e:
+            log.warning("Training failed for model %s (seed=%s).", model_name, seed)
+        finally:
+            elapsed = time.time() - start_time
+            seed_times[seed] = elapsed
 
-    avg_time = sum(seed_times.values()) / len(seed_times) if seed_times else 0.0
-    if trained:
-        # current_epoch is zero-indexed; add one to report completed epochs
-        epochs_trained = getattr(model.trainer, "current_epoch", -1) + 1
-        epochs = epochs_trained if epochs_trained > 0 else cfg["training"].get("epochs", 0)
-    else:
-        epochs = 0
-    info = str(summary(model, input_data=tuple(cfg["dataset"]["input_shape"]), col_names=("num_params","input_size","output_size"),verbose=0))
-    info += f"\nTrained epochs: {epochs}"
-    if epochs:
+    if len(trained) != 0:
+        avg_time = sum(seed_times.values()) / len(seed_times) if seed_times else 0.0
+        model = list(trained.values())[0]
+        info = str(summary(model, input_data=tuple(cfg["dataset"]["input_shape"]), col_names=("num_params","input_size","output_size"),verbose=0))
+        epochs = cfg["training"].get("epochs", 0)
+        info += f"\nTrained epochs: {epochs}"
         info += f"\nTraining time per epoch: {avg_time/epochs:.2f} seconds"
-    else:
-        info += "\nTraining time per epoch: N/A"
-    info += f"\nTotal training time (per seed): {avg_time:.2f} seconds"
-    LoggingService().save_file(info, "model.info", path=log_dir)
+        info += f"\nTotal training time (per seed): {avg_time:.2f} seconds"
+        LoggingService().save_file(info, "model.info", path=log_dir)
 
     return trained
 
@@ -127,12 +123,8 @@ def main(cfg: DictConfig) -> None:
     root_dir = HydraConfig.get().run.dir.rsplit("/",1)[0]
     logging_service = LoggingService(root_dir=root_dir)
 
-    model_name = log_dir = cfg["model"]["model_class"]
-    subdir = HydraConfig.get().job.override_dirname
-    if HydraConfig.get().mode  == RunMode.MULTIRUN and subdir:
-        model_name += f" ({subdir})"
-        log_dir = os.path.join(log_dir, subdir)
-    log.info(f"Starting experiment '{model_name}'")
+    log_dir = HydraConfig.get().job.override_dirname if HydraConfig.get().mode  == RunMode.MULTIRUN else cfg["model"]["model_class"]
+    log.info(f"Starting experiment ({log_dir})")
 
     trained = train_model(cfg, log_dir)
     plot_training_curves(cfg["model"]["model_class"], trained, log_dir)

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import torch
 from lightning.pytorch.utilities import rank_zero_only
 
-from metrics.LoggingService import LoggingService
+from LoggingService import LoggingService
 
 log = logging.getLogger(__name__)
 

@@ -11,7 +11,8 @@ from typing import Any, Dict, List
 import pandas as pd
 from tqdm import tqdm
 
-from metrics import LoggingService, MetricsContainer
+from LoggingService import LoggingService
+from metrics import MetricsContainer
 from models.ModelFactory import ModelFactory
 
 log = logging.getLogger(__name__)
