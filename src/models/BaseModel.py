@@ -128,7 +128,6 @@ class BaseModel(LightningModule):
             default_root_dir=self.log_dir,
             callbacks=[checkpoint_cb, tr_logger, device_monitor],
             fast_dev_run=self.hparams["fast_dev_run"],
-            detect_anomaly=True,
             enable_model_summary=False,
             # profiler=self.profiler,
         )
