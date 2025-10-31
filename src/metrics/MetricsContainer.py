@@ -4,7 +4,7 @@ import os
 import pickle
 import time
 from contextlib import contextmanager
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import pandas as pd
 import psutil
@@ -30,7 +30,7 @@ class MetricsContainer():
             group, metric = key.split("/", 1)
             return self._raw.setdefault(group, {}).get(metric, {})
         return self._raw.get(key, [])
-    
+
     def log_scalar(self, metric: str, value: Any, group: Optional[str] = None) -> None:
         bucket = self._raw.setdefault(group, {}) if group is not None else self._raw
         bucket.setdefault(metric, []).append(value)
