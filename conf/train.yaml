@@ -16,7 +16,7 @@ hydra:
     dir: ${LOGS_DIR}/${expdir}/${now:%Y-%m-%d@%H-%M-%S}/${model.model_class}
   sweep:
     dir: ${LOGS_DIR}/${expdir}/${now:%Y-%m-%d@%H-%M-%S}
-    subdir: ${model.model_class}/${hydra.job.override_dirname}
+    subdir: ${hydra.job.override_dirname}
   job:
     config:
       override_dirname:
