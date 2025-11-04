@@ -23,20 +23,19 @@ class MetricsContainer(Logger):
         super().__init__()
         self._raw: Dict[str, Any] = {}
         self._last_logged_step: Dict[str, Optional[int]] = {}
-        self.log_dir = os.path.join(log_dir, "metrics")
-        self._init_directories()
+        self._log_dir = os.path.join(log_dir, "metrics")
 
     @property
     def name(self) -> str:
         return "metrics"
 
     @property
-    def version(self) -> str:
-        return "0"
-
-    @property
     def experiment(self) -> "MetricsContainer":
         return self
+
+    @property
+    def log_dir(self) -> str:
+        return self._log_dir
 
     @rank_zero_only
     def log_hyperparams(self, params: Dict[str, Any]) -> None:
@@ -44,34 +43,57 @@ class MetricsContainer(Logger):
         return
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, Any], step: Optional[int]) -> None:
+    def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
+        """
+        Step-aware logging:
+        - supports "group/metric" keys
+        - logs tensors as python scalars/lists
+        - appends `step` AT MOST ONCE per group per step
+        """
         if not metrics:
             return
 
-        grouped_steps: Dict[str, int] = {}
+        # 1) group by prefix
+        grouped: Dict[Optional[str], Dict[str, Any]] = {}
+
         for key, value in metrics.items():
+            # normalize
             if torch.is_tensor(value):
                 if value.numel() == 1:
                     value = value.item()
                 else:
                     value = value.detach().cpu().tolist()
-            elif isinstance(value, (torch.Tensor,)):
-                value = value.detach().cpu().tolist()
 
-            group: Optional[str] = None
+            group = None
             metric_name = key
             if "/" in key:
                 group, metric_name = key.split("/", 1)
 
-            self.log_scalar(metric_name, value, group=group)
+            grouped.setdefault(group, {})[metric_name] = value
 
-            if group is not None and step is not None:
-                grouped_steps.setdefault(group, step)
+        # 2) write to storage
+        for group, grp_metrics in grouped.items():
+            if group is None:
+                # ungrouped → just scalars, no step column
+                for m, v in grp_metrics.items():
+                    self.log_scalar(m, v)
+                continue
 
-        for group, group_step in grouped_steps.items():
-            if self._last_logged_step.get(group) != group_step:
-                self._raw.setdefault(group, {}).setdefault("step", []).append(group_step)
-                self._last_logged_step[group] = group_step
+            # grouped
+            if step is not None:
+                last_step = self._last_logged_step.get(group)
+                if last_step != step:
+                    # first time we see this group at this step → log dict + step
+                    self.log_dict(group, grp_metrics, step=step)
+                    self._last_logged_step[group] = step
+                else:
+                    # same step → no extra step append
+                    self.log_dict(group, grp_metrics, step=None)
+            else:
+                # no step provided → just values
+                self.log_dict(group, grp_metrics, step=None)
+    
+        return None
 
     @rank_zero_only
     def _init_directories(self) -> None:
@@ -202,4 +224,9 @@ class MetricsContainer(Logger):
             merged = pd.concat([sanity_row, merged], ignore_index=True, sort=False)
 
         return merged.reset_index(drop=True)
+
+    @property
+    def version(self) -> int | str | None:
+        return None
+
 

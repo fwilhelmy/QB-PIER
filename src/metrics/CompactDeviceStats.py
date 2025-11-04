@@ -5,7 +5,7 @@
 from typing import Any, Optional, Iterable, Union
 import psutil
 import torch
-import pytorch_lightning as pl
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback
 
 
@@ -22,7 +22,7 @@ class CompactDeviceStats(Callback):
         super().__init__()
         self._log_on = {log_on} if isinstance(log_on, str) else set(log_on)
 
-    def _log_resources(self, pl_module: "pl.LightningModule") -> None:
+    def _log_resources(self, pl_module: LightningModule) -> None:
         cpu_pct = psutil.cpu_percent(interval=None)
         mem = psutil.virtual_memory()
         mem_used_gb = (mem.total - mem.available) / (1024 ** 3)
@@ -37,6 +37,6 @@ class CompactDeviceStats(Callback):
 
         pl_module.log_dict(metrics, on_step=False, on_epoch=True)
 
-    def on_train_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule",
+    def on_train_batch_end(self, trainer: Trainer, pl_module: LightningModule,
                            outputs: Any, batch: Any, batch_idx: int) -> None:
         self._log_resources(pl_module)
