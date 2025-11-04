@@ -171,11 +171,14 @@ if __name__ == "__main__":
     # args = parser.parse_args()
 
     # data = load_experiment(args.path, load=args.load)
-
-    LoggingService("logs/HQNN")
-    data = load_experiment("logs/HQNN", load="final")
+    
+    LoggingService("logs/models")
+    data = load_experiment("logs/models", load="final")
     log.info("Loaded data for %s model configurations.", len(data))
-    from visualisation.training import plot_models_together
-    data = {x:y for x,y in zip(['HQE','HPQNN','HQNN','HQUANV'],list(data.values()))}
-    plot_models_together(data)
+    from visualisation.training import generate_gradient_flow_plots
+    for model_name, model_data in data.items():
+        for seed, model in model_data.items():
+            log.info("Generating gradient flow plots for %s (seed=%d).", model_name, seed)
+            generate_gradient_flow_plots(model, fig_dir=model_name)
+    
 

@@ -281,10 +281,10 @@ def plot_gradient_flow(grad_dict, title):
 
 @rank_zero_only
 def generate_gradient_flow_plots(model, fig_dir=None):
-    if not hasattr(model.metrics._raw, 'grad_l2'):
+    if model.metrics['grad_l2'] == []:
         log.warning("No gradient data found in model metrics. Skipping gradient flow plots.")
         return
-    grad_norms = model.metrics._raw['grad_l2']
+    grad_norms = model.metrics['grad_l2']
 
     weight_grads = {k: v for k, v in grad_norms.items() if 'weight' in k and 'bias' not in k and 'bn' not in k and 'norm' not in k}
     if weight_grads == {}: raise ValueError(f"No weight gradients found.")

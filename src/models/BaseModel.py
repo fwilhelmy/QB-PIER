@@ -6,14 +6,13 @@ from numpy import gradient
 import torch
 import torch.optim as optim
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import DeviceStatsMonitor, ModelCheckpoint
+from pytorch_lightning.callbacks import DeviceStatsMonitor, ModelCheckpoint, RichProgressBar, RichModelSummary
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profilers import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.utilities import rank_zero_only
 from torch.nn import CrossEntropyLoss
 from torch.optim import lr_scheduler as lr_schedulers
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from lightning.pytorch.callbacks import RichProgressBar
 
 from utils import calculate_accuracy
 from metrics import MetricsContainer, CompactDeviceStats, GradientProfiler
