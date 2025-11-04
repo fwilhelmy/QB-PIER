@@ -3,7 +3,7 @@ defaults:
   - qdevice: sim
   - dataset: mnist
   - model: lenet
-  - training: debug
+  - training: dev
   - logging: verbose
   - _self_
 

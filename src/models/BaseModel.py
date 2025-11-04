@@ -201,9 +201,9 @@ class BaseModel(LightningModule):
         weights_l2 = sum((p.norm(2).item() ** 2) for p in self.parameters() if p.requires_grad)
         weights_l2 = weights_l2 ** 0.5
 
-        self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=False)
-        self.log("train/acc", acc, on_step=False, on_epoch=True, prog_bar=True, sync_dist=False)
-        self.log("train/weights_l2", weights_l2, on_step=False, on_epoch=True, prog_bar=False, sync_dist=False)
+        self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("train/acc", acc, on_step=False, on_epoch=True, prog_bar=False)
+        self.log("train/weights_l2", weights_l2, on_step=False, on_epoch=True, prog_bar=False)
 
         return {"loss": loss, "acc": acc, "weights_l2": weights_l2}
 
@@ -213,8 +213,8 @@ class BaseModel(LightningModule):
         loss = self.loss_fn(y_hat, y)
         acc = calculate_accuracy(y_hat, y)
 
-        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=False)
-        self.log("val/acc", acc, on_step=False, on_epoch=True, prog_bar=True, sync_dist=False)
+        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("val/acc", acc, on_step=False, on_epoch=True, prog_bar=False)
 
         return {"loss": loss, "acc": acc}
 
@@ -224,8 +224,8 @@ class BaseModel(LightningModule):
         loss = self.loss_fn(y_hat, y)
         acc = calculate_accuracy(y_hat, y)
 
-        self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=False)
-        self.log("test/acc", acc, on_step=False, on_epoch=True, prog_bar=True, sync_dist=False)
+        self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=False)
+        self.log("test/acc", acc, on_step=False, on_epoch=True, prog_bar=False)
 
         return {"loss": loss, "acc": acc}
 

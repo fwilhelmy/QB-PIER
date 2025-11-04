@@ -4,7 +4,6 @@ import logging
 
 log = logging.getLogger(__name__)
 
-
 class GradientProfiler(Callback):
     """Compute gradient norms and log them at the end of the epoch."""
 
@@ -35,8 +34,5 @@ class GradientProfiler(Callback):
         pl_module: LightningModule,
     ) -> None:
         gradients = self._latest or self._compute_gradient_norms(pl_module)
-        if gradients:
-            pl_module.log_dict(gradients, on_step=False, on_epoch=True)
-            log.info("Logged gradient norms at epoch %d", pl_module.current_epoch)
-        else:
-            log.warning("No gradients found to log at epoch %d", pl_module.current_epoch)
+        if gradients: pl_module.log_dict(gradients, on_step=False, on_epoch=True)
+        else: log.warning("No gradients found to log at epoch %d", pl_module.current_epoch)
