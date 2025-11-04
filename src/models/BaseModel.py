@@ -2,6 +2,7 @@ import logging
 import os
 from typing import Any, Dict, Tuple, Union
 
+from numpy import gradient
 import torch
 import torch.optim as optim
 from pytorch_lightning import LightningModule, Trainer
@@ -15,10 +16,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from lightning.pytorch.callbacks import RichProgressBar
 
 from utils import calculate_accuracy
-from metrics import MetricsContainer
-from models.OptimiserFactory import OptimiserFactory
-from models.SchedulerFactory import SchedulerFactory
-from metrics import TrainingLogger, MetricsContainer, CompactDeviceStats
+from metrics import MetricsContainer, CompactDeviceStats, GradientProfiler
 
 log = logging.getLogger(__name__)
 
@@ -120,6 +118,7 @@ class BaseModel(LightningModule):
 
         # Device stats monitor callback (logs hardware utilization)
         device_monitor = CompactDeviceStats()
+        gradient_profiler = GradientProfiler()
 
         # Build the Trainer
         self.trainer: Trainer = Trainer(
@@ -128,7 +127,7 @@ class BaseModel(LightningModule):
             devices=self.hparams["devices"],
             logger=[tb_logger, self.metrics],
             default_root_dir=self.log_dir,
-            callbacks=[checkpoint_cb, device_monitor],
+            callbacks=[checkpoint_cb, device_monitor, gradient_profiler],
             fast_dev_run=self.hparams["fast_dev_run"],
             enable_model_summary=False,
             # profiler=self.profiler,
@@ -229,23 +228,9 @@ class BaseModel(LightningModule):
         self.log("test/acc", acc, on_step=False, on_epoch=True, prog_bar=True, sync_dist=False)
 
         return {"loss": loss, "acc": acc}
-    
-    def _gradient_norms(self) -> Dict[str, float]:
-        return {name: param.grad.data.norm(2).item()
-            for name, param in self.named_parameters() if param.grad is not None}
 
     def on_train_epoch_end(self):
         self.metrics.log_epoch(self.global_step)
-        # Log last computed gradient norms captured during backprop. Gradients
-        # are typically cleared by the time we reach epoch end, so we cache
-        # them in on_after_backward.
-        grad_l2 = self._last_grad_l2 if hasattr(self, "_last_grad_l2") else self._gradient_norms()
-        if grad_l2: self.metrics.log_dict("grad_l2", grad_l2, step=self.global_step)
-        else: log.warning("No gradients found to log at epoch %d", self.current_epoch)
-
-    def on_after_backward(self) -> None:
-        # Cache gradient L2 norms right after backward, before optimizer.zero_grad()
-        self._last_grad_l2 = self._gradient_norms()
 
     def fit(
         self,

@@ -7,12 +7,12 @@ Contains:
 
 # expose these classes at package level
 from .MetricsContainer import MetricsContainer
-from .TrainingLogger import TrainingLogger
 from .CompactDeviceStats import CompactDeviceStats
+from .GradientsProfiler import GradientProfiler
 
 # what gets imported with `from logging import *`
 __all__ = [
     "MetricsContainer",
-    "TrainingLogger",
     "CompactDeviceStats",
+    "GradientProfiler",
 ]
