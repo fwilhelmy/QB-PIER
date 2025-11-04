@@ -100,10 +100,27 @@ class MetricsContainer(Logger):
         os.makedirs(self.log_dir, exist_ok=True)
 
     def __getitem__(self, key: str):
+        if key == "all":
+            return self._raw
+
         if "/" in key:
             group, metric = key.split("/", 1)
-            return self._raw.setdefault(group, {}).get(metric, {})
-        return self._raw.get(key, [])
+            group_metrics = self._raw.get(group)
+            if group_metrics is None:
+                raise AttributeError(f"Metric group {group!r} not found")
+            if metric not in group_metrics:
+                raise AttributeError(f"Metric {metric!r} not found in group {group!r}")
+            return group_metrics[metric]
+
+        if key in self._raw:
+            return self._raw[key]
+
+        raise AttributeError(f"{self.__class__.__name__!s} object has no attribute {key!r}")
+
+    def __getattr__(self, item: str) -> Any:
+        """Allow direct attribute access to stored metric groups."""
+
+        return self[item]
 
     def log_scalar(self, metric: str, value: Any, group: Optional[str] = None) -> None:
         bucket = self._raw.setdefault(group, {}) if group is not None else self._raw
