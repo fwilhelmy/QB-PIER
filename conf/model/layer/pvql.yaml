@@ -1,6 +1,6 @@
 defaults:
   - /model/ansatz@params.ansatz: strong
-name: pvqc
+name: pvql
 params:
   n_qblocks: 4
   n_qdepth: 50
