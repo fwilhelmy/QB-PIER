@@ -194,7 +194,6 @@ class MetricsContainer(Logger):
             return pd.DataFrame()
 
         frames = []
-        sanity_row: Optional[pd.DataFrame] = None
 
         for group, metrics in self._raw.items():
             if group == "epoch" or not isinstance(metrics, dict):
@@ -222,23 +221,16 @@ class MetricsContainer(Logger):
                     rename_map[col] = f"{prefix}{col}"
             df = df.rename(columns=rename_map)
 
-            if group == "val":
-                sanity_row = df.iloc[[0]].copy()
-                df = df.iloc[1:].reset_index(drop=True)
-
             frames.append(df)
 
         if not frames:
-            return sanity_row.reset_index(drop=True) if sanity_row is not None else pd.DataFrame()
+            return pd.DataFrame()
 
         merged = frames[0]
         for frame in frames[1:]:
             merged = pd.merge(merged, frame, on="epoch", how="outer", sort=True)
 
         merged = merged.sort_values("epoch").reset_index(drop=True)
-
-        if sanity_row is not None:
-            merged = pd.concat([sanity_row, merged], ignore_index=True, sort=False)
 
         return merged.reset_index(drop=True)
 
