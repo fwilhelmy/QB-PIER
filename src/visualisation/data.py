@@ -3,6 +3,7 @@ import random
 
 import matplotlib.pyplot as plt
 import torch
+from sklearn.manifold import TSNE
 from lightning.pytorch.utilities import rank_zero_only
 
 from LoggingService import LoggingService
@@ -12,15 +13,15 @@ log = logging.getLogger(__name__)
 # Function to print general information about the dataset
 @rank_zero_only
 def print_dataset_info(dataset):
-    log.info("Dataset Information:")
-    log.info("Number of samples: %s", len(dataset))
+    print("Dataset Information:")
+    print("Number of samples: %s", len(dataset))
     if hasattr(dataset, 'classes'):
-        log.info("Number of classes: %s", len(dataset.classes))
-        log.info("Classes: %s", dataset.classes)
+        print("Number of classes: %s", len(dataset.classes))
+        print("Classes: %s", dataset.classes)
 
 # Function to plot class distribution histogram
 @rank_zero_only
-def plot_class_distribution(dataset):
+def plot_class_distribution(dataset, logdir="logs/visualisation"):
     class_counts = [0] * len(dataset.classes)
     for _, label in dataset:
         class_counts[label] += 1
@@ -33,11 +34,11 @@ def plot_class_distribution(dataset):
     plt.xticks(range(len(dataset.classes)), dataset.classes)
 
     # Saving the results
-    LoggingService().save_figure(plt.gcf(), "class_distribution")
+    LoggingService().save_figure(plt.gcf(), "class_distribution", logdir)
 
 # Function to plot class visualizations: sample, mean, and standard deviation images
 @rank_zero_only
-def plot_class_visualizations(dataset):
+def plot_class_visualizations(dataset, logdir="logs/visualisation"):
     mean_images = []
     std_images = []
     sample_images = []
@@ -72,15 +73,18 @@ def plot_class_visualizations(dataset):
     plt.tight_layout()
 
     # Saving the results
-    LoggingService().save_figure(fig, "class_visualizations")
+    LoggingService().save_figure(fig, "class_visualizations", logdir)
 
 # Function to perform t-SNE and plot the results
 @rank_zero_only
-def plot_tsne(dataset, subset_size=1000):
+def plot_tsne(dataset, subset_size=1000, logdir="logs/visualisation"):
     indices = random.sample(range(len(dataset)), subset_size)
     subset_data = [dataset[i] for i in indices]
     images, labels = zip(*subset_data)
     images = torch.stack([img.view(-1) for img in images])
+    # scikit-learn expects array-like (e.g. numpy), convert from torch.Tensor
+    if isinstance(images, torch.Tensor):
+        images = images.detach().cpu().numpy()
 
     tsne = TSNE(n_components=2, random_state=0)
     tsne_results = tsne.fit_transform(images)
@@ -91,11 +95,11 @@ def plot_tsne(dataset, subset_size=1000):
     plt.title('t-SNE of Dataset')
 
     # Saving the results
-    LoggingService().save_figure(plt.gcf(), "tsne")
+    LoggingService().save_figure(plt.gcf(), "tsne", logdir)
 
 # Function to plot sample images from the dataset
 @rank_zero_only
-def plot_sample_images(dataset, x=10, rows=2, cols=5):
+def plot_sample_images(dataset, x=10, rows=2, cols=5, logdir="logs/visualisation"):
     indices = random.sample(range(len(dataset)), x)
     images, labels = zip(*[dataset[i] for i in indices])
 
@@ -108,5 +112,4 @@ def plot_sample_images(dataset, x=10, rows=2, cols=5):
     plt.tight_layout()
 
     # Saving the results
-    LoggingService().save_figure(fig, "sample_images")
-
+    LoggingService().save_figure(fig, "sample_images", logdir)
