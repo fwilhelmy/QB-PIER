@@ -37,11 +37,42 @@ class MetricsContainer(Logger):
     def log_dir(self) -> str:
         return self._log_dir
 
+    @property
+    def version(self) -> int | str | None:
+        return None
+
+    # Hyperparameters are tracked elsewhere; no-op to satisfy the logger interface.
     @rank_zero_only
     def log_hyperparams(self, params: Dict[str, Any]) -> None:
-        # Hyperparameters are tracked elsewhere; no-op to satisfy the logger interface.
         return
 
+    @rank_zero_only
+    def _init_directories(self) -> None:
+        os.makedirs(self.log_dir, exist_ok=True)
+
+    def __getitem__(self, key: str):
+        if key == "all":
+            return self._raw
+
+        if "/" in key:
+            group, metric = key.split("/", 1)
+            group_metrics = self._raw.get(group)
+            if group_metrics is None:
+                raise AttributeError(f"Metric group {group!r} not found")
+            if metric not in group_metrics:
+                raise AttributeError(f"Metric {metric!r} not found in group {group!r}")
+            return group_metrics[metric]
+
+        if key in self._raw:
+            return self._raw[key]
+
+        raise AttributeError(f"{self.__class__.__name__!s} object has no attribute {key!r}")
+
+    def __getattr__(self, item: str) -> Any:
+        """Allow direct attribute access to stored metric groups."""
+
+        return self[item]
+    
     @rank_zero_only
     def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
         """
@@ -94,33 +125,6 @@ class MetricsContainer(Logger):
                 self.log_dict(group, grp_metrics, step=None)
     
         return None
-
-    @rank_zero_only
-    def _init_directories(self) -> None:
-        os.makedirs(self.log_dir, exist_ok=True)
-
-    def __getitem__(self, key: str):
-        if key == "all":
-            return self._raw
-
-        if "/" in key:
-            group, metric = key.split("/", 1)
-            group_metrics = self._raw.get(group)
-            if group_metrics is None:
-                raise AttributeError(f"Metric group {group!r} not found")
-            if metric not in group_metrics:
-                raise AttributeError(f"Metric {metric!r} not found in group {group!r}")
-            return group_metrics[metric]
-
-        if key in self._raw:
-            return self._raw[key]
-
-        raise AttributeError(f"{self.__class__.__name__!s} object has no attribute {key!r}")
-
-    def __getattr__(self, item: str) -> Any:
-        """Allow direct attribute access to stored metric groups."""
-
-        return self[item]
 
     def log_scalar(self, metric: str, value: Any, group: Optional[str] = None) -> None:
         bucket = self._raw.setdefault(group, {}) if group is not None else self._raw
@@ -241,9 +245,3 @@ class MetricsContainer(Logger):
             merged = pd.concat([sanity_row, merged], ignore_index=True, sort=False)
 
         return merged.reset_index(drop=True)
-
-    @property
-    def version(self) -> int | str | None:
-        return None
-
-
