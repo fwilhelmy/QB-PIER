@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
+from sklearn.metrics import confusion_matrix
 from lightning.pytorch.utilities import rank_zero_only
 from LoggingService import LoggingService
 from visualisation.training import line_with_std

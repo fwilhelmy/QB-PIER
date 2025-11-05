@@ -5,6 +5,7 @@ import pennylane as qml
 import torch
 from torch.utils.data import TensorDataset
 from datasets import BaseDataset, DatasetFactory
+from torchvision.datasets import VisionDataset
 
 @DatasetFactory.dataset("plusminus")
 class PlusMinus(BaseDataset):
@@ -19,6 +20,7 @@ class PlusMinus(BaseDataset):
       - Train Size: 1000
       - Test Size: 200
     """
+    classes = ["+", "−", "⟂", "⊣"]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

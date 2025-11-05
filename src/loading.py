@@ -180,5 +180,6 @@ if __name__ == "__main__":
         for seed, model in model_data.items():
             log.info("Generating gradient flow plots for %s (seed=%d).", model_name, seed)
             generate_gradient_flow_plots(model, fig_dir=model_name)
+            
     
 
