@@ -22,7 +22,7 @@ class HVQL(BaseLayer):
         self.fc1 = Linear(in_features, in_qlayer)
         self.bn = BatchNorm1d(in_qlayer)
         self.relu = ReLU()
-        self.qlayer = self._qcls(input_size=in_qlayer, **qlayer_kwargs)
+        self.qlayer = self._qcls(in_qlayer=in_qlayer, **qlayer_kwargs)
         self.fc2 = Linear(self.qlayer.output_size, output_size)
         self.logSoftmax = LogSoftmax(dim=1)
 
@@ -34,9 +34,9 @@ class HVQL(BaseLayer):
         output = self.fc2(output)
         return self.logSoftmax(output)
 
-    @property
-    def _qcls(self) -> type[Module]:
-        return VQC
+    def _qcls(self, in_qlayer, **qlayer_kwargs) -> Module:
+        qlayer_kwargs['n_layers'] = qlayer_kwargs.pop("n_qdepth", None)
+        return VQC(input_size=in_qlayer, **qlayer_kwargs)
 
 @LayerFactory.classifier("hpvql")
 class HPVQL(HVQL):
@@ -56,6 +56,6 @@ class HPVQL(HVQL):
             **qlayer_kwargs,
         )
 
-    @property
-    def _qcls(self) -> type[Module]:
-        return ParaVQC
+    def _qcls(self, in_qlayer, **qlayer_kwargs) -> Module:
+        qlayer_kwargs['n_layers'] = qlayer_kwargs.pop("n_qdepth", None)
+        return ParaVQC(input_size=in_qlayer, **qlayer_kwargs)
