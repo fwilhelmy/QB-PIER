@@ -52,19 +52,15 @@ tensorboard --logdir=.
 
 ## Watch Training Remotely
 
-1. On your local machine, open a terminal and establish an SSH tunnel that forwards a local port (for example 6006) to the remote TensorBoard port:
+1. Run those commands:
 
     ```bash
     ssh -L 6006:localhost:6006 AP09650@replica.logti.etsmtl.ca
-    ```
-
-2. On the remote server, start TensorBoard bound to localhost on port 6006:
-
-    ```bash
+    source miniconda3/bin/activate && conda activate QAML && cd QMLBenchmark
     tensorboard --logdir=. --port=6006
     ```
 
-3. Open a browser on your local machine and navigate to:
+2. Open a browser on your local machine and navigate to:
 
     ```
     http://localhost:6006

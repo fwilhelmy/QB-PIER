@@ -52,7 +52,7 @@ def train_model(cfg: DictConfig, log_dir: str):
         torch.set_num_threads(num_threads)
 
     for seed in seeds:
-        log.info(f"Starting training for model %s (seed=%s)", model_name, seed)
+        log.info(f"Starting training for seed %s", seed)
 
         # 1) Seeding
         seed_experiment(seed)
