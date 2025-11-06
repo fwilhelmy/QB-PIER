@@ -38,7 +38,6 @@ def plot_confusion_matrix(
     plt.title(f"{source_model} @ max ε: {title}")
     plt.tight_layout()
 
-    out_dir = os.path.join(root_dir, source_model)
-    os.makedirs(out_dir, exist_ok=True)
-    plt.savefig(os.path.join(out_dir, "confusion_matrix.png"))
+    os.makedirs(root_dir, exist_ok=True)
+    plt.savefig(os.path.join(root_dir, "confusion_matrix.png"))
     plt.close()

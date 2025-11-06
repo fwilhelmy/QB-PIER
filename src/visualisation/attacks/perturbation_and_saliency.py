@@ -26,14 +26,15 @@ def plot_perturbation_and_saliency(
     grads = attack.gradients[model.log_dir]
     B = 3
     for i in range(B):
-        saliency = grads[i][0].abs().cpu().detach().numpy()
+        saliency = grads[i][0].cpu().detach().numpy()
+        saliency = epsilon * saliency.sign()
         perturb = attack.attack(model, epsilon).to(device)
 
         fig, axes = plt.subplots(1, 3, figsize=(9, 3))
         axes[0].imshow(x[i].cpu().squeeze(), cmap="gray")
         axes[0].set_title("Original")
         axes[0].axis("off")
-        axes[1].imshow(saliency.squeeze(), cmap="hot")
+        axes[1].imshow(saliency.squeeze(), cmap="viridis")
         axes[1].set_title("Saliency")
         axes[1].axis("off")
         axes[2].imshow((x[i].cpu() + perturb[i]).squeeze().clamp(0, 1).detach().numpy(), cmap="gray")
