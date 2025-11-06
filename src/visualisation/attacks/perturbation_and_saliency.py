@@ -26,19 +26,27 @@ def plot_perturbation_and_saliency(
     grads = attack.gradients[model.log_dir]
     B = 3
     for i in range(B):
-        saliency = grads[i][0].cpu().detach().numpy()
-        saliency = epsilon * saliency.sign()
-        perturb = attack.attack(model, epsilon).to(device)
+        image = x[i].cpu().squeeze().detach().numpy()
+        saliency = grads[i][0].detach().cpu()
+        saliency_sign = saliency.sign().numpy()
+
+        # Normalise saliency for visualising overlay
+        saliency_abs = saliency.abs()
+        if saliency_abs.max() > 0:
+            saliency_overlay = (saliency_abs / saliency_abs.max()).numpy()
+        else:
+            saliency_overlay = saliency_abs.numpy()
 
         fig, axes = plt.subplots(1, 3, figsize=(9, 3))
-        axes[0].imshow(x[i].cpu().squeeze(), cmap="gray")
+        axes[0].imshow(image, cmap="gray")
         axes[0].set_title("Original")
         axes[0].axis("off")
-        axes[1].imshow(saliency.squeeze(), cmap="viridis")
+        axes[1].imshow(saliency_sign.squeeze(), cmap="hot")
         axes[1].set_title("Saliency")
         axes[1].axis("off")
-        axes[2].imshow((x[i].cpu() + perturb[i]).squeeze().clamp(0, 1).detach().numpy(), cmap="gray")
-        axes[2].set_title(f"FGSM ε={epsilon:.2f}")
+        axes[2].imshow(image, cmap="gray")
+        axes[2].imshow(saliency_overlay.squeeze(), cmap="viridis", alpha=0.6)
+        axes[2].set_title("Overlay")
         axes[2].axis("off")
         plt.tight_layout()
         os.makedirs(out_dir, exist_ok=True)
