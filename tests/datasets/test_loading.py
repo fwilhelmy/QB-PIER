@@ -12,6 +12,22 @@ def test_crawl_experiments(tmp_path, monkeypatch):
     metrics_stub.LoggingService = object
     monkeypatch.setitem(sys.modules, "metrics", metrics_stub)
 
+    class _LoggingService:  # pragma: no cover - test stub
+        root_dir = "."
+
+        def __init__(self, *a, **k):
+            pass
+
+        def save_figure(self, *a, **k):
+            pass
+
+        def save_file(self, *a, **k):
+            pass
+
+    logging_service_stub = types.ModuleType("LoggingService")
+    logging_service_stub.LoggingService = _LoggingService
+    monkeypatch.setitem(sys.modules, "LoggingService", logging_service_stub)
+
     pandas_stub = types.ModuleType("pandas")
     pandas_stub.DataFrame = object
     pandas_stub.read_csv = lambda *a, **k: types.SimpleNamespace(columns=set())
@@ -29,19 +45,16 @@ def test_crawl_experiments(tmp_path, monkeypatch):
 
     visualisation_pkg = types.ModuleType("visualisation")
     monkeypatch.setitem(sys.modules, "visualisation", visualisation_pkg)
-    monkeypatch.setitem(
-        sys.modules,
-        "visualisation.training",
-        types.SimpleNamespace(
-            plot_training_curves=lambda *a, **k: None,
-            plot_models_together=lambda *a, **k: None,
-        ),
+    train_stub = types.SimpleNamespace(
+        plot_training_curves=lambda *a, **k: None,
+        plot_models_together=lambda *a, **k: None,
+        generate_gradient_flow_plots=lambda *a, **k: None,
     )
-    monkeypatch.setitem(
-        sys.modules,
-        "visualisation.attacks",
-        types.SimpleNamespace(plot_transfer_attack_effects=lambda *a, **k: None),
-    )
+    monkeypatch.setitem(sys.modules, "visualisation.train", train_stub)
+    setattr(visualisation_pkg, "train", train_stub)
+    attacks_stub = types.SimpleNamespace(plot_transfer_attack_effects=lambda *a, **k: None)
+    monkeypatch.setitem(sys.modules, "visualisation.attacks", attacks_stub)
+    setattr(visualisation_pkg, "attacks", attacks_stub)
 
     # Reload loading after stubbing to pick up the fake modules
     sys.modules.pop("loading", None)
