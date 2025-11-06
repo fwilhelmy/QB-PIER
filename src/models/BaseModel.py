@@ -93,15 +93,15 @@ class BaseModel(LightningModule):
         # Create loggers
         tb_logger = TensorBoardLogger(save_dir=self.log_dir, name=None, version="tensorboard")
 
-        # profiler_dirpath = os.path.join(self.log_dir, "profiler")
-        # self.profiler = PyTorchProfiler(
-        #     dirpath=profiler_dirpath,        # where to save files
-        #     filename="trace",               # base name
-        #     export_to_chrome=True,          # export .json file for Chrome Trace
-        #     record_module_names=True,
-        #     row_limit=1000,                 # or whatever you need
-        #     # optionally you can pass profiler kwargs for torch.profiler.profile
-        # )
+        profiler_dirpath = os.path.join(self.log_dir, "profiler")
+        self.profiler = PyTorchProfiler(
+            dirpath=profiler_dirpath,
+            filename="trace",
+            export_to_chrome=True,
+            record_module_names=True,
+            row_limit=1000,
+            sort_by_key="cpu_time"
+        )
         
         # Checkpoint callback
         ckpt_dir = os.path.join(self.log_dir, "checkpoints")
