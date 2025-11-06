@@ -35,8 +35,8 @@ class FGSM(BaseAttack):
         ``batch_size`` controls how many samples are processed at once.
         """
 
-        if model.model_path in self.gradients:
-            return self.gradients[model.model_path]
+        if model.log_dir in self.gradients:
+            return self.gradients[model.log_dir]
 
         gradients: List[tuple[Tensor, Tensor]] = []
         model.eval()
@@ -58,7 +58,7 @@ class FGSM(BaseAttack):
                 gradients.append((img.cpu(), grad.cpu()))
             model.load_state_dict(state)
 
-        self.gradients[model.model_path] = gradients
+        self.gradients[model.log_dir] = gradients
         return gradients
 
     def attack(self, model, epsilon: float, **kwargs) -> Tensor:
