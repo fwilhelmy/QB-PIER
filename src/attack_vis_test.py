@@ -212,18 +212,19 @@ def _run_attack_visualisations(trained_models: Dict[str, Dict[int, object]], dat
             dirpath = os.path.join(OUTPUT_SUBDIR, model_name, str(epsilon))
             plot_perturbation_and_saliency(first_model, fgsm, "cpu", epsilon, dirpath)
 
-    for (model_name, group) in df.loc[df['source_model'] == df['target_model']].groupby("source_model"):
+    model_names = trained_models.keys()
+    for (model_name, (model_path, group)) in zip(model_names, df.loc[df['source_model'] == df['target_model']].groupby("source_model")):
         for (epsilon, subgrp) in group.groupby("epsilon"):
             source_model = subgrp["source_model"]
-            epsilon = subgrp["epsilon"]
+            epsilon = str(subgrp["epsilon"].item())
             acc = subgrp["accuracy"].values
             y_pred = subgrp["preds"].values
-            log.info("Model %s at ε=%.2f: Accuracy %.4f", source_model, epsilon, acc)
+            dirpath = os.path.join(OUTPUT_SUBDIR, model_name, epsilon)
             plot_confusion_matrix(
                 y_true.cpu().numpy(),
-                y_pred.cpu().numpy(),
+                y_pred[0].cpu().numpy(),
                 dataset.classes,
-                root_dir=OUTPUT_SUBDIR,
+                root_dir=dirpath,
                 source_model=source_model,
                 normalize=True,
             )
