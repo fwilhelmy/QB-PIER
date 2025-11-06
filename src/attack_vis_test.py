@@ -24,6 +24,7 @@ from visualisation.attacks import (
     plot_attack_accuracy_df,
     plot_attack_effect_on_accuracy,
     plot_confusion_matrix,
+    plot_loss_landscape,
     plot_perturbation_and_saliency,
     plot_transfer_attack_effects,
 )
@@ -33,10 +34,10 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # User editable parameters
 # ---------------------------------------------------------------------------
-MODEL_LOGDIR = "REPLACE_WITH_YOUR_LOGDIR"
+MODEL_LOGDIR = "logs/modelsmini"
 """Path to the directory that contains the trained model experiment folders."""
 
-OUTPUT_SUBDIR = "visualisation_test_outputs"
+OUTPUT_SUBDIR = "logs/vis_atck"
 """Relative directory (inside :data:`MODEL_LOGDIR`) where figures are stored."""
 
 ATTACK_EPSILONS: Tuple[float, ...] = (0.0, 0.1, 0.2, 0.3)
@@ -79,8 +80,8 @@ def _ensure_model_metadata(model_name: str, model) -> None:
 
     if not hasattr(model, "model_name"):
         setattr(model, "model_name", model_name)
-    if not hasattr(model, "model_path"):
-        setattr(model, "model_path", getattr(model, "log_dir", model_name))
+    if not hasattr(model, "log_dir"):
+        setattr(model, "log_dir", getattr(model, "log_dir", model_name))
     if not hasattr(model, "root_dir"):
         setattr(model, "root_dir", getattr(model, "log_dir", MODEL_LOGDIR))
 
@@ -131,11 +132,8 @@ def _load_dataset(seed_model) -> LimitedDataset | None:
         return None
 
 
-def _compute_attack_records(models: List[object], dataset: LimitedDataset) -> Tuple[pd.DataFrame, torch.Tensor, torch.Tensor, object]:
+def _compute_attack_records(models: List[object], dataset: LimitedDataset) -> Tuple[pd.DataFrame, object, torch.Tensor]:
     """Run a compact FGSM sweep and collect attack statistics."""
-
-    if not models:
-        return pd.DataFrame(), torch.empty(0), torch.empty(0), None
 
     fgsm = AttackFactory.create("fgsm", dataset=dataset, batch_size=min(BATCH_SIZE, len(dataset)))
     records: List[Dict[str, object]] = []
@@ -145,9 +143,9 @@ def _compute_attack_records(models: List[object], dataset: LimitedDataset) -> Tu
     for model in models:
         model.eval()
         gradients = fgsm.compute_gradients(model)
-        # ensure gradients are reachable via both model_path and model_name
-        if getattr(model, "model_name", None) not in fgsm.gradients:
-            fgsm.gradients[model.model_name] = gradients
+        # ensure gradients are reachable via both log_dir and model_name
+        if getattr(model, "log_dir", None) not in fgsm.gradients:
+            fgsm.gradients[model.log_dir] = gradients
 
     max_eps = max(ATTACK_EPSILONS)
 
@@ -164,81 +162,72 @@ def _compute_attack_records(models: List[object], dataset: LimitedDataset) -> Tu
                 records.append(
                     {
                         "seed": 0,
-                        "source_model": attacker.model_name,
-                        "target_model": victim.model_name,
+                        "source_model": attacker.log_dir,
+                        "target_model": victim.log_dir,
                         "epsilon": float(epsilon),
                         "accuracy": float(accuracy),
+                        "preds": preds,
                     }
                 )
                 if epsilon == max_eps:
                     last_confusion = (y_true[: preds.size(0)], preds, attacker)
 
     df = pd.DataFrame.from_records(records)
-    if df.empty:
-        return df, torch.empty(0), torch.empty(0), fgsm
-
-    if last_confusion is None:
-        return df, torch.empty(0), torch.empty(0), fgsm
-
-    targets_tensor, preds_tensor, attacker_model = last_confusion
-    return df, targets_tensor, preds_tensor, attacker_model
+    return df, fgsm, y_true
 
 
 def _run_attack_visualisations(trained_models: Dict[str, Dict[int, object]], dataset: LimitedDataset) -> None:
     """Produce attack-related figures using freshly computed FGSM sweeps."""
 
     first_seed_models = [next(iter(seeds.values())) for seeds in trained_models.values() if seeds]
-    if not first_seed_models:
-        log.warning("No models available for attack visualisations")
-        return
-
-    if dataset is None:
-        log.warning("Dataset unavailable – attack plots require a dataset to regenerate")
-        return
-
-    df, y_true, y_pred, fgsm = _compute_attack_records(first_seed_models, dataset)
+    df, fgsm, y_true = _compute_attack_records(first_seed_models, dataset)
     if df.empty:
         log.warning("Failed to compute attack statistics")
         return
 
     log.info("Generating transfer attack visualisations")
-    plot_transfer_attack_effects(df, title_prefix=f"{OUTPUT_SUBDIR}/attacks/")
+    plot_transfer_attack_effects(df, OUTPUT_SUBDIR)
 
     epsilons = sorted(df["epsilon"].unique())
     accuracy_curves: Dict[str, List[float]] = {}
     for model in first_seed_models:
-        subset = df[df["target_model"] == model.model_name]
+        subset = df[df["target_model"] == model.log_dir]
         stats = subset.groupby("epsilon")["accuracy"].mean().reindex(epsilons, fill_value=np.nan)
-        accuracy_curves[model.model_name] = stats.tolist()
+        accuracy_curves[model.log_dir] = stats.tolist()
 
     plot_attack_effect_on_accuracy(
-        f"{OUTPUT_SUBDIR}/attack_accuracy_overview",
+        f"plot_attack_effect_on_accuracy",
         first_seed_models,
         epsilons,
         accuracy_curves,
+        OUTPUT_SUBDIR
     )
 
     for source_model in sorted(df["source_model"].unique()):
-        plot_attack_accuracy_df(df, source_model, root_dir=os.path.join(OUTPUT_SUBDIR, "attacks"))
+        plot_attack_accuracy_df(df, source_model, root_dir=OUTPUT_SUBDIR)
 
-    classes = dataset.classes if hasattr(dataset, "classes") else [str(i) for i in range(int(y_true.max().item()) + 1)]
-    if y_true.numel() and y_pred.numel():
-        plot_confusion_matrix(
-            y_true.cpu().numpy(),
-            y_pred.cpu().numpy(),
-            classes,
-            root_dir=os.path.join(OUTPUT_SUBDIR, "attacks"),
-            source_model=first_seed_models[0].model_name,
-            normalize=True,
-        )
+    for model_name, model_seeds in trained_models.items():
+        first_model = next(iter(model_seeds.values()))
+        for epsilon in ATTACK_EPSILONS:
+            dirpath = os.path.join(OUTPUT_SUBDIR, model_name, str(epsilon))
+            plot_perturbation_and_saliency(first_model, fgsm, "cpu", epsilon, dirpath)
 
-    if fgsm is not None:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        epsilon = max(ATTACK_EPSILONS)
-        try:
-            plot_perturbation_and_saliency(first_seed_models[0], fgsm, device, epsilon)
-        except Exception as exc:  # pragma: no cover - defensive logging only
-            log.warning("Failed to plot perturbation/saliency maps: %s", exc)
+    for (model_name, group) in df.loc[df['source_model'] == df['target_model']].groupby("source_model"):
+        for (epsilon, subgrp) in group.groupby("epsilon"):
+            source_model = subgrp["source_model"]
+            epsilon = subgrp["epsilon"]
+            acc = subgrp["accuracy"].values
+            y_pred = subgrp["preds"].values
+            log.info("Model %s at ε=%.2f: Accuracy %.4f", source_model, epsilon, acc)
+            plot_confusion_matrix(
+                y_true.cpu().numpy(),
+                y_pred.cpu().numpy(),
+                dataset.classes,
+                root_dir=OUTPUT_SUBDIR,
+                source_model=source_model,
+                normalize=True,
+            )
+            
 
 
 # ---------------------------------------------------------------------------
@@ -257,14 +246,26 @@ def main() -> None:
     LoggingService(output_root)
 
     trained_models = load_experiment(MODEL_LOGDIR, load="final")
-    for model_name, seeds in trained_models.items():
-        for model in seeds.values():
-            _ensure_model_metadata(model_name, model)
 
-    dataset = None
-    if trained_models:
-        first_model = next(iter(next(iter(trained_models.values())).values()))
-        dataset = _load_dataset(first_model)
+    try:
+        dm = DatasetFactory.create("mnist", root="./data/processed", train=False)
+        full_dataset = dm.dataset
+        classes = getattr(full_dataset, "classes", [str(i) for i in range(10)])
+
+        limit = min(MAX_DATASET_SAMPLES, len(full_dataset))
+        data_samples, labels = [], []
+        for idx in range(limit):
+            sample, label = full_dataset[idx]
+            sample_t = sample if isinstance(sample, torch.Tensor) else torch.as_tensor(sample)
+            data_samples.append(sample_t)
+            labels.append(int(label))
+
+        data_tensor = torch.stack(tuple(data_samples))
+        label_tensor = torch.tensor(labels)
+        dataset = LimitedDataset(data_tensor, label_tensor, classes)
+    except Exception as exc:
+        log.warning("Failed to load MNIST dataset: %s", exc)
+        dataset = None
 
     _run_attack_visualisations(trained_models, dataset)
 

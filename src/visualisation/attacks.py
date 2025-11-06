@@ -10,7 +10,7 @@ from LoggingService import LoggingService
 from visualisation.training import line_with_std
 
 @rank_zero_only
-def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix: str = "transfer"):
+def plot_transfer_attack_effects(df: pd.DataFrame, out_dir: str, title_prefix: str = "transfer"):
     """Plot transfer-attack accuracy curves aggregated across seeds.
 
     The :func:`~main.run_attacks` helper returns a DataFrame where each
@@ -66,14 +66,15 @@ def plot_transfer_attack_effects(df: pd.DataFrame, title_prefix: str = "transfer
         plt.grid(True, linestyle="--", linewidth=0.5)
         plt.legend(title="Victim model", loc="best")
 
-        LoggingService().save_figure(plt.gcf(), f"{title_prefix}{attacker_name}")
+        plt.savefig(os.path.join(out_dir, f"{title_prefix}{attacker_name}.png"))
+        plt.close()
 
 @rank_zero_only
-def plot_attack_effect_on_accuracy(figstr, models, epsilons, accuracies):
+def plot_attack_effect_on_accuracy(figstr, models, epsilons, accuracies, out_dir):
     plt.figure(figsize=(10, 6))
 
     for model in models:
-        plt.plot(epsilons, accuracies[model.model_name], label=model.model_name, marker='o')
+        plt.plot(epsilons, accuracies[model.log_dir], label=model.log_dir, marker='o')
 
     plt.xlabel('Attack Strength (Epsilon)', fontsize=12)
     plt.ylabel('Accuracy (%)', fontsize=12)
@@ -83,7 +84,9 @@ def plot_attack_effect_on_accuracy(figstr, models, epsilons, accuracies):
     plt.legend(title='Models', fontsize=10)
     plt.tight_layout()
 
-    LoggingService().save_figure(plt.gcf(), figstr)
+
+    plt.savefig(os.path.join(out_dir, figstr + ".png"))
+    plt.close()
 
 @rank_zero_only
 def store_attack_results(records: list, root_dir: str) -> pd.DataFrame:
@@ -127,7 +130,7 @@ def plot_attack_accuracy_df(df: pd.DataFrame, source_model: str, root_dir: str):
 
     out_dir = os.path.join(root_dir, source_model)
     os.makedirs(out_dir, exist_ok=True)
-    plt.savefig(os.path.join(out_dir, "accuracy_vs_epsilon.png"))
+    plt.savefig(os.path.join(out_dir, "plot_attack_accuracy_df.png"))
     plt.close()
 
 
@@ -170,7 +173,8 @@ def plot_perturbation_and_saliency(
     model,
     attack: FGSM,
     device: torch.device,
-    epsilon: float
+    epsilon: float,
+    out_dir
 ):
     """
     For a small batch, compute FGSM perturbation and saliency maps,
@@ -178,23 +182,21 @@ def plot_perturbation_and_saliency(
     """
     model.eval()
     x = attack.dataset.data.to(device)
-    grads = torch.stack(attack.gradients[model.model_name])
-    saliency = grads.abs().cpu()
-    perturb = attack.attack(x, epsilon).to(device)
-
-    out_dir = os.path.join(model.root_dir, "saliency")
-    os.makedirs(out_dir, exist_ok=True)
-
-    B = 10
+    grads = attack.gradients[model.log_dir]
+    B = 3
     for i in range(B):
+        saliency = grads[i][0].abs().cpu().detach().numpy()
+        perturb = attack.attack(model, epsilon).to(device)
+
         fig, axes = plt.subplots(1, 3, figsize=(9, 3))
         axes[0].imshow(x[i].cpu().squeeze(), cmap='gray')
         axes[0].set_title("Original"); axes[0].axis('off')
-        axes[1].imshow(saliency[i].squeeze(), cmap='hot')
+        axes[1].imshow(saliency.squeeze(), cmap='hot')
         axes[1].set_title("Saliency"); axes[1].axis('off')
-        axes[2].imshow((x[i].cpu() + perturb[i]).squeeze().clamp(0,1), cmap='gray')
+        axes[2].imshow((x[i].cpu() + perturb[i]).squeeze().clamp(0,1).detach().numpy(), cmap='gray')
         axes[2].set_title(f"FGSM ε={epsilon:.2f}"); axes[2].axis('off')
         plt.tight_layout()
+        os.makedirs(out_dir, exist_ok=True)
         plt.savefig(os.path.join(out_dir, f"saliency_{i}.png"))
         plt.close()
 
