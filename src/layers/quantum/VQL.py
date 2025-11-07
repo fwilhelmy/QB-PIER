@@ -53,6 +53,7 @@ class VQL(BaseLayer):
         n_qdepth: int = 3,
         ansatz: dict | None = None,
         embedding: str = "angle",
+        output_size: int | None = None,
     ) -> None:
         super().__init__(in_features=in_features)
         self.vqc = VQC(
