@@ -178,10 +178,60 @@ def _compute_attack_records(models: List[object], dataset: LimitedDataset) -> Tu
     return df, fgsm, y_true
 
 
-def _run_attack_visualisations(trained_models: Dict[str, Dict[int, object]], dataset: LimitedDataset) -> None:
+def _model_device(model: object) -> torch.device:
+    """Infer the device where ``model`` parameters live."""
+
+    if hasattr(model, "parameters"):
+        try:
+            param = next(model.parameters())  # type: ignore[attr-defined]
+            return param.device
+        except StopIteration:  # pragma: no cover - defensive
+            pass
+    return torch.device("cpu")
+
+
+def _generate_loss_landscapes(models: List[object], dataset: LimitedDataset) -> None:
+    """Generate loss landscape figures for the provided ``models``."""
+
+    if len(dataset) == 0:
+        log.warning("Dataset is empty; skipping loss landscape generation")
+        return
+
+    alphas = np.linspace(-1.0, 1.0, num=21)
+    betas = np.linspace(-1.0, 1.0, num=21)
+    batch_size = min(BATCH_SIZE, len(dataset))
+    x_batch = dataset.data[:batch_size].to(torch.float32)
+    y_batch = dataset.targets[:batch_size]
+
+    for model in models:
+        device = _model_device(model)
+        plot_loss_landscape(model, x_batch, y_batch, alphas, betas, device)
+
+
+def _run_attack_visualisations(
+    trained_models: Dict[str, Dict[int, object]],
+    dataset: LimitedDataset | None,
+) -> None:
     """Produce attack-related figures using freshly computed FGSM sweeps."""
 
-    first_seed_models = [next(iter(seeds.values())) for seeds in trained_models.values() if seeds]
+    if dataset is None:
+        log.warning("Dataset unavailable; skipping attack visualisations")
+        return
+
+    first_seed_models: List[object] = []
+    for model_name, model_seeds in trained_models.items():
+        if not model_seeds:
+            continue
+        first_model = next(iter(model_seeds.values()))
+        _ensure_model_metadata(model_name, first_model)
+        first_seed_models.append(first_model)
+
+    if not first_seed_models:
+        log.warning("No trained models available for visualisation")
+        return
+
+    _generate_loss_landscapes(first_seed_models, dataset)
+
     df, fgsm, y_true = _compute_attack_records(first_seed_models, dataset)
     if df.empty:
         log.warning("Failed to compute attack statistics")
