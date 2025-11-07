@@ -27,7 +27,7 @@ def plot_perturbation_and_saliency(
     B = 3
     for i in range(B):
         image = x[i].cpu().squeeze().detach().numpy()
-        saliency = grads[i][0].detach().cpu()
+        saliency = grads[i][1].detach().cpu()
         saliency_sign = saliency.sign().numpy()
 
         # Normalise saliency for visualising overlay

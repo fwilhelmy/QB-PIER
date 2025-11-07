@@ -7,6 +7,7 @@ from .loss_landscape import plot_loss_landscape
 from .perturbation_and_saliency import plot_perturbation_and_saliency
 from .results import store_attack_results
 from .transfer_attack_effects import plot_transfer_attack_effects
+from .old_sal import old_sal
 
 __all__ = [
     "plot_attack_accuracy_df",
@@ -16,4 +17,5 @@ __all__ = [
     "plot_perturbation_and_saliency",
     "plot_transfer_attack_effects",
     "store_attack_results",
+    "old_sal",
 ]
