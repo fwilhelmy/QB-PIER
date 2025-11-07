@@ -8,6 +8,7 @@ from .perturbation_and_saliency import plot_perturbation_and_saliency
 from .results import store_attack_results
 from .transfer_attack_effects import plot_transfer_attack_effects
 from .old_sal import old_sal
+from .heatmap import plot_tp_heatmaps_by_class
 
 __all__ = [
     "plot_attack_accuracy_df",
@@ -18,4 +19,5 @@ __all__ = [
     "plot_transfer_attack_effects",
     "store_attack_results",
     "old_sal",
+    "plot_tp_heatmaps_by_class",
 ]

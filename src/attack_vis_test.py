@@ -27,6 +27,8 @@ from visualisation.attacks import (
     plot_loss_landscape,
     plot_perturbation_and_saliency,
     plot_transfer_attack_effects,
+    old_sal,
+    plot_tp_heatmaps_by_class
 )
 
 log = logging.getLogger(__name__)
@@ -195,6 +197,14 @@ def _run_attack_visualisations(trained_models: Dict[str, Dict[int, object]], dat
         stats = subset.groupby("epsilon")["accuracy"].mean().reindex(epsilons, fill_value=np.nan)
         accuracy_curves[model.log_dir] = stats.tolist()
 
+    plot_tp_heatmaps_by_class(
+        df=df,
+        y_true=y_true,
+        classes=dataset.classes,
+        root_dir=OUTPUT_SUBDIR,
+        models_name=list(trained_models.keys())
+    )
+
     plot_attack_effect_on_accuracy(
         f"plot_attack_effect_on_accuracy",
         first_seed_models,
@@ -211,6 +221,7 @@ def _run_attack_visualisations(trained_models: Dict[str, Dict[int, object]], dat
         for epsilon in ATTACK_EPSILONS:
             dirpath = os.path.join(OUTPUT_SUBDIR, model_name, str(epsilon))
             plot_perturbation_and_saliency(first_model, fgsm, "cpu", epsilon, dirpath)
+            old_sal(first_model, fgsm, "cpu", epsilon, dirpath)
 
     model_names = trained_models.keys()
     for (model_name, (model_path, group)) in zip(model_names, df.loc[df['source_model'] == df['target_model']].groupby("source_model")):
