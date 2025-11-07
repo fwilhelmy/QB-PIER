@@ -1,5 +1,5 @@
 defaults:
   - layer@encoder: conv
-  - layer@classifier: resqblock
+  - layer@classifier: resvql
 model_class: HQNN
 model_type: hybrid

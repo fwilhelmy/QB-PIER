@@ -3,4 +3,4 @@ defaults:
 name: vql
 params:
   n_qdepth: 50
-  embedding: angle
+  embedding: amplitude

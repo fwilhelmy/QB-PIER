@@ -1,5 +1,6 @@
 defaults:
   - layer@encoder: conv
-  - layer@classifier: pvqc
+  - layer@classifier: hpvql
 model_class: HQNN
 model_type: hybrid
+

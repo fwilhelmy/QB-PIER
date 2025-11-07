@@ -3,3 +3,9 @@ defaults:
   - layer@classifier: vql
 model_class: HQNN
 model_type: hybrid
+
+encoder:
+  params:
+    conv_channels:
+      - 8
+      - 16
