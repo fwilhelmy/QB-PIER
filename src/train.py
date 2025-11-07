@@ -127,8 +127,10 @@ def main(cfg: DictConfig) -> None:
     log.info(f"Starting experiment ({log_dir})")
 
     trained = train_model(cfg, log_dir)
-    plot_training_curves(cfg["model"]["model_class"], trained, log_dir)
-    generate_gradient_flow_plots(list(trained.values())[0], log_dir)
+
+    if not cfg["training"].get("fast_dev_run", False):
+        plot_training_curves(cfg["model"]["model_class"], trained, log_dir)
+        generate_gradient_flow_plots(list(trained.values())[0], log_dir)
     logging_service.save_experiment()
 
 if __name__ == "__main__":
