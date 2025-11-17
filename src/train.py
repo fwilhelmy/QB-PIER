@@ -1,17 +1,16 @@
-from collections import defaultdict
 import logging
 import os
 import time
-from typing import Dict, List
+from typing import Optional
 
 import hydra
-from omegaconf import DictConfig, OmegaConf
 import torch
 from hydra.core.hydra_config import HydraConfig
 from hydra.types import RunMode
 from omegaconf import DictConfig
 from torchsummary import summary
 
+from DiscordWebhookLogger import DiscordWebhookLogger
 from datasets import DatasetFactory
 from LoggingService import LoggingService
 from models.ModelFactory import ModelFactory
@@ -21,13 +20,18 @@ from visualisation.train import generate_gradient_flow_plots, plot_training_curv
 log = logging.getLogger(__name__)
 
 
-def train_model(cfg: DictConfig, log_dir: str):
+def train_model(
+    cfg: DictConfig,
+    log_dir: str,
+    discord_logger: Optional[DiscordWebhookLogger] = None,
+):
     """
     Runs a full training pipeline once per seed and returns all trained models.
     
     Args:
         cfg: Experiment configuration as a dictionary resolved from Hydra.
-        seeds (list of int): Random seeds to use.
+        log_dir: Relative logging directory inside the logging service root.
+        discord_logger: Optional webhook helper for experiment notifications.
 
     Returns:
         dict: { seed: trained_model_instance }
@@ -46,6 +50,9 @@ def train_model(cfg: DictConfig, log_dir: str):
 
     # Create an anchor file for later discovery
     LoggingService().save_file(model_name, ".model", path=log_dir)
+
+    if discord_logger:
+        discord_logger.log_experiment_start(model_name, seeds, log_dir)
 
     num_threads = cfg["device"].get("num_threads")
     if num_threads is not None:
@@ -99,11 +106,16 @@ def train_model(cfg: DictConfig, log_dir: str):
             model.fit(train_loader, eval_loader)
             trained[seed] = model
             log.info("Training completed for model %s (seed=%s).", model_name, seed)
-        except Exception as e:
-            log.warning("Training failed for model %s (seed=%s).", model_name, seed)
-        finally:
             elapsed = time.time() - start_time
             seed_times[seed] = elapsed
+            if discord_logger:
+                discord_logger.log_seed_completed(model_name, seed, elapsed)
+        except Exception as e:
+            log.warning("Training failed for model %s (seed=%s).", model_name, seed)
+            elapsed = time.time() - start_time
+            seed_times[seed] = elapsed
+            if discord_logger:
+                discord_logger.log_seed_failed(model_name, seed, str(e))
 
     if len(trained) != 0:
         avg_time = sum(seed_times.values()) / len(seed_times) if seed_times else 0.0
@@ -114,7 +126,6 @@ def train_model(cfg: DictConfig, log_dir: str):
         info += f"\nTraining time per epoch: {avg_time/epochs:.2f} seconds"
         info += f"\nTotal training time (per seed): {avg_time:.2f} seconds"
         LoggingService().save_file(info, "model.info", path=log_dir)
-
     return trained
 
 @hydra.main(config_path="../conf", config_name="train", version_base=None)
@@ -126,12 +137,30 @@ def main(cfg: DictConfig) -> None:
     log_dir = HydraConfig.get().job.override_dirname if HydraConfig.get().mode  == RunMode.MULTIRUN else cfg["model"]["model_class"]
     log.info(f"Starting experiment ({log_dir})")
 
-    trained = train_model(cfg, log_dir)
+    discord_logger = DiscordWebhookLogger()
+
+    trained = train_model(cfg, log_dir, discord_logger)
 
     if not cfg["training"].get("fast_dev_run", False):
         plot_training_curves(cfg["model"]["model_class"], trained, log_dir)
-        generate_gradient_flow_plots(list(trained.values())[0], log_dir)
+        if trained:
+            generate_gradient_flow_plots(list(trained.values())[0], log_dir)
+        figure_path = os.path.join(
+            logging_service.root_dir,
+            log_dir,
+            f"training_{cfg['model']['model_class']}.png",
+        )
+        if discord_logger and os.path.exists(figure_path):
+            discord_logger.log_training_curves(cfg["model"]["model_class"], figure_path)
     logging_service.save_experiment()
+    if discord_logger:
+        seeds_cfg = cfg["training"].get("seeds", [0, 42]) or []
+        discord_logger.log_experiment_finished(
+            cfg["model"]["model_class"],
+            trained=len(trained),
+            expected=len(seeds_cfg),
+            log_dir=os.path.join(logging_service.root_dir, log_dir),
+        )
 
 if __name__ == "__main__":
     main()
