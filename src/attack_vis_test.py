@@ -28,7 +28,12 @@ from visualisation.attacks import (
     plot_perturbation_and_saliency,
     plot_transfer_attack_effects,
     old_sal,
-    plot_tp_heatmaps_by_class
+    plot_tp_heatmaps_by_class,
+    plot_model_attack_effectiveness_matrix,
+    cell_effectiveness_auc_drop,
+    cell_effectiveness_eps_to_fraction,
+    cell_effectiveness_max_rel_drop,
+    cell_effectiveness_max_steepness
 )
 
 log = logging.getLogger(__name__)
@@ -36,10 +41,10 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # User editable parameters
 # ---------------------------------------------------------------------------
-MODEL_LOGDIR = "logs/modelsmini"
+MODEL_LOGDIR = "logs/models"
 """Path to the directory that contains the trained model experiment folders."""
 
-OUTPUT_SUBDIR = "logs/vis_atck"
+OUTPUT_SUBDIR = "logs/vis_atck_full"
 """Relative directory (inside :data:`MODEL_LOGDIR`) where figures are stored."""
 
 ATTACK_EPSILONS: Tuple[float, ...] = (0.0, 0.1, 0.2, 0.3)
@@ -134,7 +139,7 @@ def _load_dataset(seed_model) -> LimitedDataset | None:
         return None
 
 
-def _compute_attack_records(models: List[object], dataset: LimitedDataset) -> Tuple[pd.DataFrame, object, torch.Tensor]:
+def _compute_attack_records(models: List[object], models_names, dataset: LimitedDataset) -> Tuple[pd.DataFrame, object, torch.Tensor]:
     """Run a compact FGSM sweep and collect attack statistics."""
 
     fgsm = AttackFactory.create("fgsm", dataset=dataset, batch_size=min(BATCH_SIZE, len(dataset)))
@@ -151,8 +156,8 @@ def _compute_attack_records(models: List[object], dataset: LimitedDataset) -> Tu
 
     max_eps = max(ATTACK_EPSILONS)
 
-    for attacker in models:
-        for victim in models:
+    for attacker, attacker_name in zip(models, models_names):
+        for victim, victim_name in zip(models, models_names):
             for epsilon in ATTACK_EPSILONS:
                 adv_examples = fgsm.attack(attacker, epsilon)
                 adv_examples = adv_examples.to(torch.float32)
@@ -164,8 +169,8 @@ def _compute_attack_records(models: List[object], dataset: LimitedDataset) -> Tu
                 records.append(
                     {
                         "seed": 0,
-                        "source_model": attacker.log_dir,
-                        "target_model": victim.log_dir,
+                        "source_model": attacker_name,
+                        "target_model": victim_name,
                         "epsilon": float(epsilon),
                         "accuracy": float(accuracy),
                         "preds": preds,
@@ -197,8 +202,8 @@ def _generate_loss_landscapes(models: List[object], dataset: LimitedDataset) -> 
         log.warning("Dataset is empty; skipping loss landscape generation")
         return
 
-    alphas = np.linspace(-1.0, 1.0, num=21)
-    betas = np.linspace(-1.0, 1.0, num=21)
+    alphas = np.linspace(-1.0, 1.0, num=10)
+    betas = np.linspace(-1.0, 1.0, num=10)
     batch_size = min(BATCH_SIZE, len(dataset))
     x_batch = dataset.data[:batch_size].to(torch.float32)
     y_batch = dataset.targets[:batch_size]
@@ -230,12 +235,44 @@ def _run_attack_visualisations(
         log.warning("No trained models available for visualisation")
         return
 
-    _generate_loss_landscapes(first_seed_models, dataset)
+    # _generate_loss_landscapes(first_seed_models, dataset)
 
-    df, fgsm, y_true = _compute_attack_records(first_seed_models, dataset)
+    df, fgsm, y_true = _compute_attack_records(first_seed_models, trained_models.keys(), dataset)
     if df.empty:
         log.warning("Failed to compute attack statistics")
         return
+
+    plot_model_attack_effectiveness_matrix(
+        df,
+        out_dir=OUTPUT_SUBDIR,
+        normalize=True,
+        cell_fn=cell_effectiveness_max_steepness,
+        fname="attack_effectiveness_matrix_max_steepness.png",
+    )
+
+    plot_model_attack_effectiveness_matrix(
+        df,
+        out_dir=OUTPUT_SUBDIR,
+        normalize=True,
+        cell_fn=cell_effectiveness_max_rel_drop,
+        fname="attack_effectiveness_matrix_max_rel_drop.png",
+    )
+
+    plot_model_attack_effectiveness_matrix(
+        df,
+        out_dir=OUTPUT_SUBDIR,
+        normalize=True,
+        cell_fn=cell_effectiveness_auc_drop,
+        fname="attack_effectiveness_matrix_auc_drop.png",
+    )
+
+    plot_model_attack_effectiveness_matrix(
+        df,
+        out_dir=OUTPUT_SUBDIR,
+        normalize=True,
+        cell_fn=cell_effectiveness_eps_to_fraction,
+        fname="attack_effectiveness_matrix_eps_to_fraction.png",
+    )
 
     log.info("Generating transfer attack visualisations")
     plot_transfer_attack_effects(df, OUTPUT_SUBDIR)
