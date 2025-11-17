@@ -25,6 +25,7 @@ scipy
 hydra-core>=1.3
 overrides
 pytest
+discord-webhook
 
 # Development tools
 click
