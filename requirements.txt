@@ -34,7 +34,10 @@ awscli
 flake8
 python-dotenv
 
-# PlusMinus Dataset Dependencies
+# PlusMinus Dataset Dependencies (Optional)
 aiohttp
 fsspec
 h5py
+
+# Discord Webhook Library (Optional)
+discord-webhook
