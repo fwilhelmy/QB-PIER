@@ -1,5 +1,6 @@
 import logging
 import os
+from random import seed
 import time
 from typing import Optional
 
@@ -23,7 +24,6 @@ log = logging.getLogger(__name__)
 def train_model(
     cfg: DictConfig,
     log_dir: str,
-    discord_logger: Optional[DiscordWebhookLogger] = None,
 ):
     """
     Runs a full training pipeline once per seed and returns all trained models.
@@ -39,7 +39,7 @@ def train_model(
     trained = {}
     seed_times = {}
 
-    seeds = cfg["training"].get("seeds", [0, 42])
+    seeds = cfg["training"]["seeds"]
     
     model_name = cfg["model"]["model_class"].lower()
 
@@ -50,8 +50,6 @@ def train_model(
 
     # Create an anchor file for later discovery
     LoggingService().save_file(model_name, ".model", path=log_dir)
-
-    discord_logger.log_exp_start(model_name, seeds)
 
     num_threads = cfg["device"].get("num_threads")
     if num_threads is not None:
@@ -107,14 +105,10 @@ def train_model(
             log.info("Training completed for model %s (seed=%s).", model_name, seed)
             elapsed = time.time() - start_time
             seed_times[seed] = elapsed
-            if discord_logger:
-                discord_logger.log_seed_completed(model_name, seed, elapsed)
         except Exception as e:
             log.warning("Training failed for model %s (seed=%s).", model_name, seed)
             elapsed = time.time() - start_time
             seed_times[seed] = elapsed
-            if discord_logger:
-                discord_logger.log_seed_failed(model_name, seed, str(e))
 
     if len(trained) != 0:
         avg_time = sum(seed_times.values()) / len(seed_times) if seed_times else 0.0
@@ -125,41 +119,45 @@ def train_model(
         info += f"\nTraining time per epoch: {avg_time/epochs:.2f} seconds"
         info += f"\nTotal training time (per seed): {avg_time:.2f} seconds"
         LoggingService().save_file(info, "model.info", path=log_dir)
-    return trained
+    return trained, sum(seed_times.values())
 
 @hydra.main(config_path="../conf", config_name="train", version_base=None)
 def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
     root_dir = HydraConfig.get().run.dir.rsplit("/",1)[0]
     logging_service = LoggingService(root_dir=root_dir)
+    fast_dev_run: bool = cfg["training"].get("fast_dev_run", False)
 
-    log_dir = HydraConfig.get().job.override_dirname if HydraConfig.get().mode  == RunMode.MULTIRUN else cfg["model"]["model_class"]
-    log.info(f"Starting experiment ({log_dir})")
+    model_name = cfg["model"]["model_class"]
+    seeds = cfg["training"]["seeds"]
+    log_dir = HydraConfig.get().job.override_dirname
+    log.info(f"Starting experiment ({log_dir or model_name}) with seeds: {seeds}")
 
     discord_logger = DiscordWebhookLogger()
 
-    trained = train_model(cfg, log_dir, discord_logger)
+    if not fast_dev_run:
+        discord_logger.log_exp_start(model_name, seeds, log_dir)
+    trained, duration = train_model(cfg, log_dir)
 
-    if not cfg["training"].get("fast_dev_run", False):
-        plot_training_curves(cfg["model"]["model_class"], trained, log_dir)
+    if not fast_dev_run:
+        plot_training_curves(model_name, trained, log_dir)
         if trained:
             generate_gradient_flow_plots(list(trained.values())[0], log_dir)
         figure_path = os.path.join(
             logging_service.root_dir,
             log_dir,
-            f"training_{cfg['model']['model_class']}.png",
+            f"training_{model_name}.png",
         )
-        if discord_logger and os.path.exists(figure_path):
-            discord_logger.log_training_curves(cfg["model"]["model_class"], figure_path)
-    logging_service.save_experiment()
-    if discord_logger:
-        seeds_cfg = cfg["training"].get("seeds", [0, 42]) or []
-        discord_logger.log_experiment_finished(
-            cfg["model"]["model_class"],
+        discord_logger.log_exp_finished(
+            model_name,
             trained=len(trained),
-            expected=len(seeds_cfg),
+            expected=len(seeds),
+            duration=duration,
+            figure_path=figure_path,
             log_dir=os.path.join(logging_service.root_dir, log_dir),
         )
+
+    logging_service.save_experiment()
 
 if __name__ == "__main__":
     main()

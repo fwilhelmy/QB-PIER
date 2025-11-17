@@ -32,21 +32,17 @@ class DiscordWebhookLogger:
             # The logger should never break training, so ignore webhook errors.
             pass
 
-    def log_exp_start(self, model_name: str, seeds) -> None:
-        message = f"Starting training for `{model_name}`. Seeds: {', '.join(map(str, seeds))}"
-        self._send("Experiment started", message)
+    def log_exp_start(self, model_name: str, seeds, log_dir: str) -> None:
+        title = f"Starting training for `{model_name}`"
+        message = f"Seeds: {seeds}\nConfiguration: {log_dir}"
+        self._send(title, message)
 
     def log_exp_failed(self, model_name: str, seed: int, error: str) -> None:
-        message = f"Model `{model_name}` failed for seed `{seed}`: {error}"
-        self._send("Model failed", message)
+        title = f"Training failed for `{model_name}` (seed {seed})"
+        message = f"Error: ```{error}```"
+        self._send(title, message)
 
-    def log_training_curves(self, model_name: str, figure_path: str) -> None:
-        message = f"Training curves for `{model_name}` are attached."
-        self._send("Training curves", message, figure_path)
-
-    def log_exp_finished(self, model_name: str, trained: int, expected: int, log_dir: str, figure_path: str) -> None:
-        message = (
-            f"Finished experiment for `{model_name}`.\n"
-            f"Logs: `{log_dir}`"
-        )
-        self._send("Experiment completed", message, figure_path)
+    def log_exp_finished(self, model_name: str, log_dir: str, trained, expected, duration: float, figure_path: str) -> None:
+        title = f"Training completed for `{model_name}`"
+        message = f"Directory: `{log_dir}`\nTrained {trained}/{expected} seeds\nDuration: {duration/60:.2f} minutes"
+        self._send(title, message, figure_path)
