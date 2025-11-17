@@ -5,7 +5,7 @@ from typing import Optional
 
 from discord_webhook import DiscordEmbed, DiscordWebhook
 
-DISCORD_WEBHOOK_URL = ""  # Replace with your Discord webhook URL.
+DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1440008655050244136/rtfkyNVLbrJIumRQXKUGUlUIRRjhhQ9VfCdEQXap5JC9FExJCBmJHiwp6FCrVmofLpF0"  # Replace with your Discord webhook URL.
 
 
 class DiscordWebhookLogger:
@@ -32,15 +32,11 @@ class DiscordWebhookLogger:
             # The logger should never break training, so ignore webhook errors.
             pass
 
-    def log_experiment_start(self, model_name: str, seeds) -> None:
+    def log_exp_start(self, model_name: str, seeds) -> None:
         message = f"Starting training for `{model_name}`. Seeds: {', '.join(map(str, seeds))}"
         self._send("Experiment started", message)
 
-    def log_seed_completed(self, model_name: str, seed: int, duration: float) -> None:
-        message = f"Model `{model_name}` finished seed `{seed}` in {duration:.2f}s."
-        self._send("Model trained", message)
-
-    def log_seed_failed(self, model_name: str, seed: int, error: str) -> None:
+    def log_exp_failed(self, model_name: str, seed: int, error: str) -> None:
         message = f"Model `{model_name}` failed for seed `{seed}`: {error}"
         self._send("Model failed", message)
 
@@ -48,9 +44,9 @@ class DiscordWebhookLogger:
         message = f"Training curves for `{model_name}` are attached."
         self._send("Training curves", message, figure_path)
 
-    def log_experiment_finished(self, model_name: str, trained: int, expected: int, log_dir: str) -> None:
+    def log_exp_finished(self, model_name: str, trained: int, expected: int, log_dir: str, figure_path: str) -> None:
         message = (
-            f"Finished experiment for `{model_name}`."
-            f" Trained {trained}/{expected} models. Logs: `{log_dir}`"
+            f"Finished experiment for `{model_name}`.\n"
+            f"Logs: `{log_dir}`"
         )
-        self._send("Experiment completed", message)
+        self._send("Experiment completed", message, figure_path)

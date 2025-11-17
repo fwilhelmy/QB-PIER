@@ -51,8 +51,7 @@ def train_model(
     # Create an anchor file for later discovery
     LoggingService().save_file(model_name, ".model", path=log_dir)
 
-    if discord_logger:
-        discord_logger.log_experiment_start(model_name, seeds, log_dir)
+    discord_logger.log_exp_start(model_name, seeds)
 
     num_threads = cfg["device"].get("num_threads")
     if num_threads is not None:
