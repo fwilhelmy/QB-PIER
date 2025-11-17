@@ -22,7 +22,8 @@ dependencies = [
     "scikit-learn",
     "umap-learn",
     "tensorboard",
-    "matplotlib"
+    "matplotlib",
+    "discord-webhook"
 ]
 
 [project.optional-dependencies]
