@@ -44,5 +44,7 @@ class DiscordWebhookLogger:
 
     def log_exp_finished(self, model_name: str, log_dir: str, trained, expected, duration: float, figure_path: str) -> None:
         title = f"Training completed for `{model_name}`"
-        message = f"Directory: `{log_dir}`\nTrained {trained}/{expected} seeds\nDuration: {duration/60:.2f} minutes"
+        hours = int(duration // 3600)
+        minutes = int((duration % 3600) // 60)
+        message = f"Directory: `{log_dir}`\nTrained {trained}/{expected} seeds\nDuration: {hours}h {minutes}m"
         self._send(title, message, figure_path)
