@@ -37,9 +37,15 @@ class VQM(BaseModel):
             ansatz=ansatz,
         )
 
+        if self.vqc.output_size != self.output_size:
+            # Learned linear projection decouples features (LexGrouping keeps them on the simplex).
+            self.post = nn.Linear(self.vqc.output_size, self.output_size, bias=True)
+        else:
+            self.post = nn.Identity()
+
         self.logSoftmax = nn.LogSoftmax(dim=1)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         batch = inputs.view(inputs.size(0), -1)
-        logits = self.vqc(batch)
+        logits = self.post(self.vqc(batch))
         return self.logSoftmax(logits)
