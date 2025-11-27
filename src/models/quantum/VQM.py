@@ -49,3 +49,26 @@ class VQM(BaseModel):
         batch = inputs.view(inputs.size(0), -1)
         logits = self.post(self.vqc(batch))
         return self.logSoftmax(logits)
+
+    @classmethod
+    def load_from_checkpoint(
+        cls,
+        checkpoint_path: str,
+        *,
+        map_location: str | torch.device | None = None,
+        strict: bool | None = None,
+        **kwargs,
+    ) -> "VQM":
+        """Load a checkpoint while remaining compatible with older runs."""
+
+        if strict is None:
+            checkpoint = torch.load(checkpoint_path, map_location=map_location)
+            state_dict = checkpoint.get("state_dict", checkpoint)
+            strict = any(key.startswith("post.") for key in state_dict)
+
+        return super().load_from_checkpoint(
+            checkpoint_path,
+            map_location=map_location,
+            strict=strict,
+            **kwargs,
+        )
