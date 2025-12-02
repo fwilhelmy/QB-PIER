@@ -15,6 +15,7 @@ from attacks import AttackFactory
 from datasets import DatasetFactory
 from loading import load_attacks, load_experiment
 from LoggingService import LoggingService
+from metrics import ExperimentProfiler
 from utils import calculate_accuracy, seed_experiment
 from visualisation.attacks import plot_transfer_attack_effects
 
@@ -120,8 +121,13 @@ def main(cfg: DictConfig) -> None:
     """Entry point for running model transfer attacks."""
     run_dir = HydraConfig.get().run.dir
     ls = LoggingService(run_dir)
+    dataset_shape = tuple(cfg.dataset.get("input_shape", []))
+    profiler = ExperimentProfiler(log_dir=ls.root_dir, input_shape=dataset_shape, epochs=0)
+
     models = load_experiment(cfg.models_path, load=cfg.model_load, map_location=cfg.device.device)
-    attack_results = run_attacks(models, cfg)
+    extra_info = {"task": "attacks", "models_path": cfg.models_path}
+    with profiler.profile(extra_info=extra_info):
+        attack_results = run_attacks(models, cfg)
     os.makedirs(ls.root_dir, exist_ok=True)
     attack_results.to_csv(os.path.join(ls.root_dir, "results.csv"), index=False)
     attack_results.to_json(os.path.join(ls.root_dir, "results.json"), index=False)

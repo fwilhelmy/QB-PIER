@@ -183,7 +183,6 @@ def main(cfg: DictConfig) -> None:
         cfg["model"]["model_class"],
     )
     run_lr_sweep(cfg, log_dir)
-    logging_service.save_experiment()
 
 
 if __name__ == "__main__":
