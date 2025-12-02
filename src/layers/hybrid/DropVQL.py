@@ -8,7 +8,7 @@ from ..LayerFactory import LayerFactory
 from ..quantum.VQL import VQC
 
 
-@LayerFactory.classifier("dropvql")
+@LayerFactory.layer("dropvql")
 class DropVQL(BaseLayer):
     """Hybrid classifier that injects dropout before the quantum block."""
 

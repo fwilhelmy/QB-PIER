@@ -80,7 +80,7 @@ class Quanv2d(nn.Module):
         out = out.reshape(B, self.out_channels, H_out, W_out)
         return out
 
-@LayerFactory.encoder("quanv")
+@LayerFactory.layer("quanv")
 class Quanvolution(BaseLayer):
     """Hybrid layer using a quantum convolution block."""
 

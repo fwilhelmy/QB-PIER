@@ -7,7 +7,7 @@ from layers import BaseLayer, LayerFactory
 from layers.quantum import VQC, ParaVQC
 
 
-@LayerFactory.classifier("hvql")
+@LayerFactory.layer("hvql")
 class HVQL(BaseLayer):
     """Variational Quantum Layer used as a classifier module."""
 
@@ -38,7 +38,7 @@ class HVQL(BaseLayer):
         qlayer_kwargs['n_layers'] = qlayer_kwargs.pop("n_qdepth", None)
         return VQC(input_size=in_qlayer, **qlayer_kwargs)
 
-@LayerFactory.classifier("hpvql")
+@LayerFactory.layer("hpvql")
 class HPVQL(HVQL):
     """Classifier combining a linear layer, parallel VQC, and final linear head."""
 

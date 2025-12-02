@@ -43,7 +43,7 @@ class VQC(nn.Module):
 
         return self.qlayer(x)
 
-@LayerFactory.classifier("vql")
+@LayerFactory.layer("vql")
 class VQL(BaseLayer):
     """Expose a single variational quantum circuit as a classifier layer."""
 
