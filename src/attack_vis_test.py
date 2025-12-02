@@ -41,10 +41,10 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # User editable parameters
 # ---------------------------------------------------------------------------
-MODEL_LOGDIR = "logs/models"
+MODEL_LOGDIR = "logs/thebigone"
 """Path to the directory that contains the trained model experiment folders."""
 
-OUTPUT_SUBDIR = "logs/vis_atck_full"
+OUTPUT_SUBDIR = "logs/bigone_atck"
 """Relative directory (inside :data:`MODEL_LOGDIR`) where figures are stored."""
 
 ATTACK_EPSILONS: Tuple[float, ...] = (0.0, 0.1, 0.2, 0.3)
