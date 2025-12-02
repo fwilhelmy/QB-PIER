@@ -13,13 +13,13 @@ class HVQL(BaseLayer):
 
     def __init__(
         self,
-        in_features: int,
+        input_size: int,
         output_size: int,
         in_qlayer: int,
         **qlayer_kwargs,
     ) -> None:
-        super().__init__(in_features=in_features, output_size=output_size)
-        self.fc1 = Linear(in_features, in_qlayer)
+        super().__init__(input_size=input_size, output_size=output_size)
+        self.fc1 = Linear(input_size, in_qlayer)
         self.bn = BatchNorm1d(in_qlayer)
         self.relu = ReLU()
         self.qlayer = self._qcls(in_qlayer=in_qlayer, **qlayer_kwargs)
@@ -44,13 +44,13 @@ class HPVQL(HVQL):
 
     def __init__(
         self,
-        in_features: int,
+        input_size: int,
         output_size: int,
         in_qlayer: int,
         **qlayer_kwargs,
     ) -> None:
         super().__init__(
-            in_features=in_features,
+            input_size=input_size,
             output_size=output_size,
             in_qlayer=in_qlayer,
             **qlayer_kwargs,

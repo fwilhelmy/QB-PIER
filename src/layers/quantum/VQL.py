@@ -49,15 +49,15 @@ class VQL(BaseLayer):
 
     def __init__(
         self,
-        in_features: int,
+        input_size: int,
         n_qdepth: int = 3,
         ansatz: dict | None = None,
         embedding: str = "angle",
         output_size: int | None = None,
     ) -> None:
-        super().__init__(in_features=in_features)
+        super().__init__(input_size=input_size)
         self.vqc = VQC(
-            input_size=in_features,
+            input_size=input_size,
             n_layers=n_qdepth,
             embedding=embedding,
             ansatz=ansatz,

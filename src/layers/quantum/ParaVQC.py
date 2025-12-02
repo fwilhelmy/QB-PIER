@@ -85,15 +85,15 @@ class ParaVQL(BaseLayer):
 
     def __init__(
         self,
-        in_features: int,
+        input_size: int,
         n_qblocks: int,
         n_qdepth: int = 3,
         ansatz: dict | None = None,
         embedding: str = "angle",
     ) -> None:
-        super().__init__(in_features=in_features)
+        super().__init__(input_size=input_size)
         self.vqc = ParaVQC(
-            input_size=in_features,
+            input_size=input_size,
             n_qblocks=n_qblocks,
             n_layers=n_qdepth,
             embedding=embedding,

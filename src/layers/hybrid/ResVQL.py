@@ -15,7 +15,7 @@ class ResVQL(BaseLayer):
 
     def __init__(
         self,
-        in_features: int,
+        input_size: int,
         output_size: int,
         in_qlayer: int,
         n_qdepth: int = 3,
@@ -23,8 +23,8 @@ class ResVQL(BaseLayer):
         embedding: str = "amplitude",
         residual_init: float = 0.5,
     ) -> None:
-        super().__init__(in_features=in_features, output_size=output_size)
-        self.fc1 = Linear(in_features, in_qlayer)
+        super().__init__(input_size=input_size, output_size=output_size)
+        self.fc1 = Linear(input_size, in_qlayer)
         self.bn = BatchNorm1d(in_qlayer)
         self.relu = ReLU()
         self.vqc = VQC(
@@ -33,7 +33,7 @@ class ResVQL(BaseLayer):
             embedding=embedding,
             ansatz=ansatz,
         )
-        self.residual_proj = Linear(in_features, output_size)
+        self.residual_proj = Linear(input_size, output_size)
         self.residual_scale = torch.nn.Parameter(
             torch.tensor(residual_init, dtype=torch.float32)
         )
