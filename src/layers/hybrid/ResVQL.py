@@ -9,7 +9,7 @@ from ..LayerFactory import LayerFactory
 from ..quantum.VQL import VQC
 
 
-@LayerFactory.classifier("resvql")
+@LayerFactory.layer("resvql")
 class ResVQL(BaseLayer):
     """Hybrid classifier with a learnable residual around a quantum block."""
 

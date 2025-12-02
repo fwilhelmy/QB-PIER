@@ -79,7 +79,7 @@ class ParaVQC(nn.Module):
             outputs.append(block(chunk))
         return torch.cat(outputs, dim=1)
 
-@LayerFactory.classifier("pvql")
+@LayerFactory.layer("pvql")
 class ParaVQL(BaseLayer):
     """Expose a parallel VQC stack as a classifier layer."""
 
