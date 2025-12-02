@@ -7,7 +7,7 @@ from sklearn.decomposition import PCA
 
 from layers import BaseLayer, LayerFactory
 
-@LayerFactory.encoder("pca")
+@LayerFactory.layer("pca")
 class PCA(BaseLayer):
     """Hybrid layer applying Principal Component Analysis."""
 
