@@ -32,13 +32,13 @@ class HQNN(BaseModel):
         classifier_name = classifier["name"]
         classifier_params = classifier.get("params", {}) or {}
 
-        self.encoder = LayerFactory.create_encoder(
+        self.encoder = LayerFactory.create_layer(
             encoder_name,
             input_size=self.input_size,
             **encoder_params,
         )
 
-        self.classifier = LayerFactory.create_classifier(
+        self.classifier = LayerFactory.create_layer(
             classifier_name,
             in_features=self.encoder.output_size,
             output_size=self.output_size,
