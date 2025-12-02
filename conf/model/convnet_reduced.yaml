@@ -1,0 +1,4 @@
+model_class: ConvNet
+model_type: classical
+conv_channels: [8]
+fc_sizes: [32]

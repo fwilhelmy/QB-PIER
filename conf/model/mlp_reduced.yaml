@@ -1,0 +1,4 @@
+model_class: MLP
+model_type: classical
+hidden_sizes: [128, 64]
+activation: relu
