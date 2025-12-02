@@ -14,8 +14,13 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import lr_scheduler as lr_schedulers
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+try:  # pragma: no cover - optional dependency during unit tests
+    from torchsummary import summary
+except ModuleNotFoundError:  # pragma: no cover - fallback when torchsummary is unavailable
+    summary = None
+
 from utils import calculate_accuracy
-from metrics import MetricsContainer, CompactDeviceStats, GradientProfiler
+from metrics import MetricsContainer, CompactDeviceStats, GradientProfiler, ExperimentProfiler
 
 log = logging.getLogger(__name__)
 
@@ -118,6 +123,12 @@ class BaseModel(LightningModule):
         # Device stats monitor callback (logs hardware utilization)
         device_monitor = CompactDeviceStats()
         gradient_profiler = GradientProfiler()
+        self.training_profiler = ExperimentProfiler(
+            log_dir=self.log_dir,
+            input_shape=self.input_size,
+            epochs=self.hparams["max_epochs"],
+        )
+        training_profiler_cb = self.training_profiler.to_callback()
 
         # Build the Trainer
         self.trainer: Trainer = Trainer(
@@ -126,7 +137,7 @@ class BaseModel(LightningModule):
             devices=self.hparams["devices"],
             logger=[tb_logger, self.metrics],
             default_root_dir=self.log_dir,
-            callbacks=[checkpoint_cb, device_monitor, gradient_profiler],
+            callbacks=[checkpoint_cb, device_monitor, gradient_profiler, training_profiler_cb],
             fast_dev_run=self.hparams["fast_dev_run"],
             enable_model_summary=False,
             # profiler=self.profiler,
@@ -230,6 +241,41 @@ class BaseModel(LightningModule):
 
     def on_train_epoch_end(self):
         self.metrics.log_epoch(self.global_step)
+
+    def save_model_info(self, duration: float | None = None) -> None:
+        """Persist model architecture metadata (model.info)."""
+
+        details: list[str] = []
+
+        if summary is not None:
+            try:
+                model_summary = str(
+                    summary(
+                        self,
+                        input_data=tuple(self.input_size),
+                        col_names=("num_params", "input_size", "output_size"),
+                        verbose=0,
+                    )
+                )
+                details.append(model_summary)
+            except Exception as exc:  # pragma: no cover - only triggered when summary fails
+                log.warning("Failed to generate model summary: %s", exc)
+        else:  # pragma: no cover - summary dependency missing during some tests
+            log.warning("torchsummary is not installed; skipping model summary generation")
+
+        epochs = int(self.hparams.get("max_epochs", 0))
+        total_duration = duration if duration is not None else 0.0
+        details.append(f"Trained epochs: {epochs}")
+        if epochs:
+            details.append(f"Training time per epoch: {total_duration/epochs:.2f} seconds")
+        else:
+            details.append("Training time per epoch: undefined")
+        details.append(f"Total training time (per seed): {total_duration:.2f} seconds")
+
+        info = "\n".join(details)
+        os.makedirs(self.log_dir, exist_ok=True)
+        with open(os.path.join(self.log_dir, "model.info"), "w", encoding="utf-8") as fp:
+            fp.write(info)
 
     def fit(
         self,
