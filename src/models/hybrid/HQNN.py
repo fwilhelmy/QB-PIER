@@ -53,8 +53,8 @@ class HQNN(BaseModel):
 
         self.classifier = LayerFactory.create_layer(
             classifier_name,
-            in_features=self.encoder.output_size,
-            output_size=classifier_output_size,
+            input_size=self.encoder.output_size,
+            output_size=self.output_size,
             **classifier_params,
         )
 

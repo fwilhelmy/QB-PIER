@@ -14,7 +14,7 @@ class DropVQL(BaseLayer):
 
     def __init__(
         self,
-        in_features: int,
+        input_size: int,
         output_size: int,
         in_qlayer: int,
         n_qdepth: int = 3,
@@ -22,8 +22,8 @@ class DropVQL(BaseLayer):
         embedding: str = "amplitude",
         dropout: float = 0.1,
     ) -> None:
-        super().__init__(in_features=in_features, output_size=output_size)
-        self.fc1 = Linear(in_features, in_qlayer)
+        super().__init__(input_size=input_size, output_size=output_size)
+        self.fc1 = Linear(input_size, in_qlayer)
         self.bn = BatchNorm1d(in_qlayer)
         self.relu = ReLU()
         self.dropout = Dropout(dropout)
