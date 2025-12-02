@@ -60,26 +60,4 @@ class BaseLayer(Module):
     def output_size(self, value: int) -> None:
         self._output_size = value
 
-    # ------------------------------------------------------------------
-    # Convenience helpers shared by all hybrid layers
-    # ------------------------------------------------------------------
-    def freeze(self) -> None:
-        """Disable gradients for all parameters."""
-
-        for param in self.parameters():
-            param.requires_grad = False
-
-    def unfreeze(self) -> None:
-        """Enable gradients for all parameters."""
-
-        for param in self.parameters():
-            param.requires_grad = True
-
-    def load(self, path: str) -> None:
-        """Load parameters from ``path`` into this layer."""
-
-        state = torch.load(path, map_location="cpu")
-        self.load_state_dict(state)
-
-
 __all__ = ["BaseLayer"]
