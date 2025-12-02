@@ -54,8 +54,10 @@ class VQL(BaseLayer):
         ansatz: dict | None = None,
         embedding: str = "angle",
         output_size: int | None = None,
+        apply_log_softmax: bool = True,
     ) -> None:
         super().__init__(in_features=in_features)
+        _ = apply_log_softmax  # For API compatibility; activation handled upstream.
         self.vqc = VQC(
             input_size=in_features,
             n_layers=n_qdepth,

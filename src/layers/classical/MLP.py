@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from torch import Tensor
-from torch.nn import Linear, LogSoftmax, Module, ReLU, Sequential
+from torch.nn import Linear, Module, ReLU, Sequential
 
 from layers import BaseLayer, LayerFactory
 
@@ -25,7 +25,6 @@ class MLP(BaseLayer):
             layers.append(ReLU())
             prev = h
         layers.append(Linear(prev, output_size))
-        layers.append(LogSoftmax(dim=1))
         self.net = Sequential(*layers)
 
     def forward(self, x: Tensor) -> Tensor:
