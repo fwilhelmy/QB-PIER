@@ -1,16 +1,16 @@
-from collections import defaultdict
 import logging
 import os
+from random import seed
 import time
-from typing import Dict, List
+from typing import Optional
 
 import hydra
-from omegaconf import DictConfig, OmegaConf
 import torch
 from hydra.core.hydra_config import HydraConfig
 from hydra.types import RunMode
 from omegaconf import DictConfig
 
+from DiscordWebhookLogger import DiscordWebhookLogger
 from datasets import DatasetFactory
 from LoggingService import LoggingService
 from models.ModelFactory import ModelFactory
@@ -20,13 +20,17 @@ from visualisation.train import generate_gradient_flow_plots, plot_training_curv
 log = logging.getLogger(__name__)
 
 
-def train_model(cfg: DictConfig, log_dir: str):
+def train_model(
+    cfg: DictConfig,
+    log_dir: str,
+):
     """
     Runs a full training pipeline once per seed and returns all trained models.
     
     Args:
         cfg: Experiment configuration as a dictionary resolved from Hydra.
-        seeds (list of int): Random seeds to use.
+        log_dir: Relative logging directory inside the logging service root.
+        discord_logger: Optional webhook helper for experiment notifications.
 
     Returns:
         dict: { seed: trained_model_instance }
@@ -34,7 +38,7 @@ def train_model(cfg: DictConfig, log_dir: str):
     trained = {}
     seed_times = {}
 
-    seeds = cfg["training"].get("seeds", [0, 42])
+    seeds = cfg["training"]["seeds"]
     
     model_name = cfg["model"]["model_class"].lower()
 
@@ -98,28 +102,50 @@ def train_model(cfg: DictConfig, log_dir: str):
             model.fit(train_loader, eval_loader)
             trained[seed] = model
             log.info("Training completed for model %s (seed=%s).", model_name, seed)
+            elapsed = time.time() - start_time
+            seed_times[seed] = elapsed
         except Exception as e:
             log.warning("Training failed for model %s (seed=%s).", model_name, seed)
-        finally:
             elapsed = time.time() - start_time
             seed_times[seed] = elapsed
 
-    return trained
+    return trained, sum(seed_times.values())
 
 @hydra.main(config_path="../conf", config_name="train", version_base=None)
 def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
     root_dir = HydraConfig.get().run.dir.rsplit("/",1)[0]
     logging_service = LoggingService(root_dir=root_dir)
+    fast_dev_run: bool = cfg["training"].get("fast_dev_run", False)
 
-    log_dir = HydraConfig.get().job.override_dirname if HydraConfig.get().mode  == RunMode.MULTIRUN else cfg["model"]["model_class"]
-    log.info(f"Starting experiment ({log_dir})")
+    model_name = cfg["model"]["model_class"]
+    seeds = cfg["training"]["seeds"]
+    log_dir = HydraConfig.get().job.override_dirname
+    log.info(f"Starting experiment ({log_dir or model_name}) with seeds: {seeds}")
 
-    trained = train_model(cfg, log_dir)
+    discord_logger = DiscordWebhookLogger()
 
-    if not cfg["training"].get("fast_dev_run", False):
-        plot_training_curves(cfg["model"]["model_class"], trained, log_dir)
-        generate_gradient_flow_plots(list(trained.values())[0], log_dir)
+    if not fast_dev_run:
+        discord_logger.log_exp_start(model_name, seeds, log_dir)
+    trained, duration = train_model(cfg, log_dir)
+
+    if not fast_dev_run:
+        plot_training_curves(model_name, trained, log_dir)
+        if trained:
+            generate_gradient_flow_plots(list(trained.values())[0], log_dir)
+        figure_path = os.path.join(
+            logging_service.root_dir,
+            log_dir,
+            f"training_{model_name}.png",
+        )
+        discord_logger.log_exp_finished(
+            model_name,
+            trained=len(trained),
+            expected=len(seeds),
+            duration=duration,
+            figure_path=figure_path,
+            log_dir=os.path.join(logging_service.root_dir, log_dir),
+        )
 
 if __name__ == "__main__":
     main()

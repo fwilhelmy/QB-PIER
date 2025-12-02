@@ -1,11 +1,11 @@
 ====== BENCHMARKING OPTIMISATION ======
 XXXXXX python src/train.py -m expdir="benchmark" model=vqm model.n_qdepth=50 training=mid training/optimiser=sgd,momentum
-python src/train.py -m expdir="benchmark" model=vqm model.n_qdepth=50 training=mid training.optimiser.optimiser_config.weight_decay=0.0,0.001,0.005,0.01
+XXXXXX python src/train.py -m expdir="benchmark" model=vqm model.n_qdepth=50 training=mid training.optimiser.optimiser_config.weight_decay=0.0,0.001,0.005,0.01
 
-python src/train.py -m expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=128, training.optimiser.learning_rate=0.000075
-python src/train.py -m expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=256, training.optimiser.learning_rate=0.00015
-python src/train.py -m expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=512, training.optimiser.learning_rate=0.0003
-python src/train.py -m expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=1024, training.optimiser.learning_rate=0.0006
+XXXXXX python src/train.py expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=128 training.optimiser.learning_rate=0.000075
+python src/train.py expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=256 training.optimiser.learning_rate=0.00015
+python src/train.py expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=512 training.optimiser.learning_rate=0.0003
+python src/train.py expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=1024 training.optimiser.learning_rate=0.0006
 
 - Testing the different learning Rate Schedulers with the best configuration
 

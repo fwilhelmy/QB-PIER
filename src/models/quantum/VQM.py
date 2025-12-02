@@ -37,9 +37,38 @@ class VQM(BaseModel):
             ansatz=ansatz,
         )
 
+        if self.vqc.output_size != self.output_size:
+            # Learned linear projection decouples features (LexGrouping keeps them on the simplex).
+            self.post = nn.Linear(self.vqc.output_size, self.output_size, bias=True)
+        else:
+            self.post = nn.Identity()
+
         self.logSoftmax = nn.LogSoftmax(dim=1)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         batch = inputs.view(inputs.size(0), -1)
-        logits = self.vqc(batch)
+        logits = self.post(self.vqc(batch))
         return self.logSoftmax(logits)
+
+    @classmethod
+    def load_from_checkpoint(
+        cls,
+        checkpoint_path: str,
+        *,
+        map_location: str | torch.device | None = None,
+        strict: bool | None = None,
+        **kwargs,
+    ) -> "VQM":
+        """Load a checkpoint while remaining compatible with older runs."""
+
+        if strict is None:
+            checkpoint = torch.load(checkpoint_path, map_location=map_location)
+            state_dict = checkpoint.get("state_dict", checkpoint)
+            strict = any(key.startswith("post.") for key in state_dict)
+
+        return super().load_from_checkpoint(
+            checkpoint_path,
+            map_location=map_location,
+            strict=strict,
+            **kwargs,
+        )

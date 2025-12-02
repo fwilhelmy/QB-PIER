@@ -9,6 +9,13 @@ from .results import store_attack_results
 from .transfer_attack_effects import plot_transfer_attack_effects
 from .old_sal import old_sal
 from .heatmap import plot_tp_heatmaps_by_class
+from .attack_matrix import (
+    plot_model_attack_effectiveness_matrix,
+    cell_effectiveness_auc_drop,
+    cell_effectiveness_eps_to_fraction,
+    cell_effectiveness_max_rel_drop,
+    cell_effectiveness_max_steepness
+)
 
 __all__ = [
     "plot_attack_accuracy_df",
@@ -20,4 +27,9 @@ __all__ = [
     "store_attack_results",
     "old_sal",
     "plot_tp_heatmaps_by_class",
+    "plot_model_attack_effectiveness_matrix",
+    "cell_effectiveness_auc_drop",
+    "cell_effectiveness_eps_to_fraction",
+    "cell_effectiveness_max_rel_drop",
+    "cell_effectiveness_max_steepness"
 ]
