@@ -29,14 +29,15 @@ class HQNN(BaseModel):
 
         encoder_name = encoder["name"]
         encoder_params = encoder.get("params", {}) or {}
-        classifier_name = classifier["name"]
-        classifier_params = classifier.get("params", {}) or {}
 
         self.encoder = LayerFactory.create_encoder(
             encoder_name,
             input_size=self.input_size,
             **encoder_params,
         )
+
+        classifier_name = classifier["name"]
+        classifier_params = classifier.get("params", {}) or {}
 
         self.classifier = LayerFactory.create_classifier(
             classifier_name,
@@ -45,28 +46,7 @@ class HQNN(BaseModel):
             **classifier_params,
         )
 
-    def train_encoder(self) -> None:
-        self.encoder.unfreeze()
-        self.classifier.freeze()
-
-    def train_classifier(self) -> None:
-        self.classifier.unfreeze()
-        self.encoder.freeze()
-
-    def swap_encoder(self, encoder: torch.nn.Module) -> None:
-        self.encoder = encoder
-
-    def swap_classifier(self, classifier: torch.nn.Module) -> None:
-        self.classifier = classifier
-
-    def load_encoder(self, path: str) -> None:
-        self.encoder.load(path)
-
-    def load_classifier(self, path: str) -> None:
-        self.classifier.load(path)
-
-    # ------------------------------------------------------------------
-    def forward(self, inputs: Tensor) -> Tensor:  # noqa: D401
+    def forward(self, inputs: Tensor) -> Tensor:
         """Process inputs through encoder and classifier."""
         x = self.encoder(inputs)
         return self.classifier(x)
