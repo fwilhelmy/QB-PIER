@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from torch import Tensor
-from torch.nn import BatchNorm1d, Dropout, Linear, LogSoftmax, ReLU
+from torch.nn import BatchNorm1d, Dropout, Linear, ReLU
 
 from ..BaseLayer import BaseLayer
 from ..LayerFactory import LayerFactory
@@ -34,7 +34,6 @@ class DropVQL(BaseLayer):
             ansatz=ansatz,
         )
         self.fc_out = Linear(self.vqc.output_size, output_size)
-        self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, x: Tensor) -> Tensor:
         output = self.fc1(x)
@@ -43,4 +42,4 @@ class DropVQL(BaseLayer):
         output = self.dropout(output)
         output = self.vqc(output)
         output = self.fc_out(output)
-        return self.logSoftmax(output)
+        return output
