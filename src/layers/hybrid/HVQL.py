@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from torch import Tensor
-from torch.nn import BatchNorm1d, Linear, LogSoftmax, Module, ReLU
+from torch.nn import BatchNorm1d, Linear, Module, ReLU
 
 from layers import BaseLayer, LayerFactory
 from layers.quantum import VQC, ParaVQC
@@ -24,7 +24,6 @@ class HVQL(BaseLayer):
         self.relu = ReLU()
         self.qlayer = self._qcls(in_qlayer=in_qlayer, **qlayer_kwargs)
         self.fc2 = Linear(self.qlayer.output_size, output_size)
-        self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, x: Tensor) -> Tensor:
         output = self.fc1(x)
@@ -32,7 +31,7 @@ class HVQL(BaseLayer):
         output = self.relu(output)
         output = self.qlayer(output)
         output = self.fc2(output)
-        return self.logSoftmax(output)
+        return output
 
     def _qcls(self, in_qlayer, **qlayer_kwargs) -> Module:
         qlayer_kwargs['n_layers'] = qlayer_kwargs.pop("n_qdepth", None)

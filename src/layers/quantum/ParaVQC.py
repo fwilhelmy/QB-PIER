@@ -90,8 +90,10 @@ class ParaVQL(BaseLayer):
         n_qdepth: int = 3,
         ansatz: dict | None = None,
         embedding: str = "angle",
+        apply_log_softmax: bool = True,
     ) -> None:
         super().__init__(input_size=input_size)
+        _ = apply_log_softmax  # For API compatibility; activation handled upstream.
         self.vqc = ParaVQC(
             input_size=input_size,
             n_qblocks=n_qblocks,

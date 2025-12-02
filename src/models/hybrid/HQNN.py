@@ -8,6 +8,7 @@ from typing import Any
 import torch
 from omegaconf import DictConfig
 from torch import Tensor
+from torch.nn import Identity, Linear, LogSoftmax
 
 from models import BaseModel, ModelFactory
 from layers import LayerFactory
@@ -31,6 +32,18 @@ class HQNN(BaseModel):
         encoder_params = encoder.get("params", {}) or {}
         classifier_name = classifier["name"]
         classifier_params = classifier.get("params", {}) or {}
+
+        classifier_output_size = classifier_params.pop("output_size", self.output_size)
+        classifier_params.pop("apply_log_softmax", None)
+
+        # If the classifier is configured to emit a different dimension than the
+        # model's target ``output_size``, insert a lightweight projection before
+        # the final log-softmax so that the logits are mapped correctly.
+        if classifier_output_size != self.output_size:
+            self.post = Linear(classifier_output_size, self.output_size, bias=True)
+        else:
+            self.post = Identity()
+        self.output_activation = LogSoftmax(dim=1)
 
         self.encoder = LayerFactory.create_layer(
             encoder_name,
@@ -69,6 +82,8 @@ class HQNN(BaseModel):
     def forward(self, inputs: Tensor) -> Tensor:  # noqa: D401
         """Process inputs through encoder and classifier."""
         x = self.encoder(inputs)
-        return self.classifier(x)
+        x = self.classifier(x)
+        x = self.post(x)
+        return self.output_activation(x)
 
 __all__ = ["HQNN"]

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import torch
 from torch import Tensor
-from torch.nn import BatchNorm1d, Linear, LogSoftmax, ReLU
+from torch.nn import BatchNorm1d, Linear, ReLU
 
 from ..BaseLayer import BaseLayer
 from ..LayerFactory import LayerFactory
@@ -37,7 +37,6 @@ class ResVQL(BaseLayer):
         self.residual_scale = torch.nn.Parameter(
             torch.tensor(residual_init, dtype=torch.float32)
         )
-        self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, x: Tensor) -> Tensor:
         main = self.fc1(x)
@@ -46,4 +45,7 @@ class ResVQL(BaseLayer):
         main = self.vqc(main)
         residual = self.residual_proj(x)
         output = main + self.residual_scale * residual
-        return self.logSoftmax(output)
+        return output
+
+
+__all__ = ["ResVQL"]
