@@ -1,3 +1,5 @@
+# Untested and unfinished code. Use at your own risk.
+
 # See: PennyLane demo 'Adversarial attacks and robustness for QML'.
 # https://pennylane.ai/qml/demos/tutorial_adversarial_attacks_QML
 
