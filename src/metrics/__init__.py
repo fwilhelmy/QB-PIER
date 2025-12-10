@@ -10,7 +10,6 @@ __all__ = [
     "MetricsContainer",
     "CompactDeviceStats",
     "GradientProfiler",
-    "ExperimentProfiler",
 ]
 
 
@@ -25,10 +24,6 @@ def __getattr__(name):
         return cls
     if name == "GradientProfiler":
         from .GradientsProfiler import GradientProfiler as cls
-
-        return cls
-    if name == "ExperimentProfiler":
-        from .ExperimentProfiler import ExperimentProfiler as cls
 
         return cls
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
