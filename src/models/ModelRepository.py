@@ -7,142 +7,66 @@ import subprocess
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Generator, List
+from typing import Any, Dict, Generator, List, override
 
 import torch
 from tqdm import tqdm
 
+from models import BaseModel
 from BaseRepository import BaseRepository
 from LoggingService import LoggingService
 from metrics import MetricsContainer
 from models.ModelFactory import ModelFactory
 from __init__ import __version__
 
-try:  # pragma: no cover - optional dependency during unit tests
-    from pytorch_lightning import Callback, LightningModule, Trainer
-except Exception:  # pragma: no cover - fallback when Lightning is unavailable
-    class Callback:  # type: ignore
-        pass
 
-    class LightningModule:  # type: ignore
-        pass
-
-    class Trainer:  # type: ignore
-        pass
-
-
-class ModelProfiler:
-    """Collect runtime metadata for each trained model and persist it to disk."""
-
-    def __init__(self, log_dir: str, input_shape: tuple[int, ...], epochs: int) -> None:
-        self.log_dir = log_dir
+class ModelRepository(BaseRepository):
+    def __init__(self, input_shape: tuple[int, ...], epochs: int):
+        super().__init__(base_dir=Path("models"))
         self.input_shape = input_shape
         self.epochs = epochs
-        self._start_time: datetime | None = None
-        self._last_duration: float | None = None
 
+    @override
     @contextmanager
-    def profile(self, extra_info: Dict[str, Any] | None = None) -> Generator["ModelProfiler", None, None]:
-        """Context manager for profiling arbitrary blocks (e.g., attacks)."""
-
-        self._begin_run()
+    def profile(self, extra_info: Dict[str, Any] | None = None):
+        start_time = datetime.now()
         try:
             yield self
         finally:
-            self.save_experiment(extra_info=extra_info)
+            end_time = datetime.now()
+            duration = (end_time - start_time).total_seconds()
 
-    def to_callback(self) -> Callback:
-        """Return a Lightning callback that proxies events to this profiler."""
+            info: Dict[str, Any] = {
+                "pipeline_version": __version__,
+                "cuda_available": torch.cuda.is_available(),
+                "start_time": start_time.isoformat(),
+                "end_time": end_time.isoformat(),
+                "duration_seconds": duration,
+            }
 
-        return _ModelProfilerCallback(self)
+            commit = self._current_commit()
+            if commit:
+                info["git_commit"] = commit
 
-    def save_experiment(self, extra_info: Dict[str, Any] | None = None) -> float:
-        """Persist overall experiment metadata (training.info)."""
+            if extra_info:
+                info.update(extra_info)
 
-        info, duration = self._finalize_run()
-        if extra_info:
-            info.update(extra_info)
+            os.makedirs(self.base_dir, exist_ok=True)
+            with open(os.path.join(self.base_dir, "training.info"), "w", encoding="utf-8") as fp:
+                json.dump(info, fp, indent=2)
 
-        os.makedirs(self.log_dir, exist_ok=True)
-        with open(os.path.join(self.log_dir, "training.info"), "w", encoding="utf-8") as fp:
-            json.dump(info, fp, indent=2)
+            self._last_duration = duration
+            return duration
 
-        self._last_duration = duration
-        return duration
-
-    def _begin_run(self) -> None:
-        self._start_time = datetime.now()
-
-    def _finalize_run(self) -> tuple[Dict[str, Any], float]:
-        end_time = datetime.now()
-        start_time = self._start_time or end_time
-        duration = (end_time - start_time).total_seconds()
-
-        info: Dict[str, Any] = {
-            "pipeline_version": __version__,
-            "cuda_available": torch.cuda.is_available(),
-            "start_time": start_time.isoformat(),
-            "end_time": end_time.isoformat(),
-            "duration_seconds": duration,
-        }
-
-        commit = self._current_commit()
-        if commit:
-            info["git_commit"] = commit
-
-        self._start_time = None
-        return info, duration
-
-    @staticmethod
-    def _current_commit() -> str | None:
-        try:
-            commit = (
-                subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.STDOUT)
-                .decode()
-                .strip()
-            )
-            return commit
-        except Exception:  # pragma: no cover - informational best effort
-            return None
-
-
-class _ModelProfilerCallback(Callback):
-    """Lightning adapter that delegates profiling to :class:`ModelProfiler`."""
-
-    def __init__(self, profiler: ModelProfiler) -> None:
-        super().__init__()
-        self.profiler = profiler
-
-    def on_fit_start(self, trainer: Trainer, pl_module: LightningModule) -> None:  # type: ignore[override]
-        self.profiler._begin_run()
-
-    def on_fit_end(self, trainer: Trainer, pl_module: LightningModule) -> None:  # type: ignore[override]
-        duration = self.profiler.save_experiment()
-
-        save_model_info = getattr(pl_module, "save_model_info", None)
-        if callable(save_model_info):
-            save_model_info(duration)
-
-
-class ModelRepository(BaseRepository):
-    def profile(self, input_shape: tuple[int, ...], epochs: int) -> ModelProfiler:
-        return ModelProfiler(str(self.base_dir), input_shape, epochs)
-
-    def save(self, model_name: str, seed: int, model: Any, *, best: bool = False) -> Path:
-        model_root = self.base_dir / model_name
-        model_root.mkdir(parents=True, exist_ok=True)
-        (model_root / ".model").write_text(model_name)
-        seed_dir = model_root / str(seed)
-        seed_dir.mkdir(exist_ok=True)
-        ckpt_dir = seed_dir / "checkpoints"
-        ckpt_dir.mkdir(exist_ok=True)
-        ckpt_path = ckpt_dir / ("best.ckpt" if best else "final.ckpt")
-        torch.save(getattr(model, "state_dict", lambda: model)(), ckpt_path)
-        return ckpt_path
-
-    def save_metrics(self, model_name: str, seed: int, container: MetricsContainer) -> None:
-        (self.base_dir / model_name / str(seed)).mkdir(parents=True, exist_ok=True)
-        container.save_metrics()
+    def save(self, model: BaseModel, seed: int):
+        seed_dir = os.path.join(self.base_dir, model.log_dir, str(seed))
+        os.makedirs(seed_dir, exist_ok=True)
+        
+        # TODO : Get the ModelFactory name of the specific BaseModel instance
+        model_name = ModelFactory.name_of(model)
+        (model_root / ".model").write_text(model_name) # TODO : Save model name to .model file
+        model.trainer.save_checkpoint(f"{seed_dir}/final.ckpt")
+        model.metrics.save_metrics()
 
     def crawl(self) -> List[Path]:
         experiments: List[Path] = []
@@ -196,3 +120,15 @@ class ModelRepository(BaseRepository):
             else:
                 experiment[name] = self.load_models(model_path, best=False, map_location=map_location)
         return experiment
+    
+    @staticmethod
+    def _current_commit() -> str | None:
+        try:
+            commit = (
+                subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.STDOUT)
+                .decode()
+                .strip()
+            )
+            return commit
+        except Exception:  # pragma: no cover - informational best effort
+            return None
