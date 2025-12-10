@@ -9,7 +9,6 @@ import torch
 from hydra.core.hydra_config import HydraConfig
 from hydra.types import RunMode
 from omegaconf import DictConfig
-from torchsummary import summary
 
 from DiscordWebhookLogger import DiscordWebhookLogger
 from datasets import DatasetFactory
@@ -110,15 +109,6 @@ def train_model(
             elapsed = time.time() - start_time
             seed_times[seed] = elapsed
 
-    if len(trained) != 0:
-        avg_time = sum(seed_times.values()) / len(seed_times) if seed_times else 0.0
-        model = list(trained.values())[0]
-        info = str(summary(model, input_data=tuple(cfg["dataset"]["input_shape"]), col_names=("num_params","input_size","output_size"),verbose=0))
-        epochs = cfg["training"].get("epochs", 0)
-        info += f"\nTrained epochs: {epochs}"
-        info += f"\nTraining time per epoch: {avg_time/epochs:.2f} seconds"
-        info += f"\nTotal training time (per seed): {avg_time:.2f} seconds"
-        LoggingService().save_file(info, "model.info", path=log_dir)
     return trained, sum(seed_times.values())
 
 @hydra.main(config_path="../conf", config_name="train", version_base=None)
@@ -157,8 +147,5 @@ def main(cfg: DictConfig) -> None:
             log_dir=os.path.join(logging_service.root_dir, log_dir),
         )
 
-    logging_service.save_experiment()
-
 if __name__ == "__main__":
     main()
-

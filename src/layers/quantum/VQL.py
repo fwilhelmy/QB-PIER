@@ -43,21 +43,23 @@ class VQC(nn.Module):
 
         return self.qlayer(x)
 
-@LayerFactory.classifier("vql")
+@LayerFactory.layer("vql")
 class VQL(BaseLayer):
     """Expose a single variational quantum circuit as a classifier layer."""
 
     def __init__(
         self,
-        in_features: int,
+        input_size: int,
         n_qdepth: int = 3,
         ansatz: dict | None = None,
         embedding: str = "angle",
         output_size: int | None = None,
+        apply_log_softmax: bool = True,
     ) -> None:
-        super().__init__(in_features=in_features)
+        super().__init__(input_size=input_size)
+        _ = apply_log_softmax  # For API compatibility; activation handled upstream.
         self.vqc = VQC(
-            input_size=in_features,
+            input_size=input_size,
             n_layers=n_qdepth,
             embedding=embedding,
             ansatz=ansatz,

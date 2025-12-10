@@ -5,32 +5,12 @@ from torch import nn
 from models import BaseModel, ModelFactory
 
 class Linear(nn.Module):
-    r"""Applies a linear transformation to the incoming data: :math:`y = xA^T + b`
-    Args:
-        in_features: size of each input sample
-        out_features: size of each output sample
-    Shape:
-        - Input: :math:`(*, H_{in})` where :math:`*` means any number of
-          dimensions including none and :math:`H_{in} = \text{in\_features}`.
-        - Output: :math:`(*, H_{out})` where all but the last dimension
-          are the same shape as the input and :math:`H_{out} = \text{out\_features}`.
-       
-        >>> m = nn.Linear(20, 30)
-        >>> input = torch.randn(128, 20)
-        >>> output = m(input)
-        >>> print(output.size())
-        torch.Size([128, 30])
-    """
     def __init__(self, in_features: int, out_features: int) -> None:
         super(Linear, self).__init__()
         self.weight = torch.nn.Parameter(torch.Tensor(out_features, in_features))
         self.bias = torch.nn.Parameter(torch.Tensor(out_features))
     
     def forward(self, input):
-        """
-            :param input: [bsz, in_features]
-            :return result [bsz, out_features]
-        """
         return input @ self.weight.t() + self.bias
 
 @ModelFactory.model("mlp")
@@ -39,13 +19,6 @@ class MLP(BaseModel):
 
     # 20 points
     def __init__(self, hidden_sizes: List[int], activation: str = "relu", **kwargs) -> None:
-        """Initialize a fully connected network.
-
-        Args:
-            hidden_sizes: Sizes of the hidden layers.
-            activation: Activation function to use.
-            **kwargs: Should contain ``input_size`` and ``output_size`` forwarded to :class:`BaseModel`.
-        """
         super().__init__(**kwargs)
         self.save_hyperparameters("hidden_sizes", "activation")
         channels, img_size, _ = self.input_size
@@ -68,16 +41,6 @@ class MLP(BaseModel):
     def _build_layers(self, input_size: int,
                         hidden_sizes: List[int],
                         output_size: int) -> Tuple[nn.ModuleList, nn.Module]:
-        """
-        Build the layers for MLP.
-        :param input_size: Flattened input dimension
-        :param hidden_sizes: A list of ints. E.g., for [32, 32] means two hidden layers with 32 each.
-        :param output_size: An int
-        :Return:
-            hidden_layers: nn.ModuleList. Within the list, each item has type nn.Module
-            output_layer: nn.Module
-        """
-        
         hidden_layers = nn.ModuleList(
             [Linear(input_size, hidden_sizes[0])] + 
             [Linear(hidden_sizes[i], hidden_sizes[i+1]) for i in range(len(hidden_sizes)-1)])
@@ -94,15 +57,6 @@ class MLP(BaseModel):
         torch.nn.init.xavier_normal_(module.weight)
       
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        """ Forward images and compute logits.
-        1. The images are first fattened to vectors. 
-        2. Forward the result to each layer in the self.hidden_layer with activation_fn
-        3. Finally forward the result to the output_layer.
-        
-        :param images: [batch, channels, width, height]
-        :return logits: [batch, output_size]
-        """
-        
         logits = inputs.view(inputs.size(0), -1)
         for layer in self.hidden_layers:
             logits = self.activation_fn(self.activation, layer(logits))

@@ -79,21 +79,23 @@ class ParaVQC(nn.Module):
             outputs.append(block(chunk))
         return torch.cat(outputs, dim=1)
 
-@LayerFactory.classifier("pvql")
+@LayerFactory.layer("pvql")
 class ParaVQL(BaseLayer):
     """Expose a parallel VQC stack as a classifier layer."""
 
     def __init__(
         self,
-        in_features: int,
+        input_size: int,
         n_qblocks: int,
         n_qdepth: int = 3,
         ansatz: dict | None = None,
         embedding: str = "angle",
+        apply_log_softmax: bool = True,
     ) -> None:
-        super().__init__(in_features=in_features)
+        super().__init__(input_size=input_size)
+        _ = apply_log_softmax  # For API compatibility; activation handled upstream.
         self.vqc = ParaVQC(
-            input_size=in_features,
+            input_size=input_size,
             n_qblocks=n_qblocks,
             n_layers=n_qdepth,
             embedding=embedding,

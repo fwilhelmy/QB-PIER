@@ -2,20 +2,20 @@ from __future__ import annotations
 
 import torch
 from torch import Tensor
-from torch.nn import BatchNorm1d, Linear, LogSoftmax, ReLU
+from torch.nn import BatchNorm1d, Linear, ReLU
 
 from ..BaseLayer import BaseLayer
 from ..LayerFactory import LayerFactory
 from ..quantum.VQL import VQC
 
 
-@LayerFactory.classifier("resvql")
+@LayerFactory.layer("resvql")
 class ResVQL(BaseLayer):
     """Hybrid classifier with a learnable residual around a quantum block."""
 
     def __init__(
         self,
-        in_features: int,
+        input_size: int,
         output_size: int,
         in_qlayer: int,
         n_qdepth: int = 3,
@@ -23,8 +23,8 @@ class ResVQL(BaseLayer):
         embedding: str = "amplitude",
         residual_init: float = 0.5,
     ) -> None:
-        super().__init__(in_features=in_features, output_size=output_size)
-        self.fc1 = Linear(in_features, in_qlayer)
+        super().__init__(input_size=input_size, output_size=output_size)
+        self.fc1 = Linear(input_size, in_qlayer)
         self.bn = BatchNorm1d(in_qlayer)
         self.relu = ReLU()
         self.vqc = VQC(
@@ -33,11 +33,10 @@ class ResVQL(BaseLayer):
             embedding=embedding,
             ansatz=ansatz,
         )
-        self.residual_proj = Linear(in_features, output_size)
+        self.residual_proj = Linear(input_size, output_size)
         self.residual_scale = torch.nn.Parameter(
             torch.tensor(residual_init, dtype=torch.float32)
         )
-        self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, x: Tensor) -> Tensor:
         main = self.fc1(x)
@@ -46,4 +45,7 @@ class ResVQL(BaseLayer):
         main = self.vqc(main)
         residual = self.residual_proj(x)
         output = main + self.residual_scale * residual
-        return self.logSoftmax(output)
+        return output
+
+
+__all__ = ["ResVQL"]

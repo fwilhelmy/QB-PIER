@@ -24,6 +24,7 @@ from attacks import AttackFactory
 from datasets import DatasetFactory
 from loading import load_attacks, load_experiment
 from LoggingService import LoggingService
+from metrics import ExperimentProfiler
 from utils import calculate_accuracy, seed_experiment
 from visualisation.attacks import plot_transfer_attack_effects
 
@@ -279,8 +280,8 @@ def main(cfg: DictConfig) -> None:
         load=cfg.model_load,
         map_location=cfg.device.device,
     )
-
-    attack_results = run_attacks(models, cfg, results_dir=results_dir, writer=writer)
+    with profiler.profile(extra_info=extra_info):
+        attack_results = run_attacks(models, cfg, results_dir=results_dir, writer=writer)
 
     writer.flush()
     writer.close()

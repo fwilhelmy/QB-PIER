@@ -1,19 +1,12 @@
 import logging
 import warnings
 import os
-import json
-from datetime import datetime
 from typing import Union
-import time
-from contextlib import contextmanager
-from typing import Any, Dict, Optional
 
 import matplotlib.pyplot as plt
-import torch
 from pytorch_lightning.utilities import rank_zero_only
 
 log = logging.getLogger(__name__)
-from __init__ import __version__
 
 class LoggingService:
     _instance = None
@@ -28,12 +21,6 @@ class LoggingService:
             self.initialized = True
             self._root_dir = root_dir
             self._init_root_dir()
-            self._start_time = datetime.now()
-            self._info = {
-                "pipeline_version": __version__,
-                "start_time": self._start_time.isoformat(),
-                "cuda_available": torch.cuda.is_available(),
-            }
             logging.captureWarnings(True)
             warnings.simplefilter("default")
 
@@ -68,21 +55,3 @@ class LoggingService:
     #     if step is not None:
     #         self.log_scalar("step", step, group=name)
 
-    @rank_zero_only
-    def save_experiment(self):
-        if getattr(self, "_finalized", False):
-            return
-        self._finalized = True
-        end_time = datetime.now()
-        self._info["end_time"] = end_time.isoformat()
-        self._info["duration_seconds"] = (end_time - self._start_time).total_seconds()
-
-        # Attempt to store current git commit
-        try:
-            import subprocess
-            commit = subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.STDOUT).decode().strip()
-            self._info["git_commit"] = commit
-        except Exception:
-            pass
-
-        self.save_file(json.dumps(self._info, indent=2), "training.info")

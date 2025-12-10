@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from visualisation.train.models_together import plot_models_together
+
 """Utility helpers for loading models and experiment data."""
 
 import logging
@@ -171,15 +173,16 @@ if __name__ == "__main__":
     # args = parser.parse_args()
 
     # data = load_experiment(args.path, load=args.load)
-    
-    LoggingService("logs/models")
-    data = load_experiment("logs/models", load="final")
+    path = "logs/VQM-Benchmark/WeightDecay"
+    LoggingService(path)
+    data = load_experiment(path, load="final")
     log.info("Loaded data for %s model configurations.", len(data))
-    from visualisation.train import generate_gradient_flow_plots
-    for model_name, model_data in data.items():
-        for seed, model in model_data.items():
-            log.info("Generating gradient flow plots for %s (seed=%d).", model_name, seed)
-            generate_gradient_flow_plots(model, fig_dir=model_name)
+    plot_models_together(data)
+    # from visualisation.train import generate_gradient_flow_plots
+    # for model_name, model_data in data.items():
+    #     for seed, model in model_data.items():
+    #         log.info("Generating gradient flow plots for %s (seed=%d).", model_name, seed)
+    #         generate_gradient_flow_plots(model, fig_dir=model_name)
             
     
 

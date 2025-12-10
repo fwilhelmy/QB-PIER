@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 from torch import Tensor
-from torch.nn import BatchNorm1d, Dropout, Linear, LogSoftmax, ReLU
+from torch.nn import BatchNorm1d, Dropout, Linear, ReLU
 
 from ..BaseLayer import BaseLayer
 from ..LayerFactory import LayerFactory
 from ..quantum.VQL import VQC
 
 
-@LayerFactory.classifier("dropvql")
+@LayerFactory.layer("dropvql")
 class DropVQL(BaseLayer):
     """Hybrid classifier that injects dropout before the quantum block."""
 
     def __init__(
         self,
-        in_features: int,
+        input_size: int,
         output_size: int,
         in_qlayer: int,
         n_qdepth: int = 3,
@@ -22,8 +22,8 @@ class DropVQL(BaseLayer):
         embedding: str = "amplitude",
         dropout: float = 0.1,
     ) -> None:
-        super().__init__(in_features=in_features, output_size=output_size)
-        self.fc1 = Linear(in_features, in_qlayer)
+        super().__init__(input_size=input_size, output_size=output_size)
+        self.fc1 = Linear(input_size, in_qlayer)
         self.bn = BatchNorm1d(in_qlayer)
         self.relu = ReLU()
         self.dropout = Dropout(dropout)
@@ -34,7 +34,6 @@ class DropVQL(BaseLayer):
             ansatz=ansatz,
         )
         self.fc_out = Linear(self.vqc.output_size, output_size)
-        self.logSoftmax = LogSoftmax(dim=1)
 
     def forward(self, x: Tensor) -> Tensor:
         output = self.fc1(x)
@@ -43,4 +42,4 @@ class DropVQL(BaseLayer):
         output = self.dropout(output)
         output = self.vqc(output)
         output = self.fc_out(output)
-        return self.logSoftmax(output)
+        return output
