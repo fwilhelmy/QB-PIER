@@ -22,9 +22,8 @@ from tqdm import tqdm
 
 from attacks import AttackFactory
 from datasets import DatasetFactory
-from loading import load_attacks, load_experiment
 from LoggingService import LoggingService
-from metrics import ExperimentProfiler
+from repositories import AttackRepository, ModelRepository
 from utils import calculate_accuracy, seed_experiment
 from visualisation.attacks import plot_transfer_attack_effects
 
@@ -33,8 +32,6 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class AttackResult:
-    """Container for information gathered from a single attack run."""
-
     seed: int
     source_model: str
     target_model: str
@@ -57,54 +54,6 @@ class AttackResult:
         }
 
 
-def _resolve_results_dir(cfg: DictConfig, logging_service: LoggingService) -> Path:
-    """Return the directory where attack artefacts should be written."""
-
-    if cfg.results_path:
-        candidate = Path(cfg.results_path)
-        if candidate.suffix in {".csv", ".json"}:
-            return candidate.parent
-        return candidate
-    return Path(logging_service.root_dir)
-
-
-def _results_csv_path(results_dir: Path) -> Path:
-    return results_dir / "results.csv"
-
-
-def _load_existing_results(cfg: DictConfig, results_dir: Path) -> Tuple[List[Dict[str, object]], set[Tuple[int, str, str]]]:
-    """Load prior attack outcomes to avoid recomputing pairs."""
-
-    records: List[Dict[str, object]] = []
-    existing_pairs: set[Tuple[int, str, str]] = set()
-
-    candidate_paths = []
-    if cfg.results_path:
-        path = Path(cfg.results_path)
-        candidate_paths.append(path if path.suffix else path / "results.csv")
-    candidate_paths.append(_results_csv_path(results_dir))
-
-    for path in candidate_paths:
-        if not path or not path.exists():
-            continue
-        try:
-            previous_results = load_attacks(str(path))
-            records.extend(previous_results.to_dict("records"))
-            existing_pairs = set(
-                zip(
-                    previous_results["seed"],
-                    previous_results["source_model"],
-                    previous_results["target_model"],
-                )
-            )
-            log.info("Loaded %s existing attack results from '%s'.", len(previous_results), path)
-            break
-        except Exception as ex:  # pragma: no cover - defensive path
-            log.error("Problem loading existing results from '%s': %s", path, ex)
-
-    return records, existing_pairs
-
-
 def _group_models_by_seed(trained_models: Dict[str, Dict[int, torch.nn.Module]]) -> Dict[int, List[Tuple[str, torch.nn.Module]]]:
     models_by_seed: Dict[int, List[Tuple[str, torch.nn.Module]]] = {}
     for model_name, model_seeds in trained_models.items():
@@ -120,47 +69,6 @@ def _prepare_attack(cfg: DictConfig):
     attack_args = {k: v for k, v in cfg.attack.items() if k != "name"}
     attack = AttackFactory.create(cfg.attack.name, dataset=dm.dataset, **attack_args)
     return dataset, attack
-
-
-def _save_predictions(
-    *,
-    base_dir: Path,
-    target_model: str,
-    seed: int,
-    source_model: str,
-    epsilon: float,
-    predictions: Tensor,
-    targets: Sequence[int],
-) -> str:
-    """Persist model predictions for inspection."""
-
-    model_dir = base_dir / target_model
-    model_dir.mkdir(parents=True, exist_ok=True)
-    file_path = model_dir / "predictions.csv"
-
-    df = pd.DataFrame(
-        {
-            "seed": seed,
-            "source_model": source_model,
-            "target_model": target_model,
-            "epsilon": epsilon,
-            "sample_index": range(len(predictions)),
-            "target": targets,
-            "prediction": predictions.cpu().tolist(),
-        }
-    )
-
-    header = not file_path.exists()
-    df.to_csv(file_path, mode="a", header=header, index=False)
-    return str(file_path)
-
-
-def _save_gradients(*, base_dir: Path, attacker_model: str, seed: int, gradients: List[Tuple[Tensor, Tensor]]) -> str:
-    model_dir = base_dir / attacker_model
-    model_dir.mkdir(parents=True, exist_ok=True)
-    path = model_dir / f"gradients_seed{seed}.pt"
-    torch.save({"seed": seed, "model": attacker_model, "gradients": gradients}, path)
-    return str(path)
 
 
 def _log_tensorboard(
@@ -189,11 +97,11 @@ def _evaluate_attack(
     return predictions, adv_examples, float(adv_acc)
 
 
-def run_attacks(trained_models: Dict[str, Dict[int, torch.nn.Module]], cfg: DictConfig, *, results_dir: Path, writer: SummaryWriter) -> pd.DataFrame:
+def run_attacks(trained_models: Dict[str, Dict[int, torch.nn.Module]], cfg: DictConfig, *, attack_repo: AttackRepository, writer: SummaryWriter) -> pd.DataFrame:
     """Run pairwise transfer attacks among the trained models."""
 
     epsilons = [i / 100 for i in range(0, 101, 2)]
-    records, existing_pairs = _load_existing_results(cfg, results_dir)
+    records, existing_pairs = attack_repo.existing_pairs()
     models_by_seed = _group_models_by_seed(trained_models)
 
     for seed, models in models_by_seed.items():
@@ -209,12 +117,7 @@ def run_attacks(trained_models: Dict[str, Dict[int, torch.nn.Module]], cfg: Dict
             compute_gradients = getattr(attack, "compute_gradients", None)
             if callable(compute_gradients):
                 gradients = compute_gradients(attacker_model)
-                gradients_path = _save_gradients(
-                    base_dir=results_dir,
-                    attacker_model=attacker_name,
-                    seed=seed,
-                    gradients=gradients,
-                )
+                gradients_path = attack_repo.save_gradients(attacker_model=attacker_name, seed=seed, gradients=gradients)
 
             attack_plan = [
                 (victim_name, victim_model, epsilon)
@@ -238,8 +141,7 @@ def run_attacks(trained_models: Dict[str, Dict[int, torch.nn.Module]], cfg: Dict
                     device=cfg.device.device,
                 )
 
-                predictions_path = _save_predictions(
-                    base_dir=results_dir,
+                predictions_path = attack_repo.save_predictions(
                     target_model=victim_name,
                     seed=seed,
                     source_model=attacker_name,
@@ -271,25 +173,21 @@ def main(cfg: DictConfig) -> None:
 
     run_dir = HydraConfig.get().run.dir
     logging_service = LoggingService(run_dir)
-    results_dir = _resolve_results_dir(cfg, logging_service)
-    results_dir.mkdir(parents=True, exist_ok=True)
-    writer = SummaryWriter(log_dir=results_dir / "tensorboard")
+    results_dir = Path(cfg.results_path) if cfg.results_path else Path(logging_service.root_dir)
+    if results_dir.suffix in {".csv", ".json"}:
+        results_dir = results_dir.parent
+    attack_repo = AttackRepository(results_dir)
+    writer = SummaryWriter(log_dir=attack_repo.base_dir / "tensorboard")
 
-    models = load_experiment(
-        cfg.models_path,
-        load=cfg.model_load,
-        map_location=cfg.device.device,
-    )
-    with profiler.profile(extra_info=extra_info):
-        attack_results = run_attacks(models, cfg, results_dir=results_dir, writer=writer)
+    models = ModelRepository(cfg.models_path).load(load=cfg.model_load, map_location=cfg.device.device)
+    profiler = attack_repo.profile(input_shape=(), epochs=0)
+    with profiler.profile():
+        attack_results = run_attacks(models, cfg, attack_repo=attack_repo, writer=writer)
 
     writer.flush()
     writer.close()
 
-    results_csv = _results_csv_path(results_dir)
-    results_json = results_dir / "results.json"
-    attack_results.to_csv(results_csv, index=False)
-    attack_results.to_json(results_json, orient="records", indent=2)
+    attack_repo.save(attack_results)
     plot_transfer_attack_effects(attack_results, title_prefix="attacks/")
 
 
