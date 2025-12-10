@@ -1,0 +1,9 @@
+# PlusMinus dataset configuration
+dataset: PlusMinus
+input_shape: [1, 16, 16]
+classes: 4 # +, −, ⟂ (right half-plus), ⊣ (left half-plus)
+train_ratio: 0.6
+eval_ratio: 0.4
+train_batch_size: 512
+eval_batch_size: 4096
+root: ${DATA_DIR}
