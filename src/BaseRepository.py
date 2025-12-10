@@ -33,6 +33,3 @@ class BaseRepository(ABC):
     @abstractmethod
     def load(self, *args, **kwargs):
         ...
-
-    def profiler(self, input_shape, epochs):
-        return ExperimentProfiler(str(self.base_dir), input_shape, epochs)
