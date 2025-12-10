@@ -26,3 +26,7 @@ class AttackResult:
             "predictions_path": self.predictions_path,
             "gradients_path": self.gradients_path,
         }
+    
+    @classmethod
+    def from_record(cls, record: Dict[str, object]) -> "AttackResult":
+        return cls(**record)
