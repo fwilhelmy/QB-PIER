@@ -1,25 +1,19 @@
 from __future__ import annotations
 
-import os
-import re
-from abc import ABC, abstractmethod
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 import pandas as pd
 import torch
 from torch import Tensor
-from tqdm import tqdm
 
-from LoggingService import LoggingService
-from metrics import ExperimentProfiler, MetricsContainer
-from models.ModelFactory import ModelFactory
 from BaseRepository import BaseRepository
+from models.ModelRepository import ModelProfiler
+
 
 class AttackRepository(BaseRepository):
-    def profile(self, input_shape, epochs):
-        return ExperimentProfiler(str(self.base_dir), input_shape, epochs)
+    def profile(self, input_shape, epochs) -> ModelProfiler:
+        return ModelProfiler(str(self.base_dir), input_shape, epochs)
 
     def save(self, results: pd.DataFrame):
         self.base_dir.mkdir(parents=True, exist_ok=True)

@@ -20,7 +20,8 @@ except ModuleNotFoundError:  # pragma: no cover - fallback when torchsummary is 
     summary = None
 
 from utils import calculate_accuracy
-from metrics import MetricsContainer, CompactDeviceStats, GradientProfiler, ExperimentProfiler
+from metrics import MetricsContainer, CompactDeviceStats, GradientProfiler
+from models.ModelRepository import ModelProfiler
 
 log = logging.getLogger(__name__)
 
@@ -123,7 +124,7 @@ class BaseModel(LightningModule):
         # Device stats monitor callback (logs hardware utilization)
         device_monitor = CompactDeviceStats()
         gradient_profiler = GradientProfiler()
-        self.training_profiler = ExperimentProfiler(
+        self.training_profiler = ModelProfiler(
             log_dir=self.log_dir,
             input_shape=self.input_size,
             epochs=self.hparams["max_epochs"],
