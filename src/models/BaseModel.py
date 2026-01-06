@@ -13,25 +13,17 @@ from pytorch_lightning.utilities import rank_zero_only
 from torch.nn import CrossEntropyLoss
 from torch.optim import lr_scheduler as lr_schedulers
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-
-try:  # pragma: no cover - optional dependency during unit tests
-    from torchsummary import summary
-except ModuleNotFoundError:  # pragma: no cover - fallback when torchsummary is unavailable
-    summary = None
-
+from torchsummary import summary
 from utils import calculate_accuracy
 from metrics import MetricsContainer, CompactDeviceStats, GradientProfiler
-from models.ModelRepository import ModelProfiler
 
 log = logging.getLogger(__name__)
-
 
 AVAILABLE_OPTIMISERS = {
     "adam": optim.Adam,
     "adamw": optim.AdamW,
     "sgd": optim.SGD,
 }
-
 
 AVAILABLE_SCHEDULERS = {
     "cosineannealinglr": lr_schedulers.CosineAnnealingLR,

@@ -19,6 +19,7 @@ from metrics import MetricsContainer
 from models.ModelFactory import ModelFactory
 from __init__ import __version__
 
+log = logging.getLogger(__name__)
 
 class ModelRepository(BaseRepository):
     def __init__(self, input_shape: tuple[int, ...], epochs: int):
@@ -32,6 +33,9 @@ class ModelRepository(BaseRepository):
         start_time = datetime.now()
         try:
             yield self
+        except Exception as err:
+            log.exception(err)
+            raise err
         finally:
             end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
