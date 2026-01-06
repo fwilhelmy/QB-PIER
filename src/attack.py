@@ -6,13 +6,11 @@ into focused helper functions for easier maintenance.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Sequence, Tuple
 import logging
 
 import hydra
-import pandas as pd
 import torch
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
@@ -27,6 +25,7 @@ from utils import calculate_accuracy, seed_experiment
 from visualisation.attacks import plot_transfer_attack_effects
 
 log = logging.getLogger(__name__)
+
 
 def _group_models_by_seed(trained_models: Dict[str, Dict[int, torch.nn.Module]]) -> Dict[int, List[Tuple[str, torch.nn.Module]]]:
     models_by_seed: Dict[int, List[Tuple[str, torch.nn.Module]]] = {}
@@ -71,7 +70,13 @@ def _evaluate_attack(
     return predictions, adv_examples, float(adv_acc)
 
 
-def run_attacks(trained_models: Dict[str, Dict[int, torch.nn.Module]], cfg: DictConfig, *, attack_repo: AttackRepository, writer: SummaryWriter) -> pd.DataFrame:
+def run_attacks(
+    trained_models: Dict[str, Dict[int, torch.nn.Module]],
+    cfg: DictConfig,
+    *,
+    attack_repo: AttackRepository,
+    writer: SummaryWriter,
+) -> List[AttackResult]:
     """Run pairwise transfer attacks among the trained models."""
 
     epsilons = [i / 100 for i in range(0, 101, 2)]
@@ -115,30 +120,22 @@ def run_attacks(trained_models: Dict[str, Dict[int, torch.nn.Module]], cfg: Dict
                     device=cfg.device.device,
                 )
 
-                predictions_path = attack_repo.save_predictions(
-                    target_model=victim_name,
-                    seed=seed,
-                    source_model=attacker_name,
-                    epsilon=epsilon,
-                    predictions=predictions,
-                    targets=targets[: adv_examples.size(0)],
-                )
-
-                result = AttackResult(
+                result = attack_repo.save_attack(
                     seed=seed,
                     source_model=attacker_name,
                     target_model=victim_name,
                     epsilon=epsilon,
                     accuracy=adv_acc,
+                    predictions=predictions,
+                    targets=targets[: adv_examples.size(0)],
                     num_samples=adv_examples.size(0),
-                    predictions_path=predictions_path,
                     gradients_path=gradients_path,
                 )
 
                 _log_tensorboard(writer, result)
-                records.append(result.to_record())
+                records.append(result)
 
-    return pd.DataFrame(records)
+    return records
 
 
 @hydra.main(config_path="../conf", config_name="attack", version_base=None)
@@ -161,8 +158,8 @@ def main(cfg: DictConfig) -> None:
     writer.flush()
     writer.close()
 
-    attack_repo.save(attack_results)
-    plot_transfer_attack_effects(attack_results, title_prefix="attacks/")
+    results_df = attack_repo.save_results(attack_results)
+    plot_transfer_attack_effects(results_df, title_prefix="attacks/")
 
 
 if __name__ == "__main__":
