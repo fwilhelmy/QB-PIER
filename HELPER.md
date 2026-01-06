@@ -30,6 +30,8 @@ source miniconda3/bin/activate && conda activate QAML && cd QMLBenchmark
 
 ```bash
 scp -r AP09650@replica.logti.etsmtl.ca:QMLBenchmark\logs C:\Users\fwilh\Desktop\REPLICA\
+
+scp -r C:\Users\fwilh\Desktop\Experiments AP09650@replica.logti.etsmtl.ca:Backup
 ```
 
 ## Run Job in the Background

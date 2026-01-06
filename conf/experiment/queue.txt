@@ -12,8 +12,7 @@ XXXXXX python src/train.py expdir="benchmark" model=vqm model.n_qdepth=50 traini
 python src/train.py -m  model=hqnn_resvql,hqnn_hpvql,hqnn_dropvql,hpvqm,hqnn_vql training=mid
 
 ====== VQM BENCHMARKS ======
-python src/train.py -m expdir="benchmark" model=hqnn_vql training=mid model/ansatz=basic,strong,random,identity,no_entangling
-
+python src/train.py -m expdir=hqnn50_diff_ansatz model=hqnn_vql training=mid model/ansatz@model.classifier.params.ansatz=basic,random
 
 ====== HYBRID BENCHMARKS ======
 - Different Ansatzs with HQNNs
@@ -37,5 +36,6 @@ HQNN with diff ansatz
 HQNN with depth 100
 
 Low quality CNN (convnet and mlp reduced)
+python src/train.py -m expdir=low_qual_classical training=mid model=convnet_reduced,mlp_reduced
 
 VQM with depth 500 (extreme)
