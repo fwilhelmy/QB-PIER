@@ -29,3 +29,13 @@ python src/train.py -m expdir="device-tests" model=vqm,lenet training=dev traini
       device.devices: 1,2,3,5
       device.num_workers: 0,2,4,8
       device.num_threads: 2,4,8,16
+
+
+
+====== TO EXPLORE WHILE I'M GONE ======
+HQNN with diff ansatz
+HQNN with depth 100
+
+Low quality CNN (convnet and mlp reduced)
+
+VQM with depth 500 (extreme)
