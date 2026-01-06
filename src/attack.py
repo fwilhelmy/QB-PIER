@@ -20,39 +20,13 @@ from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from attacks import AttackFactory
+from attacks import AttackFactory, AttackResult, AttackRepository
 from datasets import DatasetFactory
 from LoggingService import LoggingService
-from repositories import AttackRepository, ModelRepository
 from utils import calculate_accuracy, seed_experiment
 from visualisation.attacks import plot_transfer_attack_effects
 
 log = logging.getLogger(__name__)
-
-
-@dataclass
-class AttackResult:
-    seed: int
-    source_model: str
-    target_model: str
-    epsilon: float
-    accuracy: float
-    num_samples: int
-    predictions_path: str | None
-    gradients_path: str | None
-
-    def to_record(self) -> Dict[str, object]:
-        return {
-            "seed": self.seed,
-            "source_model": self.source_model,
-            "target_model": self.target_model,
-            "epsilon": self.epsilon,
-            "accuracy": self.accuracy,
-            "num_samples": self.num_samples,
-            "predictions_path": self.predictions_path,
-            "gradients_path": self.gradients_path,
-        }
-
 
 def _group_models_by_seed(trained_models: Dict[str, Dict[int, torch.nn.Module]]) -> Dict[int, List[Tuple[str, torch.nn.Module]]]:
     models_by_seed: Dict[int, List[Tuple[str, torch.nn.Module]]] = {}

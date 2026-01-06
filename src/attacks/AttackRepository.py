@@ -12,8 +12,9 @@ from models.ModelRepository import ModelProfiler
 
 
 class AttackRepository(BaseRepository):
-    def profile(self, input_shape, epochs) -> ModelProfiler:
-        return ModelProfiler(str(self.base_dir), input_shape, epochs)
+    def __init__(self, base_dir: str | Path):
+        super().__init__(base_dir)
+        # Crawl the repository to initialize any needed structures
 
     def save(self, results: pd.DataFrame):
         self.base_dir.mkdir(parents=True, exist_ok=True)
