@@ -7,7 +7,7 @@ name = "qb-pier"
 version = "0.2.0"
 description = "Quantum Benchmarking Pipeline for Integrated Evaluation of Robustness"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.8,<3.12"
 license = {file = "LICENSE"}
 authors = [ {name = "Felix Wilhelmy"} ]
 dependencies = [
@@ -32,4 +32,3 @@ docs = ["sphinx"]
 [tool.setuptools.packages.find]
 include = ["*"]
 where = ["src"]
-
