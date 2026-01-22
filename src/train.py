@@ -1,6 +1,5 @@
 import logging
 import os
-from random import seed
 import time
 from typing import Optional
 
