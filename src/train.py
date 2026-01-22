@@ -1,12 +1,10 @@
 import logging
 import os
 import time
-from typing import Optional
 
 import hydra
 import torch
 from hydra.core.hydra_config import HydraConfig
-from hydra.types import RunMode
 from omegaconf import DictConfig
 
 from DiscordWebhookLogger import DiscordWebhookLogger
@@ -37,7 +35,6 @@ def train_model(
     Args:
         cfg: Experiment configuration as a dictionary resolved from Hydra.
         log_dir: Relative logging directory inside the logging service root.
-        discord_logger: Optional webhook helper for experiment notifications.
 
     Returns:
         dict: { seed: trained_model_instance }
@@ -112,7 +109,7 @@ def train_model(
             log.info("Training completed for model %s (seed=%s).", model_name, seed)
             elapsed = time.time() - start_time
             seed_times[seed] = elapsed
-        except Exception as e:
+        except Exception:
             log.exception("Training failed for model %s (seed=%s).", model_name, seed)
             elapsed = time.time() - start_time
             seed_times[seed] = elapsed
