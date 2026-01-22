@@ -9,33 +9,22 @@ XXXXXX python src/train.py expdir="benchmark" model=vqm model.n_qdepth=50 traini
 
 - Testing the different learning Rate Schedulers with the best configuration
 
-python src/train.py -m  model=hqnn_resvql,hqnn_hpvql,hqnn_dropvql,hpvqm,hqnn_vql training=mid
-
-====== VQM BENCHMARKS ======
-python src/train.py -m expdir=hqnn50_diff_ansatz model=hqnn_vql training=mid model/ansatz@model.classifier.params.ansatz=basic,random
-
 ====== HYBRID BENCHMARKS ======
-- Different Ansatzs with HQNNs
-- Shallow VS Deep VQCs in HQNNs
 
-- With dropout
-- With residuals
+XXXXXX python src/train.py -m  model=hqnn_resvql,hqnn_hpvql,hqnn_dropvql,hpvqm,hqnn_vql training=mid
 
-====== DEVICES STRESS TEST (IF TIME) ======
-python src/train.py -m expdir="device-tests" model=vqm,lenet training=dev training.epochs=10 
-- What shoud I test there? need to investigate
-      device: local,colab,ets
-      device.devices: 1,2,3,5
-      device.num_workers: 0,2,4,8
-      device.num_threads: 2,4,8,16
+XXXXXX Different Ansatzs with HVQL AND HQNN 
+XXXXXX python src/train.py -m expdir=hqnn50_diff_ansatz training=mid model=hqnn_vql model/ansatz@model.classifier.params.ansatz=basic,random
 
-
-
-====== TO EXPLORE WHILE I'M GONE ======
-HQNN with diff ansatz
-HQNN with depth 100
+!! DISCOVERED ERROR OF BATCH NORM STILL PRESENT IN THE VQL LAYER.... !!
 
 Low quality CNN (convnet and mlp reduced)
 python src/train.py -m expdir=low_qual_classical training=mid model=convnet_reduced,mlp_reduced
+
+- Shallow VS Deep VQCs in HQNNs
+XXXXXX python src/train.py -m expdir=hpvqm_diffs training=mid model=hqnn_hpvql model.classifier.params.n_qdepth=50,100 model.classifier.params.n_qblocks=5,10
+XXXXXX python src/train.py -m expdir=hvqm_depths training=mid model=hvqm model.classifier.params.n_qdepth=100,200
+python src/train.py -m expdir=hvqm_depths training=mid model=hquanv model.classifier.params.n_qdepth=100
+
 
 VQM with depth 500 (extreme)
