@@ -18,6 +18,14 @@ from visualisation.train import generate_gradient_flow_plots, plot_training_curv
 
 log = logging.getLogger(__name__)
 
+def _write_model_marker(log_dir: str, model_name: str) -> None:
+    LoggingService().save_file(model_name, ".model", path=log_dir)
+
+
+def _save_final_checkpoint(model, log_dir: str, seed: int) -> None:
+    checkpoint_path = os.path.join(LoggingService().root_dir, log_dir, str(seed), "final.ckpt")
+    model.trainer.save_checkpoint(checkpoint_path)
+
 
 def train_model(
     cfg: DictConfig,
@@ -47,7 +55,7 @@ def train_model(
     }
 
     # Create an anchor file for later discovery
-    LoggingService().save_file(model_name, ".model", path=log_dir)
+    _write_model_marker(log_dir, model_name)
 
     num_threads = cfg["device"].get("num_threads")
     if num_threads is not None:
@@ -100,11 +108,12 @@ def train_model(
         try:
             model.fit(train_loader, eval_loader)
             trained[seed] = model
+            _save_final_checkpoint(model, log_dir, seed)
             log.info("Training completed for model %s (seed=%s).", model_name, seed)
             elapsed = time.time() - start_time
             seed_times[seed] = elapsed
         except Exception as e:
-            log.warning("Training failed for model %s (seed=%s).", model_name, seed)
+            log.exception("Training failed for model %s (seed=%s).", model_name, seed)
             elapsed = time.time() - start_time
             seed_times[seed] = elapsed
 
