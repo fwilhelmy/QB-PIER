@@ -4,15 +4,19 @@ import os
 import re
 from pathlib import Path
 from typing import Any, Dict, List
-
 from models.ModelFactory import ModelFactory
 
 def crawl_experiments(path: str) -> List[str]:
-    experiments: List[str] = []
+    return [str(path) for path in _crawl_experiment_paths(path)]
+
+
+def _crawl_experiment_paths(path: str | Path) -> List[Path]:
+    experiments: List[Path] = []
     for root, _, files in os.walk(path):
         if ".model" in files:
-            experiments.append(root)
-    return sorted(experiments)
+            experiments.append(Path(root))
+    experiments.sort()
+    return experiments
 
 
 def _score_checkpoint(path: Path) -> float:

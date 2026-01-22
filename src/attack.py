@@ -7,7 +7,6 @@ into focused helper functions for easier maintenance.
 from __future__ import annotations
 
 import os
-import re
 from pathlib import Path
 from typing import Dict, Iterable, List, Sequence, Tuple
 import logging
@@ -23,6 +22,8 @@ from tqdm import tqdm
 
 from attacks import AttackFactory
 from attacks.AttackResult import AttackResult
+from loading import _crawl_experiment_paths as _crawl_model_runs
+from loading import _select_checkpoint
 from datasets import DatasetFactory
 from LoggingService import LoggingService
 from models.ModelFactory import ModelFactory
@@ -47,37 +48,6 @@ def _prepare_attack(cfg: DictConfig):
     attack_args = {k: v for k, v in cfg.attack.items() if k != "name"}
     attack = AttackFactory.create(cfg.attack.name, dataset=dm.dataset, **attack_args)
     return dataset, attack
-
-
-def _crawl_model_runs(base_dir: Path) -> List[Path]:
-    experiments: List[Path] = []
-    for root, _, files in os.walk(base_dir):
-        if ".model" in files:
-            experiments.append(Path(root))
-    experiments.sort()
-    return experiments
-
-
-def _score_checkpoint(path: Path) -> float:
-    match = re.search(r"loss=(\d+\.\d+)", path.name)
-    return float(match.group(1)) if match else float("inf")
-
-
-def _best_checkpoint(checkpoint_dir: Path) -> Path | None:
-    if not checkpoint_dir.exists():
-        return None
-    ckpts = sorted([f for f in checkpoint_dir.iterdir() if f.suffix == ".ckpt"], key=_score_checkpoint)
-    return ckpts[0] if ckpts else None
-
-
-def _select_checkpoint(seed_dir: Path, load: str) -> Path | None:
-    final_ckpt = seed_dir / "final.ckpt"
-    if load == "best":
-        best_ckpt = _best_checkpoint(seed_dir / "checkpoints")
-        return best_ckpt or (final_ckpt if final_ckpt.exists() else None)
-    if final_ckpt.exists():
-        return final_ckpt
-    return _best_checkpoint(seed_dir / "checkpoints")
 
 
 def load_trained_models(
