@@ -1,15 +1,11 @@
 import logging
 import os
-from random import seed
 import time
-from typing import Optional
 
 import hydra
 import torch
 from hydra.core.hydra_config import HydraConfig
-from hydra.types import RunMode
 from omegaconf import DictConfig
-from torchsummary import summary
 
 from DiscordWebhookLogger import DiscordWebhookLogger
 from datasets import DatasetFactory
@@ -20,6 +16,39 @@ from visualisation.train import generate_gradient_flow_plots, plot_training_curv
 
 log = logging.getLogger(__name__)
 
+def _write_model_marker(log_dir: str, model_name: str) -> None:
+    LoggingService().save_file(model_name, ".model", path=log_dir)
+
+
+def _save_final_checkpoint(model, log_dir: str, seed: int) -> None:
+    checkpoint_path = os.path.join(LoggingService().root_dir, log_dir, str(seed), "final.ckpt")
+    model.trainer.save_checkpoint(checkpoint_path)
+
+            # self._start_time = datetime.now()
+            # self._info = {
+            #     "pipeline_version": __version__,
+            #     "start_time": self._start_time.isoformat(),
+            #     "cuda_available": torch.cuda.is_available(),
+            # }
+
+    # @rank_zero_only
+    # def save_experiment(self):
+    #     if getattr(self, "_finalized", False):
+    #         return
+    #     self._finalized = True
+    #     end_time = datetime.now()
+    #     self._info["end_time"] = end_time.isoformat()
+    #     self._info["duration_seconds"] = (end_time - self._start_time).total_seconds()
+
+    #     # Attempt to store current git commit
+    #     try:
+    #         import subprocess
+    #         commit = subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.STDOUT).decode().strip()
+    #         self._info["git_commit"] = commit
+    #     except Exception:
+    #         pass
+
+    #     self.save_file(json.dumps(self._info, indent=2), "training.info")
 
 def train_model(
     cfg: DictConfig,
@@ -31,7 +60,6 @@ def train_model(
     Args:
         cfg: Experiment configuration as a dictionary resolved from Hydra.
         log_dir: Relative logging directory inside the logging service root.
-        discord_logger: Optional webhook helper for experiment notifications.
 
     Returns:
         dict: { seed: trained_model_instance }
@@ -49,7 +77,7 @@ def train_model(
     }
 
     # Create an anchor file for later discovery
-    LoggingService().save_file(model_name, ".model", path=log_dir)
+    _write_model_marker(log_dir, model_name)
 
     num_threads = cfg["device"].get("num_threads")
     if num_threads is not None:
@@ -102,23 +130,24 @@ def train_model(
         try:
             model.fit(train_loader, eval_loader)
             trained[seed] = model
+            _save_final_checkpoint(model, log_dir, seed)
             log.info("Training completed for model %s (seed=%s).", model_name, seed)
             elapsed = time.time() - start_time
             seed_times[seed] = elapsed
-        except Exception as e:
-            log.warning("Training failed for model %s (seed=%s).", model_name, seed)
+        except Exception:
+            log.exception("Training failed for model %s (seed=%s).", model_name, seed)
             elapsed = time.time() - start_time
             seed_times[seed] = elapsed
 
-    if len(trained) != 0:
-        avg_time = sum(seed_times.values()) / len(seed_times) if seed_times else 0.0
-        model = list(trained.values())[0]
-        info = str(summary(model, input_data=tuple(cfg["dataset"]["input_shape"]), col_names=("num_params","input_size","output_size"),verbose=0))
-        epochs = cfg["training"].get("epochs", 0)
-        info += f"\nTrained epochs: {epochs}"
-        info += f"\nTraining time per epoch: {avg_time/epochs:.2f} seconds"
-        info += f"\nTotal training time (per seed): {avg_time:.2f} seconds"
-        LoggingService().save_file(info, "model.info", path=log_dir)
+    # if len(trained) != 0:
+    #     avg_time = sum(seed_times.values()) / len(seed_times) if seed_times else 0.0
+    #     model = list(trained.values())[0]
+    #     info = str(summary(model, input_data=tuple(cfg["dataset"]["input_shape"]), col_names=("num_params","input_size","output_size"),verbose=0))
+    #     epochs = cfg["training"].get("epochs", 0)
+    #     info += f"\nTrained epochs: {epochs}"
+    #     info += f"\nTraining time per epoch: {avg_time/epochs:.2f} seconds"
+    #     info += f"\nTotal training time (per seed): {avg_time:.2f} seconds"
+    #     LoggingService().save_file(info, "model.info", path=log_dir)
     return trained, sum(seed_times.values())
 
 @hydra.main(config_path="../conf", config_name="train", version_base=None)
@@ -157,8 +186,5 @@ def main(cfg: DictConfig) -> None:
             log_dir=os.path.join(logging_service.root_dir, log_dir),
         )
 
-    logging_service.save_experiment()
-
 if __name__ == "__main__":
     main()
-
