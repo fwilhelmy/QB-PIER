@@ -19,7 +19,7 @@ The codebase focuses on benchmarking the adversarial robustness of different cla
 Results (checkpoints, figures and TensorBoard logs) are saved under a timestamped folder created by Hydra and consumed by `LoggingService`.
 
 ## Installation
-1. Ensure you have Python 3.8 or newer available (the provided helpers create a Python 3.10 environment).
+1. Ensure you have Python 3.8-3.11 available (the provided helpers create a Python 3.10 environment).
 2. Create and activate a virtual environment. Running `make create_environment` will:
    - create a conda environment named `QMLBenchmark` with Python 3.10 when conda is available, or
    - create a local `.venv` directory using `python -m venv` as a fallback.
@@ -32,6 +32,10 @@ Results (checkpoints, figures and TensorBoard logs) are saved under a timestampe
    The pipeline requires `hydra-core` version 1.3 or newer.
 4. Run `python test_environment.py` to confirm the Python interpreter meets the
    requirements.
+
+Supported environment combination:
+- Python 3.8-3.11
+- Hydra `hydra-core` 1.3.2-1.3.x
 
 ## Project Structure
 ```

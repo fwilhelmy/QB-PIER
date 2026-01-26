@@ -3,29 +3,28 @@ XXXXXX python src/train.py -m expdir="benchmark" model=vqm model.n_qdepth=50 tra
 XXXXXX python src/train.py -m expdir="benchmark" model=vqm model.n_qdepth=50 training=mid training.optimiser.optimiser_config.weight_decay=0.0,0.001,0.005,0.01
 
 XXXXXX python src/train.py expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=128 training.optimiser.learning_rate=0.000075
-python src/train.py expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=256 training.optimiser.learning_rate=0.00015
-python src/train.py expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=512 training.optimiser.learning_rate=0.0003
-python src/train.py expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=1024 training.optimiser.learning_rate=0.0006
+XXXXXX python src/train.py expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=256 training.optimiser.learning_rate=0.00015
+XXXXXX python src/train.py expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=512 training.optimiser.learning_rate=0.0003
+XXXXXX python src/train.py expdir="benchmark" model=vqm model.n_qdepth=50 training=mid dataset.train_batch_size=1024 training.optimiser.learning_rate=0.0006
 
 - Testing the different learning Rate Schedulers with the best configuration
 
-python src/train.py -m  model=hqnn_resvql,hqnn_hpvql,hqnn_dropvql,hpvqm,hqnn_vql training=mid
-
-====== VQM BENCHMARKS ======
-python src/train.py -m expdir="benchmark" model=vqm training=mid model/ansatz=basic,strong,random,identity,no_entangling
-
-
 ====== HYBRID BENCHMARKS ======
-- Different Ansatzs with HQNNs
+
+XXXXXX python src/train.py -m  model=hqnn_resvql,hqnn_hpvql,hqnn_dropvql,hpvqm,hqnn_vql training=mid
+
+XXXXXX Different Ansatzs with HVQL AND HQNN 
+XXXXXX python src/train.py -m expdir=hqnn50_diff_ansatz training=mid model=hqnn_vql model/ansatz@model.classifier.params.ansatz=basic,random
+
+!! DISCOVERED ERROR OF BATCH NORM STILL PRESENT IN THE VQL LAYER.... !!
+
+Low quality CNN (convnet and mlp reduced)
+python src/train.py -m expdir=low_qual_classical training=mid model=convnet_reduced,mlp_reduced
+
 - Shallow VS Deep VQCs in HQNNs
+XXXXXX python src/train.py -m expdir=hpvqm_diffs training=mid model=hqnn_hpvql model.classifier.params.n_qdepth=50,100 model.classifier.params.n_qblocks=5,10
+XXXXXX python src/train.py -m expdir=hvqm_depths training=mid model=hvqm model.classifier.params.n_qdepth=100,200
+python src/train.py -m expdir=hvqm_depths training=mid model=hquanv model.classifier.params.n_qdepth=100
 
-- With dropout
-- With residuals
 
-====== DEVICES STRESS TEST (IF TIME) ======
-python src/train.py -m expdir="device-tests" model=vqm,lenet training=dev training.epochs=10 
-- What shoud I test there? need to investigate
-      device: local,colab,ets
-      device.devices: 1,2,3,5
-      device.num_workers: 0,2,4,8
-      device.num_threads: 2,4,8,16
+VQM with depth 500 (extreme)
