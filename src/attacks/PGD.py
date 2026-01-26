@@ -1,3 +1,5 @@
+# Untested and unfinished code. Use at your own risk.
+
 from __future__ import annotations
 
 import copy
