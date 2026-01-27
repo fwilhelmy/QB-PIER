@@ -234,30 +234,24 @@ class BaseModel(LightningModule):
 
         details: list[str] = []
 
-        if summary is not None:
-            try:
-                model_summary = str(
-                    summary(
-                        self,
-                        input_data=tuple(self.input_size),
-                        col_names=("num_params", "input_size", "output_size"),
-                        verbose=0,
-                    )
+        try:
+            details.append((
+                summary(
+                    self,
+                    input_data=tuple(self.input_size),
+                    col_names=("num_params", "input_size", "output_size"),
+                    verbose=0,
                 )
-                details.append(model_summary)
-            except Exception as exc:  # pragma: no cover - only triggered when summary fails
-                log.warning("Failed to generate model summary: %s", exc)
-        else:  # pragma: no cover - summary dependency missing during some tests
-            log.warning("torchsummary is not installed; skipping model summary generation")
+            ))
+        except Exception as exc:
+            log.warning("Failed to generate model summary: %s", exc)
 
         epochs = int(self.hparams.get("max_epochs", 0))
         total_duration = duration if duration is not None else 0.0
         details.append(f"Trained epochs: {epochs}")
-        if epochs:
-            details.append(f"Training time per epoch: {total_duration/epochs:.2f} seconds")
-        else:
-            details.append("Training time per epoch: undefined")
-        details.append(f"Total training time (per seed): {total_duration:.2f} seconds")
+        details.append(f"Total training time: {total_duration:.2f} seconds")
+        time_per_epoch = f"{total_duration/epochs:2f}" if epochs else "undefined"
+        details.append(f"Training time per epoch: {time_per_epoch} seconds")
 
         info = "\n".join(details)
         os.makedirs(self.log_dir, exist_ok=True)
