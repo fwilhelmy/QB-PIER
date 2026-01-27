@@ -9,7 +9,7 @@ from omegaconf import DictConfig
 
 from DiscordWebhookLogger import DiscordWebhookLogger
 from datasets import DatasetFactory
-from LoggingService import LoggingService, experiment_info
+from LoggingService import LoggingService, ExperimentManager
 from models.ModelFactory import ModelFactory
 
 from utils import seed_experiment
@@ -101,7 +101,6 @@ def train_model(cfg: DictConfig, log_dir: str):
 @hydra.main(config_path="../conf", config_name="train", version_base=None)
 def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
-    start_time = datetime.now()
     root_dir = HydraConfig.get().run.dir.rsplit("/",1)[0]
     logging_service = LoggingService(root_dir=root_dir)
     fast_dev_run: bool = cfg["training"].get("fast_dev_run", False)
@@ -116,10 +115,7 @@ def main(cfg: DictConfig) -> None:
     if not fast_dev_run:
         discord_logger.log_exp_start(model_name, seeds, log_dir)
     experiment_dir = os.path.join(logging_service.root_dir, log_dir or "")
-    with experiment_info(experiment_dir) as exp_info:
-        exp_info["model_name"] = model_name
-        exp_info["seeds"] = list(seeds)
-        exp_info["log_dir"] = log_dir or ""
+    with ExperimentManager(experiment_dir) as exp_info:
         trained_models = train_model(cfg, log_dir)
 
     if not fast_dev_run and trained_models:
@@ -129,7 +125,7 @@ def main(cfg: DictConfig) -> None:
             model_name,
             trained=len(trained_models),
             expected=len(seeds),
-            duration=(datetime.now() - start_time),
+            duration=exp_info["duration_seconds"],
             figure_path=figure_path,
             log_dir=experiment_dir,
         )

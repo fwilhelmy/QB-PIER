@@ -12,45 +12,41 @@ from pytorch_lightning.utilities import rank_zero_only
 log = logging.getLogger(__name__)
 from __init__ import __version__
 
-@rank_zero_only
-def _write_experiment_info(info: dict, log_path: Optional[str]) -> None:
-    output_dir = log_path or "."
-    os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, "experiment.info")
-    with open(output_path, "w", encoding="utf-8") as file:
-        file.write(json.dumps(info, indent=2))
-
 
 @contextmanager
-def experiment_info(log_path: Optional[str] = None):
+@rank_zero_only
+def ExperimentManager(log_path: Optional[str] = None):
     start_time = datetime.now()
     info = {
         "pipeline_version": __version__,
         "start_time": start_time.isoformat(),
         "cuda_available": torch.cuda.is_available(),
     }
+
+    yield info
+
+    end_time = datetime.now()
+    info["end_time"] = end_time.isoformat()
+    info["duration_seconds"] = (end_time - start_time).total_seconds()
+
     try:
-        yield info
-    finally:
-        end_time = datetime.now()
-        info["end_time"] = end_time.isoformat()
-        info["duration_seconds"] = (end_time - start_time).total_seconds()
+        import subprocess
 
-        try:
-            import subprocess
+        commit = (
+            subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.STDOUT)
+            .decode().strip()
+        )
+        info["git_commit"] = commit
+    except Exception:
+        log.error("Could not retrieve git commit hash.")
 
-            commit = (
-                subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.STDOUT)
-                .decode()
-                .strip()
-            )
-            info["git_commit"] = commit
-        except Exception:
-            pass
+    output_dir = log_path or "."
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, "experiment.info")
+    with open(output_path, "w", encoding="utf-8") as file:
+        file.write(json.dumps(info, indent=2))
 
-        _write_experiment_info(info, log_path)
-
-
+# Singleton to configure and capture logs in a central directory.
 class LoggingService:
     _instance = None
 
