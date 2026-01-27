@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
+import os
 import random
 
 import matplotlib.pyplot as plt
 import torch
 from lightning.pytorch.utilities import rank_zero_only
 from sklearn.manifold import TSNE
-
-from LoggingService import LoggingService
 
 __all__ = ["plot_tsne"]
 
@@ -31,5 +30,6 @@ def plot_tsne(dataset, subset_size: int = 1000, logdir: str = "logs/visualisatio
     plt.colorbar(scatter, ticks=range(len(dataset.classes)))
     plt.title("t-SNE of Dataset")
 
-    LoggingService().save_figure(plt.gcf(), "tsne", logdir)
+    os.makedirs(logdir, exist_ok=True)
+    plt.savefig(os.path.join(logdir, "tsne.png"))
     plt.close()

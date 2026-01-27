@@ -9,7 +9,7 @@ from omegaconf import DictConfig
 
 from DiscordWebhookLogger import DiscordWebhookLogger
 from datasets import DatasetFactory
-from LoggingService import LoggingService
+from LoggingService import LoggingService, ExperimentManager
 from models.ModelFactory import ModelFactory
 
 from utils import seed_experiment
@@ -38,8 +38,11 @@ def train_model(cfg: DictConfig, log_dir: str):
     }
 
     # Create an anchor file for later discovery
-    # TODO JUST SAVE WITHOUT LOGGING SERVICE
-    LoggingService().save_file(model_name, ".model", path=log_dir)
+    root_dir = LoggingService().root_dir
+    model_dir = os.path.join(root_dir, log_dir)
+    os.makedirs(model_dir, exist_ok=True)
+    with open(os.path.join(model_dir, ".model"), "w", encoding="utf-8") as file:
+        file.write(model_name)
 
     num_threads = cfg["device"].get("num_threads")
     if num_threads is not None:
@@ -98,7 +101,6 @@ def train_model(cfg: DictConfig, log_dir: str):
 @hydra.main(config_path="../conf", config_name="train", version_base=None)
 def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
-    start_time = datetime.now()
     root_dir = HydraConfig.get().run.dir.rsplit("/",1)[0]
     logging_service = LoggingService(root_dir=root_dir)
     fast_dev_run: bool = cfg["training"].get("fast_dev_run", False)
@@ -112,24 +114,20 @@ def main(cfg: DictConfig) -> None:
 
     if not fast_dev_run:
         discord_logger.log_exp_start(model_name, seeds, log_dir)
-    trained_models = train_model(cfg, log_dir)
+    experiment_dir = os.path.join(logging_service.root_dir, log_dir or "")
+    with ExperimentManager(experiment_dir) as exp_info:
+        trained_models = train_model(cfg, log_dir)
 
-    if not fast_dev_run:
-        plot_training_curves(model_name, trained_models, log_dir)
-        if trained_models:
-            generate_gradient_flow_plots(list(trained_models.values())[0], log_dir)
-        figure_path = os.path.join(
-            logging_service.root_dir,
-            log_dir,
-            f"training_{model_name}.png",
-        )
+    if not fast_dev_run and trained_models:
+        figure_path = plot_training_curves(model_name, trained_models, experiment_dir)
+        generate_gradient_flow_plots(list(trained_models.values())[0], experiment_dir)
         discord_logger.log_exp_finished(
             model_name,
             trained=len(trained_models),
             expected=len(seeds),
-            duration=(datetime.now() - start_time),
+            duration=exp_info["duration_seconds"],
             figure_path=figure_path,
-            log_dir=os.path.join(logging_service.root_dir, log_dir),
+            log_dir=experiment_dir,
         )
 
 if __name__ == "__main__":

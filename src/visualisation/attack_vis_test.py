@@ -16,7 +16,6 @@ import pandas as pd
 import torch
 from omegaconf import OmegaConf
 
-from LoggingService import LoggingService
 from attacks import AttackFactory
 from datasets import DatasetFactory
 from loading import load_experiment
@@ -342,7 +341,7 @@ def main() -> None:
     log.info("Loading experiments from %s", MODEL_LOGDIR)
 
     output_root = os.path.join(MODEL_LOGDIR, OUTPUT_SUBDIR)
-    LoggingService(output_root)
+    os.makedirs(output_root, exist_ok=True)
 
     trained_models = load_experiment(MODEL_LOGDIR, load="final")
 

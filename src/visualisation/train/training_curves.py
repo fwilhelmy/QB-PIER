@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 from lightning.pytorch.utilities import rank_zero_only
 from matplotlib.ticker import FuncFormatter, MaxNLocator
 
-from LoggingService import LoggingService
 from .utils import line_with_std
 
 __all__ = ["plot_training_curves"]
@@ -103,4 +104,9 @@ def plot_training_curves(model_name, seed_dict, fig_dir=None):
 
     fig.suptitle(f"Training Curves — {model_name}")
     fig.tight_layout(rect=(0, 0, 1, 0.96))
-    LoggingService().save_figure(fig, f"training_{model_name}", fig_dir)
+    output_dir = fig_dir or "logs"
+    os.makedirs(output_dir, exist_ok=True)
+    figure_path = os.path.join(output_dir, f"training_{model_name}.png")
+    fig.savefig(figure_path)
+    plt.close(fig)
+    return figure_path

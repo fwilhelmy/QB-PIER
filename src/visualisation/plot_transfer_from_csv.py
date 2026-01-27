@@ -14,17 +14,15 @@ from __future__ import annotations
 
 import os
 import sys
-import pandas as pd
 
-from LoggingService import LoggingService
+import pandas as pd
 from visualisation.attacks import plot_transfer_attack_effects
 
 
 def main() -> None:
     """Load attack results from ``root_dir`` and regenerate plots."""
     root_dir = "..\\GINO\\attacks\\seed0"
-    ls = LoggingService(root_dir)
-    csv_path = os.path.join(ls.root_dir, "results.csv")
+    csv_path = os.path.join(root_dir, "results.csv")
     if not os.path.exists(csv_path):
         raise FileNotFoundError(f"Could not find attack results at '{csv_path}'")
 

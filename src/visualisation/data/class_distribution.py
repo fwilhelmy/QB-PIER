@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import os
+
 import matplotlib.pyplot as plt
 from lightning.pytorch.utilities import rank_zero_only
-
-from LoggingService import LoggingService
 
 __all__ = ["plot_class_distribution"]
 
@@ -23,5 +23,6 @@ def plot_class_distribution(dataset, logdir: str = "logs/visualisation"):
     plt.title("Class Distribution in Dataset")
     plt.xticks(range(len(dataset.classes)), dataset.classes)
 
-    LoggingService().save_figure(plt.gcf(), "class_distribution", logdir)
+    os.makedirs(logdir, exist_ok=True)
+    plt.savefig(os.path.join(logdir, "class_distribution.png"))
     plt.close()

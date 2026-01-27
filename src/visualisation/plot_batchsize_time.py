@@ -5,7 +5,6 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 
 from loading import crawl_experiments, load_experiment
-from LoggingService import LoggingService
 
 
 # Root directory where your Batch Size experiments are stored.
@@ -45,8 +44,7 @@ def extract_total_time(model_info_path: str) -> float:
 
 
 def main():
-    # Optional: initialize logging like in loading.py
-    LoggingService(ROOT)
+    os.makedirs(ROOT, exist_ok=True)
 
     # This loads all models (as requested), using the utilities from loading.py.
     # If you only care about timings and not the models themselves, you could

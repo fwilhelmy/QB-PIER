@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
+import os
 import random
 
 import matplotlib.pyplot as plt
 from lightning.pytorch.utilities import rank_zero_only
-
-from LoggingService import LoggingService
 
 __all__ = ["plot_sample_images"]
 
@@ -25,5 +24,6 @@ def plot_sample_images(dataset, x: int = 10, rows: int = 2, cols: int = 5, logdi
         ax.axis("off")
     plt.tight_layout()
 
-    LoggingService().save_figure(fig, "sample_images", logdir)
+    os.makedirs(logdir, exist_ok=True)
+    fig.savefig(os.path.join(logdir, "sample_images.png"))
     plt.close(fig)
