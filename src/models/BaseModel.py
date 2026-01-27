@@ -2,7 +2,6 @@ import logging
 import os
 from typing import Any, Dict, Tuple, Union
 
-from numpy import gradient
 import torch
 import torch.optim as optim
 from pytorch_lightning import LightningModule, Trainer
@@ -262,7 +261,7 @@ class BaseModel(LightningModule):
         self,
         train_dataloaders: Union[Any, list],
         val_dataloaders: Union[Any, list],
-    ) -> None:
+    ) -> bool:
         """
         Thin wrapper that calls Lightning’s Trainer.fit(), then saves a final checkpoint and metrics.
         """
@@ -270,9 +269,10 @@ class BaseModel(LightningModule):
             raise ValueError("Trainer not configured. Call configure_training() first.")
         try:
             self.trainer.fit(self, train_dataloaders, val_dataloaders)
+            return True
         except Exception as err:
             log.exception(err)
-            raise err
+            return False
         finally:
             # self.profiler.teardown(stage=None)
             self.metrics.save_metrics()

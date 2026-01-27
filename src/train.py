@@ -1,7 +1,7 @@
 import logging
 import os
 import time
-
+from datetime import datetime
 import hydra
 import torch
 from hydra.core.hydra_config import HydraConfig
@@ -11,24 +11,13 @@ from DiscordWebhookLogger import DiscordWebhookLogger
 from datasets import DatasetFactory
 from LoggingService import LoggingService
 from models.ModelFactory import ModelFactory
+
 from utils import seed_experiment
 from visualisation.train import generate_gradient_flow_plots, plot_training_curves
 
 log = logging.getLogger(__name__)
 
-def _write_model_marker(log_dir: str, model_name: str) -> None:
-    LoggingService().save_file(model_name, ".model", path=log_dir)
-
-
-def _save_final_checkpoint(model, log_dir: str, seed: int) -> None:
-    checkpoint_path = os.path.join(LoggingService().root_dir, log_dir, str(seed), "final.ckpt")
-    model.trainer.save_checkpoint(checkpoint_path)
-
-
-def train_model(
-    cfg: DictConfig,
-    log_dir: str,
-):
+def train_model(cfg: DictConfig, log_dir: str):
     """
     Runs a full training pipeline once per seed and returns all trained models.
     
@@ -39,20 +28,18 @@ def train_model(
     Returns:
         dict: { seed: trained_model_instance }
     """
-    trained = {}
-    seed_times = {}
-
+    trained_models = {}
     seeds = cfg["training"]["seeds"]
     
     model_name = cfg["model"]["model_class"].lower()
-
     model_config = {
         k: v for k, v in cfg["model"].items()
         if k not in {"model_class", "model_type"}
     }
 
     # Create an anchor file for later discovery
-    _write_model_marker(log_dir, model_name)
+    # TODO JUST SAVE WITHOUT LOGGING SERVICE
+    LoggingService().save_file(model_name, ".model", path=log_dir)
 
     num_threads = cfg["device"].get("num_threads")
     if num_threads is not None:
@@ -101,24 +88,17 @@ def train_model(
         })
 
         # 4) Training
-        start_time = time.time()
-        try:
-            model.fit(train_loader, eval_loader)
-            trained[seed] = model
-            _save_final_checkpoint(model, log_dir, seed)
+        if model.fit(train_loader, eval_loader):
+            trained_models[seed] = model
             log.info("Training completed for model %s (seed=%s).", model_name, seed)
-            elapsed = time.time() - start_time
-            seed_times[seed] = elapsed
-        except Exception:
-            log.exception("Training failed for model %s (seed=%s).", model_name, seed)
-            elapsed = time.time() - start_time
-            seed_times[seed] = elapsed
+        else: log.exception("Training failed for model %s (seed=%s).", model_name, seed)
 
-    return trained, sum(seed_times.values())
+    return trained_models
 
 @hydra.main(config_path="../conf", config_name="train", version_base=None)
 def main(cfg: DictConfig) -> None:
     """Run an experiment using a Hydra configuration."""
+    start_time = datetime.now()
     root_dir = HydraConfig.get().run.dir.rsplit("/",1)[0]
     logging_service = LoggingService(root_dir=root_dir)
     fast_dev_run: bool = cfg["training"].get("fast_dev_run", False)
@@ -132,12 +112,12 @@ def main(cfg: DictConfig) -> None:
 
     if not fast_dev_run:
         discord_logger.log_exp_start(model_name, seeds, log_dir)
-    trained, duration = train_model(cfg, log_dir)
+    trained_models = train_model(cfg, log_dir)
 
     if not fast_dev_run:
-        plot_training_curves(model_name, trained, log_dir)
-        if trained:
-            generate_gradient_flow_plots(list(trained.values())[0], log_dir)
+        plot_training_curves(model_name, trained_models, log_dir)
+        if trained_models:
+            generate_gradient_flow_plots(list(trained_models.values())[0], log_dir)
         figure_path = os.path.join(
             logging_service.root_dir,
             log_dir,
@@ -145,9 +125,9 @@ def main(cfg: DictConfig) -> None:
         )
         discord_logger.log_exp_finished(
             model_name,
-            trained=len(trained),
+            trained=len(trained_models),
             expected=len(seeds),
-            duration=duration,
+            duration=(datetime.now() - start_time),
             figure_path=figure_path,
             log_dir=os.path.join(logging_service.root_dir, log_dir),
         )
