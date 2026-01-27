@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
+import os
 import random
 
 import matplotlib.pyplot as plt
 import torch
 from lightning.pytorch.utilities import rank_zero_only
-
-from LoggingService import LoggingService
 
 __all__ = ["plot_class_visualizations"]
 
@@ -43,5 +42,6 @@ def plot_class_visualizations(dataset, logdir: str = "logs/visualisation"):
         axes[3, i].set_title("STD")
 
     plt.tight_layout()
-    LoggingService().save_figure(fig, "class_visualizations", logdir)
+    os.makedirs(logdir, exist_ok=True)
+    fig.savefig(os.path.join(logdir, "class_visualizations.png"))
     plt.close(fig)

@@ -9,7 +9,7 @@ from omegaconf import DictConfig
 
 from DiscordWebhookLogger import DiscordWebhookLogger
 from datasets import DatasetFactory
-from LoggingService import LoggingService
+from LoggingService import LoggingService, experiment_info
 from models.ModelFactory import ModelFactory
 from utils import seed_experiment
 from visualisation.train import generate_gradient_flow_plots, plot_training_curves
@@ -17,7 +17,11 @@ from visualisation.train import generate_gradient_flow_plots, plot_training_curv
 log = logging.getLogger(__name__)
 
 def _write_model_marker(log_dir: str, model_name: str) -> None:
-    LoggingService().save_file(model_name, ".model", path=log_dir)
+    root_dir = LoggingService().root_dir
+    model_dir = os.path.join(root_dir, log_dir)
+    os.makedirs(model_dir, exist_ok=True)
+    with open(os.path.join(model_dir, ".model"), "w", encoding="utf-8") as file:
+        file.write(model_name)
 
 
 def _save_final_checkpoint(model, log_dir: str, seed: int) -> None:
@@ -132,15 +136,19 @@ def main(cfg: DictConfig) -> None:
 
     if not fast_dev_run:
         discord_logger.log_exp_start(model_name, seeds, log_dir)
-    trained, duration = train_model(cfg, log_dir)
+    experiment_dir = os.path.join(logging_service.root_dir, log_dir or "")
+    with experiment_info(experiment_dir) as exp_info:
+        exp_info["model_name"] = model_name
+        exp_info["seeds"] = list(seeds)
+        exp_info["log_dir"] = log_dir or ""
+        trained, duration = train_model(cfg, log_dir)
 
     if not fast_dev_run:
-        plot_training_curves(model_name, trained, log_dir)
+        plot_training_curves(model_name, trained, experiment_dir)
         if trained:
-            generate_gradient_flow_plots(list(trained.values())[0], log_dir)
+            generate_gradient_flow_plots(list(trained.values())[0], experiment_dir)
         figure_path = os.path.join(
-            logging_service.root_dir,
-            log_dir,
+            experiment_dir,
             f"training_{model_name}.png",
         )
         discord_logger.log_exp_finished(
@@ -149,7 +157,7 @@ def main(cfg: DictConfig) -> None:
             expected=len(seeds),
             duration=duration,
             figure_path=figure_path,
-            log_dir=os.path.join(logging_service.root_dir, log_dir),
+            log_dir=experiment_dir,
         )
 
 if __name__ == "__main__":

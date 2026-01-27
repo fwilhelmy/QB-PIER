@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import logging
+import os
 
+import matplotlib.pyplot as plt
 from lightning.pytorch.utilities import rank_zero_only
 
-from LoggingService import LoggingService
 from .gradient_flow import plot_gradient_flow
 
 __all__ = ["generate_gradient_flow_plots"]
@@ -30,7 +31,11 @@ def generate_gradient_flow_plots(model, fig_dir=None):
         raise ValueError("No weight gradients found.")
     weight_title = "Gradient Flow of Weights"
     weight_fig, _ = plot_gradient_flow(weight_grads, weight_title)
-    LoggingService().save_figure(weight_fig, "gradient_flow_weight.png", fig_dir)
+    output_dir = fig_dir or "logs"
+    os.makedirs(output_dir, exist_ok=True)
+    weight_filename = "gradient_flow_weight.png"
+    weight_fig.savefig(os.path.join(output_dir, weight_filename))
+    plt.close(weight_fig)
 
     bias_grads = {
         k: v
@@ -42,4 +47,8 @@ def generate_gradient_flow_plots(model, fig_dir=None):
         return
     bias_title = "Gradient Flow of Biases"
     bias_fig, _ = plot_gradient_flow(bias_grads, bias_title)
-    LoggingService().save_figure(bias_fig, "gradient_flow_bias", fig_dir)
+    output_dir = fig_dir or "logs"
+    os.makedirs(output_dir, exist_ok=True)
+    bias_filename = "gradient_flow_bias.png"
+    bias_fig.savefig(os.path.join(output_dir, bias_filename))
+    plt.close(bias_fig)

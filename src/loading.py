@@ -11,7 +11,6 @@ from typing import Any, Dict, List
 import pandas as pd
 from tqdm import tqdm
 
-from LoggingService import LoggingService
 from metrics import MetricsContainer
 from models.ModelFactory import ModelFactory
 
@@ -172,14 +171,14 @@ if __name__ == "__main__":
 
     # data = load_experiment(args.path, load=args.load)
     
-    LoggingService("logs/models")
-    data = load_experiment("logs/models", load="final")
+    log_root = "logs/models"
+    os.makedirs(log_root, exist_ok=True)
+    data = load_experiment(log_root, load="final")
     log.info("Loaded data for %s model configurations.", len(data))
     from visualisation.train import generate_gradient_flow_plots
     for model_name, model_data in data.items():
         for seed, model in model_data.items():
             log.info("Generating gradient flow plots for %s (seed=%d).", model_name, seed)
-            generate_gradient_flow_plots(model, fig_dir=model_name)
+            generate_gradient_flow_plots(model, fig_dir=os.path.join(log_root, model_name))
             
     
-

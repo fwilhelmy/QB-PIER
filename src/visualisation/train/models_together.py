@@ -3,20 +3,20 @@
 from __future__ import annotations
 
 import math
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
 from lightning.pytorch.utilities import rank_zero_only
 from matplotlib.ticker import MaxNLocator
 
-from LoggingService import LoggingService
 from .utils import line_with_std
 
 __all__ = ["plot_models_together"]
 
 
 @rank_zero_only
-def plot_models_together(trained_models):
+def plot_models_together(trained_models, fig_dir: str = "logs"):
     fig, ax = plt.subplots(2, 2, figsize=(12, 10), sharex="col", sharey="row")
     ax_train_loss, ax_val_loss = ax[0]
     ax_train_acc, ax_val_acc = ax[1]
@@ -132,4 +132,6 @@ def plot_models_together(trained_models):
         subax.legend()
 
     fig.tight_layout(rect=(0, 0, 1, 0.96))
-    LoggingService().save_figure(fig, "models_together")
+    os.makedirs(fig_dir, exist_ok=True)
+    fig.savefig(os.path.join(fig_dir, "models_together.png"))
+    plt.close(fig)
