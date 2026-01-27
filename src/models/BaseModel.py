@@ -6,9 +6,9 @@ from numpy import gradient
 import torch
 import torch.optim as optim
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import DeviceStatsMonitor, ModelCheckpoint, RichProgressBar, RichModelSummary
+from pytorch_lightning.callbacks import DeviceStatsMonitor, ModelCheckpoint, RichModelSummary
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.profilers import AdvancedProfiler, PyTorchProfiler, SimpleProfiler
+from pytorch_lightning.profilers import AdvancedProfiler, PyTorchProfiler
 from pytorch_lightning.utilities import rank_zero_only
 from torch.nn import CrossEntropyLoss
 from torch.optim import lr_scheduler as lr_schedulers
@@ -116,12 +116,6 @@ class BaseModel(LightningModule):
         # Device stats monitor callback (logs hardware utilization)
         device_monitor = CompactDeviceStats()
         gradient_profiler = GradientProfiler()
-        self.training_profiler = ModelProfiler(
-            log_dir=self.log_dir,
-            input_shape=self.input_size,
-            epochs=self.hparams["max_epochs"],
-        )
-        training_profiler_cb = self.training_profiler.to_callback()
 
         # Build the Trainer
         self.trainer: Trainer = Trainer(
@@ -130,7 +124,7 @@ class BaseModel(LightningModule):
             devices=self.hparams["devices"],
             logger=[tb_logger, self.metrics],
             default_root_dir=self.log_dir,
-            callbacks=[checkpoint_cb, device_monitor, gradient_profiler, training_profiler_cb],
+            callbacks=[checkpoint_cb, device_monitor, gradient_profiler],
             fast_dev_run=self.hparams["fast_dev_run"],
             enable_model_summary=False,
             # profiler=self.profiler,
