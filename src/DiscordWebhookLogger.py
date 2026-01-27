@@ -5,8 +5,8 @@ from typing import Optional
 
 from discord_webhook import DiscordEmbed, DiscordWebhook
 
-DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1440008655050244136/rtfkyNVLbrJIumRQXKUGUlUIRRjhhQ9VfCdEQXap5JC9FExJCBmJHiwp6FCrVmofLpF0"  # Replace with your Discord webhook URL.
-
+# Replace with your Discord webhook URL.
+DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1440008655050244136/rtfkyNVLbrJIumRQXKUGUlUIRRjhhQ9VfCdEQXap5JC9FExJCBmJHiwp6FCrVmofLpF0"
 
 class DiscordWebhookLogger:
     """Very small wrapper around :mod:`discord_webhook`."""
