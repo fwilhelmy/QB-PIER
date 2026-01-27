@@ -1,6 +1,6 @@
 import logging
 import os
-from pyexpat import model
+from datetime import datetime
 from typing import Any, Dict, Tuple, Union
 
 import torch
@@ -229,15 +229,14 @@ class BaseModel(LightningModule):
     def on_train_epoch_end(self):
         self.metrics.log_epoch(self.global_step)
 
-    def save_model_info(self) -> None:
+    def save_model_info(self, total_duration: float) -> None:
         """Persist model architecture metadata (model.info)."""
         epochs = int(self.hparams.get("max_epochs", 0))
-        total_duration = 1 # TODO NEED TO FIND WAY TO ADD TRAINING TIME
         time_per_epoch = f"{total_duration/epochs:2f}" if epochs else "undefined"
 
         info = str(summary(self, input_data=tuple(self.input_size), col_names=("num_params","input_size","output_size"),verbose=0))
         info += f"\nTrained epochs: {epochs}"
-        info += f"\nTotal training time (per seed): {total_duration:.2f} seconds"
+        info += f"\nTotal training time: {total_duration:.2f} seconds"
         info += f"\nTraining time per epoch: {time_per_epoch} seconds"
 
         os.makedirs(self.log_dir, exist_ok=True)
@@ -255,6 +254,7 @@ class BaseModel(LightningModule):
         if not hasattr(self, "trainer"):
             raise ValueError("Trainer not configured. Call configure_training() first.")
         
+        start_time = datetime.now()
         try:
             self.trainer.fit(self, train_dataloaders, val_dataloaders)
         except Exception as err:
@@ -264,4 +264,4 @@ class BaseModel(LightningModule):
             # self.profiler.teardown(stage=None)
             self.metrics.save_metrics()
             self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")
-            self.save_model_info()
+            self.save_model_info(total_duration=(datetime.now() - start_time).total_seconds())
