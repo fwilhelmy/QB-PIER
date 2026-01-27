@@ -38,6 +38,6 @@ class ModelFactory(HydraFactory[BaseModel]):
         """Load a model from ``checkpoint`` using its ``load_from_checkpoint`` method."""
         model_cls = cls._get(name)
         load_fn = getattr(model_cls, "load_from_checkpoint")
-        return load_fn(checkpoint, map_location=map_location, **kwargs)
+        return load_fn(checkpoint, map_location=map_location, weights_only=False, **kwargs)
 
 
