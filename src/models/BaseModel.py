@@ -1,5 +1,6 @@
 import logging
 import os
+from pyexpat import model
 from typing import Any, Dict, Tuple, Union
 
 import torch
@@ -228,31 +229,17 @@ class BaseModel(LightningModule):
     def on_train_epoch_end(self):
         self.metrics.log_epoch(self.global_step)
 
-    def save_model_info(self, duration: float | None = None) -> None:
+    def save_model_info(self) -> None:
         """Persist model architecture metadata (model.info)."""
-
-        details: list[str] = []
-
-        try:
-            details.append((
-                summary(
-                    self,
-                    input_data=tuple(self.input_size),
-                    col_names=("num_params", "input_size", "output_size"),
-                    verbose=0,
-                )
-            ))
-        except Exception as exc:
-            log.warning("Failed to generate model summary: %s", exc)
-
         epochs = int(self.hparams.get("max_epochs", 0))
-        total_duration = duration if duration is not None else 0.0
-        details.append(f"Trained epochs: {epochs}")
-        details.append(f"Total training time: {total_duration:.2f} seconds")
+        total_duration = 1 # TODO NEED TO FIND WAY TO ADD TRAINING TIME
         time_per_epoch = f"{total_duration/epochs:2f}" if epochs else "undefined"
-        details.append(f"Training time per epoch: {time_per_epoch} seconds")
 
-        info = "\n".join(details)
+        info = str(summary(self, input_data=tuple(self.input_size), col_names=("num_params","input_size","output_size"),verbose=0))
+        info += f"\nTrained epochs: {epochs}"
+        info += f"\nTotal training time (per seed): {total_duration:.2f} seconds"
+        info += f"\nTraining time per epoch: {time_per_epoch} seconds"
+
         os.makedirs(self.log_dir, exist_ok=True)
         with open(os.path.join(self.log_dir, "model.info"), "w", encoding="utf-8") as fp:
             fp.write(info)
@@ -261,19 +248,20 @@ class BaseModel(LightningModule):
         self,
         train_dataloaders: Union[Any, list],
         val_dataloaders: Union[Any, list],
-    ) -> bool:
+    ) -> None:
         """
         Thin wrapper that calls Lightning’s Trainer.fit(), then saves a final checkpoint and metrics.
         """
         if not hasattr(self, "trainer"):
             raise ValueError("Trainer not configured. Call configure_training() first.")
+        
         try:
             self.trainer.fit(self, train_dataloaders, val_dataloaders)
-            return True
         except Exception as err:
             log.exception(err)
-            return False
+            raise err
         finally:
             # self.profiler.teardown(stage=None)
             self.metrics.save_metrics()
             self.trainer.save_checkpoint(f"{self.log_dir}/final.ckpt")
+            self.save_model_info()

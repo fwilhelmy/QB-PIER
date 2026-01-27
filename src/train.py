@@ -91,10 +91,12 @@ def train_model(cfg: DictConfig, log_dir: str):
         })
 
         # 4) Training
-        if model.fit(train_loader, eval_loader):
+        try:
+            model.fit(train_loader, eval_loader)
             trained_models[seed] = model
             log.info("Training completed for model %s (seed=%s).", model_name, seed)
-        else: log.exception("Training failed for model %s (seed=%s).", model_name, seed)
+        except Exception as e:
+            log.error("Training failed for model %s (seed=%s).", model_name, seed)
 
     return trained_models
 
