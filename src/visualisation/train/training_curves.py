@@ -106,5 +106,7 @@ def plot_training_curves(model_name, seed_dict, fig_dir=None):
     fig.tight_layout(rect=(0, 0, 1, 0.96))
     output_dir = fig_dir or "logs"
     os.makedirs(output_dir, exist_ok=True)
-    fig.savefig(os.path.join(output_dir, f"training_{model_name}.png"))
+    figure_path = os.path.join(output_dir, f"training_{model_name}.png")
+    fig.savefig(figure_path)
     plt.close(fig)
+    return figure_path
