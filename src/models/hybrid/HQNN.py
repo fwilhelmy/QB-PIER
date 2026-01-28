@@ -31,7 +31,7 @@ class HQNN(BaseModel):
         encoder_name = encoder["name"]
         encoder_params = encoder.get("params", {}) or {}
 
-        classifier_output_size = classifier_params.pop("output_size", self.output_size)
+        classifier_output_size = kwargs["output_size"]
         classifier_params.pop("apply_log_softmax", None)
 
         # If the classifier is configured to emit a different dimension than the
