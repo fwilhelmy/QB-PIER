@@ -171,7 +171,7 @@ if __name__ == "__main__":
 
     # data = load_experiment(args.path, load=args.load)
     
-    log_root = "logs/models"
+    log_root = "logs/Hybrid"
     os.makedirs(log_root, exist_ok=True)
     data = load_experiment(log_root, load="final")
     log.info("Loaded data for %s model configurations.", len(data))
