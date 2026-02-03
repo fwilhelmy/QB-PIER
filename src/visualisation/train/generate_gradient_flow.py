@@ -17,10 +17,11 @@ log = logging.getLogger(__name__)
 
 @rank_zero_only
 def generate_gradient_flow_plots(model, fig_dir=None):
-    if model.metrics["grad_l2"] == []:
-        log.warning("No gradient data found in model metrics. Skipping gradient flow plots.")
+    try:
+        grad_norms = model.metrics["grad_l2"]
+    except AttributeError:
+        log.warning("No gradient norms found in model metrics; skipping gradient flow plots.")
         return
-    grad_norms = model.metrics["grad_l2"]
 
     weight_grads = {
         k: v

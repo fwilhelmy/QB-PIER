@@ -27,6 +27,8 @@ class ParaVQC(nn.Module):
     ) -> None:
         super().__init__()
 
+        self.input_size = input_size
+
         # Restrict the number of blocks to the available number of features so
         # that no empty quantum circuits are created.
         self.n_blocks = min(int(n_qblocks), self.input_size)

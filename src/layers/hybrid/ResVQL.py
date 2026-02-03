@@ -46,6 +46,3 @@ class ResVQL(BaseLayer):
         residual = self.residual_proj(x)
         output = main + self.residual_scale * residual
         return output
-
-
-__all__ = ["ResVQL"]

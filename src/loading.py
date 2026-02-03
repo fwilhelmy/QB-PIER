@@ -156,7 +156,7 @@ def load_attacks(path: str) -> pd.DataFrame:
     return results
 
 if __name__ == "__main__":
-    log_root = "logs/Hybrid"
+    log_root = "logs/MODELS"
     os.makedirs(log_root, exist_ok=True)
     data = load_experiment(log_root, load="final")
     log.info("Loaded data for %s model configurations.", len(data))
