@@ -29,7 +29,7 @@ def run_attacks(trained_models, cfg: DictConfig):
     recomputed.
     """
 
-    epsilons = [i / 100 for i in range(0, 101, 2)]
+    epsilons = [i / 100 for i in range(0, 105, 5)]
 
     records = []
     existing_pairs = set()
@@ -125,7 +125,6 @@ def main(cfg: DictConfig) -> None:
     os.makedirs(ls.root_dir, exist_ok=True)
     attack_results.to_csv(os.path.join(ls.root_dir, "results.csv"), index=False)
     attack_results.to_json(os.path.join(ls.root_dir, "results.json"), index=False)
-    plot_transfer_attack_effects(attack_results, title_prefix="attacks/")
 
 if __name__ == "__main__":
     main()
