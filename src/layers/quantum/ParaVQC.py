@@ -7,7 +7,7 @@ from torch import Tensor
 
 from ..BaseLayer import BaseLayer
 from ..LayerFactory import LayerFactory
-from .VQL import VQC
+from .VQC import VQC
 
 class ParaVQC(nn.Module):
     """Stacks multiple :class:`VQC` blocks to process larger inputs.
@@ -26,13 +26,6 @@ class ParaVQC(nn.Module):
         ansatz: dict | None = None,
     ) -> None:
         super().__init__()
-
-        if input_size < 1:
-            raise ValueError("input_size must be a positive integer")
-
-        self.input_size = input_size
-        if n_qblocks < 1:
-            raise ValueError("n_qblocks must be a positive integer")
 
         # Restrict the number of blocks to the available number of features so
         # that no empty quantum circuits are created.
@@ -90,10 +83,9 @@ class ParaVQL(BaseLayer):
         n_qdepth: int = 3,
         ansatz: dict | None = None,
         embedding: str = "angle",
-        apply_log_softmax: bool = True,
     ) -> None:
         super().__init__(input_size=input_size)
-        _ = apply_log_softmax  # For API compatibility; activation handled upstream.
+
         self.vqc = ParaVQC(
             input_size=input_size,
             n_qblocks=n_qblocks,
@@ -101,6 +93,7 @@ class ParaVQL(BaseLayer):
             embedding=embedding,
             ansatz=ansatz,
         )
+
         self.output_size = self.vqc.output_size
 
     def forward(self, x: Tensor) -> Tensor:

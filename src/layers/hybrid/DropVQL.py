@@ -5,7 +5,7 @@ from torch.nn import BatchNorm1d, Dropout, Linear, ReLU
 
 from ..BaseLayer import BaseLayer
 from ..LayerFactory import LayerFactory
-from ..quantum.VQL import VQC
+from ..quantum.VQC import VQC
 
 
 @LayerFactory.layer("dropvql")
