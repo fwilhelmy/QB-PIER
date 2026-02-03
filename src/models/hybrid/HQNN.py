@@ -31,18 +31,6 @@ class HQNN(BaseModel):
         encoder_name = encoder["name"]
         encoder_params = encoder.get("params", {}) or {}
 
-        classifier_output_size = kwargs["output_size"]
-        classifier_params.pop("apply_log_softmax", None)
-
-        # If the classifier is configured to emit a different dimension than the
-        # model's target ``output_size``, insert a lightweight projection before
-        # the final log-softmax so that the logits are mapped correctly.
-        if classifier_output_size != self.output_size:
-            self.post = Linear(classifier_output_size, self.output_size, bias=True)
-        else:
-            self.post = Identity()
-        self.output_activation = LogSoftmax(dim=1)
-
         self.encoder = LayerFactory.create_layer(
             encoder_name,
             input_size=self.input_size,
@@ -59,11 +47,10 @@ class HQNN(BaseModel):
             **classifier_params,
         )
 
+        self.output_activation = LogSoftmax(dim=1)
+
     def forward(self, inputs: Tensor) -> Tensor:
         """Process inputs through encoder and classifier."""
         x = self.encoder(inputs)
         x = self.classifier(x)
-        x = self.post(x)
         return self.output_activation(x)
-
-__all__ = ["HQNN"]

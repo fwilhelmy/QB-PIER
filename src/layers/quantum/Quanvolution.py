@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .VQL import VQC
+from .VQC import VQC
 import torch
 from torch import Tensor, flatten
 from layers import BaseLayer, LayerFactory

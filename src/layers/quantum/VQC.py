@@ -1,3 +1,4 @@
+from torch.nn import Identity, Linear
 from .ansatz import AnsatzFactory
 import torch
 import torch.nn as nn
@@ -36,11 +37,6 @@ class VQC(nn.Module):
         return self.ansatz.n_qubits
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Expect ``x`` of shape ``(batch_size, n_qubits)``.
-
-        Returns tensor of shape ``(batch_size, n_qubits)``.
-        """
-
         return self.qlayer(x)
 
 @LayerFactory.layer("vql")
@@ -54,17 +50,18 @@ class VQL(BaseLayer):
         ansatz: dict | None = None,
         embedding: str = "angle",
         output_size: int | None = None,
-        apply_log_softmax: bool = True,
     ) -> None:
         super().__init__(input_size=input_size)
-        _ = apply_log_softmax  # For API compatibility; activation handled upstream.
+
         self.vqc = VQC(
             input_size=input_size,
             n_layers=n_qdepth,
             embedding=embedding,
             ansatz=ansatz,
         )
-        self.output_size = self.vqc.output_size
+
+        self.post = Linear(self.vqc.output_size, output_size, bias=True) \
+            if self.vqc.output_size != output_size else Identity()
 
     def forward(self, x: Tensor) -> Tensor:
-        return self.vqc(x)
+        return self.post(self.vqc(x))

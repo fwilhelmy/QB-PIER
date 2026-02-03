@@ -1,0 +1,40 @@
+GET MORE ML METRICS FOR THE AVERAGE ACCURACY
+
+plot histogram of the original accuracy of the models
+    - benchmarking grids
+    - table for configs with final metrics
+
+training curves per models architecture
+    - classical models together
+    - VQM Training Curves
+        - VQM models per depth
+        - VQM50 per ansatz
+    - HVQM Training curves
+    - HQNNVQL Training curves
+    - HPVQM Training Curves
+    - Quanvolution Solo
+    - RES AND DROP AND BASELINE TOGETHER
+
+Stacked quantum layer gradient flow to see if gradient flow is improved in any of the layers
+    - FOR ALL DIFF ANSATZ EXPERIMENTS
+        - HVQM
+        - HPVQM
+        - HQNNVQL
+        - VQM
+    - FOR DIFF DEPTH VQMs AND MAYBE 1 HYBRID?
+
+Adversarial Attacks 
+    - GRID 3X3 of average transferability BETWEEN QUANTUM, HYBRID AND CLASSICAL
+    - Adversarial fig of epsilons rising
+        - Quantum models against averaged for attacks
+            - all classical
+            - all quantum
+        - Classical models against average for all attacks
+            - all quantum
+            - all classical
+        - hybrid models against average for all attacks
+            - all quantum
+            - all classical
+
+Adversarial examples
+    - original image stacked with average look of quantum/classical/hybrid adversarial perturbation

@@ -6,7 +6,7 @@ from torch.nn import BatchNorm1d, Linear, ReLU
 
 from ..BaseLayer import BaseLayer
 from ..LayerFactory import LayerFactory
-from ..quantum.VQL import VQC
+from ..quantum.VQC import VQC
 
 
 @LayerFactory.layer("resvql")
@@ -46,6 +46,3 @@ class ResVQL(BaseLayer):
         residual = self.residual_proj(x)
         output = main + self.residual_scale * residual
         return output
-
-
-__all__ = ["ResVQL"]

@@ -156,22 +156,7 @@ def load_attacks(path: str) -> pd.DataFrame:
     return results
 
 if __name__ == "__main__":
-    # import argparse
-    # 
-    # parser = argparse.ArgumentParser(description="Load experiment data.")
-    # parser.add_argument("path", type=str, help="Path to the experiment directory.")
-    # parser.add_argument(
-    #     "--load",
-    #     type=str,
-    #     choices=["final", "best", "metrics"],
-    #     default="metrics",
-    #     help="Type of data to load.",
-    # )
-    # args = parser.parse_args()
-
-    # data = load_experiment(args.path, load=args.load)
-    
-    log_root = "logs/Hybrid"
+    log_root = "logs/MODELS"
     os.makedirs(log_root, exist_ok=True)
     data = load_experiment(log_root, load="final")
     log.info("Loaded data for %s model configurations.", len(data))
@@ -180,5 +165,3 @@ if __name__ == "__main__":
         for seed, model in model_data.items():
             log.info("Generating gradient flow plots for %s (seed=%d).", model_name, seed)
             generate_gradient_flow_plots(model, fig_dir=os.path.join(log_root, model_name))
-            
-    
