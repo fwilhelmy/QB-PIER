@@ -46,6 +46,16 @@ from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+
+# Optional project-specific seeding helper (requested by user)
+try:
+    # If attack.py lives under src/, this is usually correct
+    from utils import seed_experiment  # type: ignore
+except Exception:
+    try:
+        from src.utils import seed_experiment  # type: ignore
+    except Exception:
+        seed_experiment = None  # fallback to internal seeding
 from attacks import AttackFactory
 from datasets import DatasetFactory
 from loading import load_experiment
@@ -106,6 +116,37 @@ def _macro_f1_from_cm(cm: np.ndarray) -> float:
         f1 = (2 * tp / denom) if denom > 0 else 0.0
         f1s.append(float(f1))
     return float(np.mean(f1s))
+
+
+
+def _p_true_from_logits(logits: np.ndarray, labels: np.ndarray) -> np.ndarray:
+    '''Return p(y_true) for each sample given logits [N,C] and int labels [N].'''
+    x = logits.astype(np.float32, copy=False)
+    m = np.max(x, axis=1, keepdims=True)
+    lse = m + np.log(np.sum(np.exp(x - m), axis=1, keepdims=True))
+    true_logits = x[np.arange(x.shape[0]), labels.astype(np.int64)]
+    return np.exp(true_logits[:, None] - lse)[:, 0].astype(np.float32)
+
+
+def _margin_from_logits(logits: np.ndarray, labels: np.ndarray) -> np.ndarray:
+    '''Logit margin: logit_true - max_logit_other.'''
+    x = logits.astype(np.float32, copy=False)
+    idx = labels.astype(np.int64)
+    true_logits = x[np.arange(x.shape[0]), idx]
+    x_other = x.copy()
+    x_other[np.arange(x.shape[0]), idx] = -np.inf
+    max_other = np.max(x_other, axis=1)
+    return (true_logits - max_other).astype(np.float32)
+
+
+def _asr(preds_adv: np.ndarray, labels: np.ndarray, preds_clean: np.ndarray) -> float:
+    '''Attack Success Rate (untargeted): among clean-correct samples, fraction that become incorrect under attack.'''
+    clean_correct = (preds_clean == labels)
+    denom = int(clean_correct.sum())
+    if denom == 0:
+        return float("nan")
+    succ = (preds_adv != labels) & clean_correct
+    return float(succ.sum() / denom)
 
 
 def _to_uint8_images(x: torch.Tensor) -> np.ndarray:
@@ -186,6 +227,24 @@ def _ensure_dir(path: str) -> None:
     os.makedirs(path, exist_ok=True)
 
 
+def _write_table_chunk(table_dir: str, chunk_name: str, rows: List[dict]) -> str:
+    """Write a chunk of rows as a parquet (preferred) or CSV fallback.
+
+    We do NOT append to a single parquet file because that is not reliably append-friendly.
+    Instead we write many small chunk files and you can merge them later.
+    """
+    _ensure_dir(table_dir)
+    df = pd.DataFrame(rows)
+    out_parquet = os.path.join(table_dir, f"{chunk_name}.parquet")
+    try:
+        df.to_parquet(out_parquet, index=False)
+        return out_parquet
+    except Exception:
+        out_csv = os.path.join(table_dir, f"{chunk_name}.csv")
+        df.to_csv(out_csv, index=False)
+        return out_csv
+
+
 # ---------------------------
 # Core experiment runner
 # ---------------------------
@@ -200,6 +259,23 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
     for model_name, model_seeds in trained_models.items():
         for seed, model in model_seeds.items():
             models_by_seed[int(seed)].append((model_name, model))
+
+
+    # Optional seed selection (common job seeds: [0, 42])
+    requested_seeds = None
+    try:
+        if hasattr(cfg, "seeds"):
+            requested_seeds = list(cfg.seeds)
+        elif hasattr(cfg, "attack") and hasattr(cfg.attack, "seeds"):
+            requested_seeds = list(cfg.attack.seeds)
+    except Exception:
+        requested_seeds = None
+
+    if requested_seeds is None or len(requested_seeds) == 0:
+        requested_seeds = [0, 42]
+
+    # Filter to requested seeds (only if those exist)
+    models_by_seed = {s: v for s, v in models_by_seed.items() if int(s) in set(int(x) for x in requested_seeds)}
 
     # Capture config snapshot early
     cfg_resolved = OmegaConf.to_container(cfg, resolve=True)
@@ -217,6 +293,7 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
             "attack_logits_shape": "[E, N, C]",
             "baseline_logits_shape": "[N, C]",
             "audit_images_uint8": "stored as 0..255 uint8",
+            "aggregates_storage": "chunked parquet (or csv fallback)",
         },
     }
 
@@ -224,24 +301,22 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
     with open(os.path.join(root, "epsilons.json"), "w", encoding="utf-8") as f:
         json.dump({"epsilons": epsilons}, f, indent=2)
 
-    # We'll write aggregates as we go (appendable)
-    # If a previous aggregates.csv exists, load it to skip completed work.
-    aggregates_path = os.path.join(root, "tables", "aggregates.csv")
-    _ensure_dir(os.path.dirname(aggregates_path))
-    existing_done = set()
-    if os.path.exists(aggregates_path):
-        try:
-            prev = pd.read_csv(aggregates_path)
-            for _, r in prev.iterrows():
-                existing_done.add((int(r["seed"]), r["source_model"], r["target_model"]))
-            log.info("Loaded aggregates.csv with %d rows, %d unique pairs.", len(prev), len(existing_done))
-        except Exception as ex:
-            log.warning("Could not read existing aggregates.csv (%s). Will recompute pairs.", ex)
+    # Aggregates: we store chunked parquet files per (seed, attacker) to make writes reliable and resumable.
+    global_tables_dir = os.path.join(root, "tables")
+    _ensure_dir(global_tables_dir)
 
+    # Pair skipping: if logits cube exists for a pair, we assume it's done and skip recompute for that pair.
+    # (You can always re-run with a different root dir to force recompute.)
     # Run per seed
-    for seed, models in models_by_seed.items():
+
+    for seed, models in tqdm(sorted(models_by_seed.items(), key=lambda x: x[0]), desc="Seeds"):
         log.info("=== Seed %s ===", seed)
         _seed_everything(seed)
+        if seed_experiment is not None:
+            try:
+                seed_experiment(int(seed))
+            except Exception as ex:
+                log.warning("seed_experiment(%s) failed: %s", seed, ex)
 
         seed_dir = os.path.join(root, f"seed_{seed}")
         baselines_dir = os.path.join(seed_dir, "baselines")
@@ -254,7 +329,7 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
         _ensure_dir(audit_adv_dir)
         _ensure_dir(tables_dir)
 
-        # Dataset
+        # Dataset (MNIST test set or whatever cfg.dataset points to)
         dm = DatasetFactory.create(cfg.dataset.dataset, root=cfg.dataset.root)
         dataset = dm.load_dataset(train=False)
         dm.dataset = dataset
@@ -265,6 +340,7 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
 
         N = int(labels.shape[0])
         num_classes = int(getattr(cfg.dataset, "num_classes", 10))
+        log.info("Seed %s: %d models, N=%d, C=%d, E=%d epsilons", seed, len(models), N, num_classes, E)
 
         # Audit indices + clean images (3 per class by default)
         audit_k = int(getattr(cfg.attack, "audit_per_class", 3))
@@ -311,6 +387,7 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
         # Baselines (clean)
         # -----------------
         baseline_preds: Dict[str, np.ndarray] = {}
+        baseline_logits: Dict[str, np.ndarray] = {}
         for victim_name, victim_model in tqdm(models, desc="Baselines (clean logits)", leave=False):
             v_safe = _safe_name(victim_name)
             v_dir = os.path.join(baselines_dir, v_safe)
@@ -320,7 +397,9 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
 
             if os.path.exists(logits_path) and os.path.exists(preds_path):
                 preds = np.load(preds_path)
+                logits = np.load(logits_path)
                 baseline_preds[victim_name] = preds
+                baseline_logits[victim_name] = logits
                 continue
 
             victim_model.eval()
@@ -330,26 +409,27 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
             np.save(logits_path, logits_clean.astype(np.float16))
             np.save(preds_path, preds_clean)
             baseline_preds[victim_name] = preds_clean
+            baseline_logits[victim_name] = logits_clean.astype(np.float16)
 
         # -----------------
         # Transfer attacks
         # -----------------
         # We'll write logits_adv incrementally to .npy files using open_memmap.
-        for attacker_name, attacker_model in tqdm(models, desc="Attacker models"):
+        for attacker_name, attacker_model in tqdm(models, desc=f"Attackers (seed={seed})"):
             a_safe = _safe_name(attacker_name)
             attacker_model.eval()
 
             # Audit storage for this attacker: [E, K, 28, 28] uint8
             audit_adv = np.zeros((E, audit_indices.shape[0], 28, 28), dtype=np.uint8)
+            rows_buffer: List[dict] = []
 
             # Prepare output memmaps for each victim (avoid reruns; write eps slices as computed)
             victim_memmaps = {}
             victims_to_run: List[Tuple[str, torch.nn.Module]] = []
             for victim_name, victim_model in models:
-                # allow skipping full attacker->victim if already complete
-                pair_done_key = (seed, attacker_name, victim_name)
+                # allow skipping full attacker->victim if logits cube already exists
                 out_path = os.path.join(attacks_dir, f"source={a_safe}__target={_safe_name(victim_name)}.npy")
-                if pair_done_key in existing_done and os.path.exists(out_path):
+                if os.path.exists(out_path):
                     continue
                 victims_to_run.append((victim_name, victim_model))
 
@@ -371,7 +451,7 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
                 continue
 
             # Epsilon loop: generate adv examples once per epsilon, reuse across all victims
-            for e_idx, eps in enumerate(tqdm(epsilons, desc=f"Epsilons ({attacker_name})", leave=False)):
+            for e_idx, eps in enumerate(tqdm(epsilons, desc=f"Epsilons (seed={seed}, src={attacker_name})", leave=False)):
                 adv_examples = attack.attack(attacker_model, eps).to(device)
 
                 # Store audit images for this epsilon
@@ -379,17 +459,30 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
                     audit_adv[e_idx] = _to_uint8_images(adv_examples[audit_indices])
                 except Exception:
                     # If indexing fails for some reason, skip audit images
-                    pass
+                    pass                # Victim loop (collect rows for this epsilon first so we can compute transfer_gap)
+                rows_this_eps: List[dict] = []
+                asr_whitebox: float | None = None
 
-                # Victim loop
                 for victim_name, victim_model in victims_to_run:
                     logits_adv = _forward_logits_batched(victim_model, adv_examples, device=device, batch_size=batch_size)
                     victim_memmaps[victim_name][0][e_idx] = logits_adv.astype(np.float16)
 
-                    # Aggregates row
-                    preds_adv = np.argmax(logits_adv, axis=1).astype(np.uint8)
+                    logits_clean = baseline_logits[victim_name]
                     preds_clean = baseline_preds[victim_name]
+                    preds_adv = np.argmax(logits_adv, axis=1).astype(np.uint8)
+
                     cm = _confusion_matrix(preds_adv, labels, num_classes)
+                    asr_val = _asr(preds_adv, labels, preds_clean)
+
+                    # confidence/margin drops computed on true label / logit margin
+                    p_true_clean = _p_true_from_logits(logits_clean, labels)
+                    p_true_adv = _p_true_from_logits(logits_adv, labels)
+                    mean_conf_drop = float(np.mean(p_true_clean - p_true_adv))
+
+                    margin_clean = _margin_from_logits(logits_clean, labels)
+                    margin_adv = _margin_from_logits(logits_adv, labels)
+                    mean_margin_drop = float(np.mean(margin_clean - margin_adv))
+
                     row = {
                         "seed": seed,
                         "source_model": attacker_name,
@@ -397,17 +490,27 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
                         "epsilon": float(eps),
                         "robust_accuracy": _accuracy_from_preds(preds_adv, labels),
                         "flip_rate": float((preds_adv != preds_clean).mean()),
+                        "ASR": asr_val,
                         "macro_f1": _macro_f1_from_cm(cm),
+                        "mean_confidence_drop": mean_conf_drop,
+                        "mean_margin_drop": mean_margin_drop,
                         "n_samples": int(N),
                     }
 
-                    # Append to global aggregates file incrementally (safe for long runs)
-                    pd.DataFrame([row]).to_csv(
-                        aggregates_path,
-                        mode="a",
-                        header=not os.path.exists(aggregates_path) or os.path.getsize(aggregates_path) == 0,
-                        index=False,
-                    )
+                    if victim_name == attacker_name:
+                        asr_whitebox = asr_val
+
+                    rows_this_eps.append(row)
+
+                # transfer_gap = ASR_whitebox - ASR_transfer (per epsilon)
+                if asr_whitebox is not None:
+                    for r in rows_this_eps:
+                        r["transfer_gap"] = float(asr_whitebox) - float(r["ASR"]) if np.isfinite(r["ASR"]) else float("nan")
+                else:
+                    for r in rows_this_eps:
+                        r["transfer_gap"] = float("nan")
+
+                rows_buffer.extend(rows_this_eps)
 
                 # Free memory
                 del adv_examples
@@ -417,7 +520,12 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
             # Flush memmaps
             for victim_name, (mm, out_path) in victim_memmaps.items():
                 mm.flush()
-                existing_done.add((seed, attacker_name, victim_name))
+
+            # Write aggregates chunk for this attacker
+            if rows_buffer:
+                chunk_name = f"aggregates_seed={seed}__source={a_safe}"
+                out_tbl = _write_table_chunk(global_tables_dir, chunk_name, rows_buffer)
+                log.info("Wrote aggregates chunk: %s (%d rows)", out_tbl, len(rows_buffer))
 
             # Save attacker audit adv images
             np.savez_compressed(
@@ -427,13 +535,22 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
                 adv_images_uint8=audit_adv,
             )
 
-        # Seed-level quick summary table (optional)
+        # Seed-level summary: merge all chunk tables for this seed (best-effort)
         try:
-            seed_agg = pd.read_csv(aggregates_path)
-            seed_agg = seed_agg[seed_agg["seed"] == seed]
-            seed_agg.to_csv(os.path.join(tables_dir, "aggregates_seed.csv"), index=False)
+            import glob
+            parts = sorted(glob.glob(os.path.join(global_tables_dir, f"aggregates_seed={seed}__source=*.parquet")))
+            if parts:
+                df = pd.concat([pd.read_parquet(p) for p in parts], ignore_index=True)
+                df.to_parquet(os.path.join(tables_dir, "aggregates_seed.parquet"), index=False)
+            else:
+                parts_csv = sorted(glob.glob(os.path.join(global_tables_dir, f"aggregates_seed={seed}__source=*.csv")))
+                if parts_csv:
+                    df = pd.concat([pd.read_csv(p) for p in parts_csv], ignore_index=True)
+                    df.to_csv(os.path.join(tables_dir, "aggregates_seed.csv"), index=False)
         except Exception:
             pass
+
+            log.warning("Could not build seed-level summary: %s", ex)
 
     # Write manifest last (so it exists even if run is partial)
     # Add dataset label hash to allow verifying consistent ordering later.
@@ -462,7 +579,6 @@ def main(cfg: DictConfig) -> None:
     )
 
     run_attacks_and_store(models, cfg, root=root)
-
 
 if __name__ == "__main__":
     main()
