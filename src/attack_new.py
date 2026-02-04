@@ -381,7 +381,7 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
                 audit_adv = np.zeros((E, audit_indices.shape[0], H, W), dtype=np.uint8)
             else:
                 audit_adv = np.zeros((E, audit_indices.shape[0], C, H, W), dtype=np.uint8)
-
+            audit_ok = np.ones((E,), dtype=bool)
             rows_buffer: List[dict] = []
 
             # Prepare output memmaps for each victim.
@@ -414,9 +414,10 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
                     # Store audit images for this epsilon
                     try:
                         audit_adv[e_idx] = _to_uint8_images(adv_examples[audit_indices])
-                    except Exception:
-                        # If indexing fails for some reason, skip audit images
-                        pass                # Victim loop (collect rows for this epsilon first so we can compute transfer_gap)
+                    except Exception as e:
+                        # If indexing fails for some reason, keep going but record it
+                        audit_ok[e_idx] = False
+                        log.warning(f"audit image indexing failed for eps={eps}: {e}")                # Victim loop (collect rows for this epsilon first so we can compute transfer_gap)
                 rows_this_eps: List[dict] = []
                 asr_whitebox: float | None = None
 
@@ -527,6 +528,7 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
                     epsilons=np.array(epsilons, dtype=np.float32),
                     audit_indices=audit_indices,
                     adv_images_uint8=audit_adv,
+                    audit_ok=audit_ok,
                 )
 
             discord_logger.log_transfer_attack_finished(
