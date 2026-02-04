@@ -48,3 +48,13 @@ class DiscordWebhookLogger:
         minutes = int((duration % 3600) // 60)
         message = f"Directory: `{log_dir}`\nTrained {trained}/{expected} seeds\nDuration: {hours}h {minutes}m"
         self._send(title, message, figure_path)
+
+    def log_attack_failed(self, attack_name: str, run_dir: str, error: str) -> None:
+        title = f"Attack failed for `{attack_name}`"
+        message = f"Run directory: `{run_dir}`\nError: ```{error}```"
+        self._send(title, message)
+
+    def log_transfer_attack_finished(self, attack_name: str, source_model: str, seed: int, run_dir: str) -> None:
+        title = f"Transfer attack completed for `{source_model}`"
+        message = f"Attack: `{attack_name}`\nSeed: {seed}\nRun directory: `{run_dir}`"
+        self._send(title, message)
