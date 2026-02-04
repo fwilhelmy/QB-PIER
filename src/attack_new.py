@@ -46,7 +46,7 @@ from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from DiscordWebhookLogger import DiscordWebhookLogger
+from DiscordWebhook import DiscordWebhook
 from utils import seed_experiment  # type: ignore
 from attacks import AttackFactory
 from datasets import DatasetFactory

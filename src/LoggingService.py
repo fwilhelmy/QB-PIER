@@ -9,7 +9,7 @@ from typing import Optional
 import torch
 from pytorch_lightning.utilities import rank_zero_only
 
-from DiscordWebhookLogger import DiscordWebhook
+from DiscordWebhook import DiscordWebhook
 
 log = logging.getLogger(__name__)
 from __init__ import __version__

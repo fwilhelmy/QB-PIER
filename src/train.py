@@ -7,7 +7,7 @@ import torch
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
 
-from DiscordWebhookLogger import DiscordWebhook
+from DiscordWebhook import DiscordWebhook
 from datasets import DatasetFactory
 from LoggingService import LoggingService, ExperimentManager
 from models.ModelFactory import ModelFactory
