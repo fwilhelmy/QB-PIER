@@ -232,7 +232,7 @@ def run_attacks_and_store(
     cfg: DictConfig,
     root: str,
 ) -> None:
-    discord_logger = DiscordWebhookLogger()
+    discord_logger = DiscordWebhook()
     # epsilons: 0..1 inclusive, step 0.05 -> 21 points
     epsilons = [i / 100 for i in range(0, 105, 5)]
     E = len(epsilons)
