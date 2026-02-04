@@ -46,6 +46,7 @@ from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from DiscordWebhookLogger import DiscordWebhookLogger
 
 # Optional project-specific seeding helper (requested by user)
 try:
@@ -249,7 +250,13 @@ def _write_table_chunk(table_dir: str, chunk_name: str, rows: List[dict]) -> str
 # Core experiment runner
 # ---------------------------
 
-def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]], cfg: DictConfig, root: str) -> None:
+def run_attacks_and_store(
+    trained_models: Dict[str, Dict[int, torch.nn.Module]],
+    cfg: DictConfig,
+    root: str,
+) -> None:
+    discord_logger = DiscordWebhookLogger()
+    run_dir = HydraConfig.get().run.dir
     # epsilons: 0..1 inclusive, step 0.05 -> 21 points
     epsilons = [i / 100 for i in range(0, 105, 5)]
     E = len(epsilons)
@@ -533,6 +540,12 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
                 epsilons=np.array(epsilons, dtype=np.float32),
                 audit_indices=audit_indices,
                 adv_images_uint8=audit_adv,
+            )
+            discord_logger.log_transfer_attack_finished(
+                str(getattr(cfg.attack, "name", "attack")),
+                attacker_name,
+                seed,
+                run_dir,
             )
 
         # Seed-level summary: merge all chunk tables for this seed (best-effort)
