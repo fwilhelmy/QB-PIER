@@ -421,7 +421,8 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
                 rows_this_eps: List[dict] = []
                 asr_whitebox: float | None = None
 
-                for victim_name, victim_model in victims_to_compute:
+                # add tqdm to the for loop
+                for victim_name, victim_model in tqdm(victims_to_compute, desc=f"Attacking New Victims", leave=False):
                     logits_adv = _forward_logits_batched(victim_model, adv_examples, device=device, batch_size=batch_size)
                     victim_memmaps[victim_name][0][e_idx] = logits_adv.astype(np.float16)
 
@@ -473,7 +474,8 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
 
                     rows_this_eps.append(row)
 
-                for victim_name, (logits_cube_ro, _) in victim_loaded_logits.items():
+                # add tqdm
+                for victim_name, (logits_cube_ro, _) in tqdm(victim_loaded_logits.items(), desc=f"Attacking Loaded Victims", leave=False):
                     logits_adv = np.asarray(logits_cube_ro[e_idx])
 
                     logits_clean = baseline_logits[victim_name]
