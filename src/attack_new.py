@@ -34,7 +34,7 @@ import json
 import logging
 import os
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Iterable, List, Tuple
 
 import hydra
@@ -47,16 +47,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from DiscordWebhookLogger import DiscordWebhookLogger
-
-# Optional project-specific seeding helper (requested by user)
-try:
-    # If attack.py lives under src/, this is usually correct
-    from utils import seed_experiment  # type: ignore
-except Exception:
-    try:
-        from src.utils import seed_experiment  # type: ignore
-    except Exception:
-        seed_experiment = None  # fallback to internal seeding
+from utils import seed_experiment  # type: ignore
 from attacks import AttackFactory
 from datasets import DatasetFactory
 from loading import load_experiment
@@ -77,20 +68,6 @@ def _safe_name(name: str) -> str:
         .replace(" ", "_")
         .replace(":", "_")
     )
-
-
-def _seed_everything(seed: int) -> None:
-    try:
-        import random
-        random.seed(seed)
-        np.random.seed(seed)
-        torch.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-    except Exception:
-        # If something fails here, we still want the run to proceed
-        pass
 
 
 def _accuracy_from_preds(preds: np.ndarray, labels: np.ndarray) -> float:
@@ -267,23 +244,6 @@ def run_attacks_and_store(
         for seed, model in model_seeds.items():
             models_by_seed[int(seed)].append((model_name, model))
 
-
-    # Optional seed selection (common job seeds: [0, 42])
-    requested_seeds = None
-    try:
-        if hasattr(cfg, "seeds"):
-            requested_seeds = list(cfg.seeds)
-        elif hasattr(cfg, "attack") and hasattr(cfg.attack, "seeds"):
-            requested_seeds = list(cfg.attack.seeds)
-    except Exception:
-        requested_seeds = None
-
-    if requested_seeds is None or len(requested_seeds) == 0:
-        requested_seeds = [0, 42]
-
-    # Filter to requested seeds (only if those exist)
-    models_by_seed = {s: v for s, v in models_by_seed.items() if int(s) in set(int(x) for x in requested_seeds)}
-
     # Capture config snapshot early
     cfg_resolved = OmegaConf.to_container(cfg, resolve=True)
 
@@ -291,7 +251,7 @@ def run_attacks_and_store(
     attack_args = {k: v for k, v in cfg.attack.items() if k != "name"}
 
     manifest = {
-        "created_at": datetime.utcnow().isoformat() + "Z",
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "hydra_run_dir": HydraConfig.get().run.dir,
         "epsilons": epsilons,
         "config_resolved": cfg_resolved,
@@ -314,22 +274,15 @@ def run_attacks_and_store(
 
     # Pair skipping: if logits cube exists for a pair, we assume it's done and skip recompute for that pair.
     # (You can always re-run with a different root dir to force recompute.)
-    # Run per seed
-
     for seed, models in tqdm(sorted(models_by_seed.items(), key=lambda x: x[0]), desc="Seeds"):
-        log.info("=== Seed %s ===", seed)
-        _seed_everything(seed)
-        if seed_experiment is not None:
-            try:
-                seed_experiment(int(seed))
-            except Exception as ex:
-                log.warning("seed_experiment(%s) failed: %s", seed, ex)
+        seed_experiment(int(seed))
 
         seed_dir = os.path.join(root, f"seed_{seed}")
         baselines_dir = os.path.join(seed_dir, "baselines")
         attacks_dir = os.path.join(seed_dir, "attacks")
         audit_adv_dir = os.path.join(seed_dir, "attacker_audit_adv")
         tables_dir = os.path.join(seed_dir, "tables")
+
         _ensure_dir(seed_dir)
         _ensure_dir(baselines_dir)
         _ensure_dir(attacks_dir)
@@ -417,6 +370,7 @@ def run_attacks_and_store(
             np.save(preds_path, preds_clean)
             baseline_preds[victim_name] = preds_clean
             baseline_logits[victim_name] = logits_clean.astype(np.float16)
+        log.info("Seed %s: baselines complete", seed)
 
         # -----------------
         # Transfer attacks
@@ -548,6 +502,8 @@ def run_attacks_and_store(
                 run_dir,
             )
 
+            log.info("Seed %s: attacker %s complete", seed, attacker_name)
+
         # Seed-level summary: merge all chunk tables for this seed (best-effort)
         try:
             import glob
@@ -560,21 +516,20 @@ def run_attacks_and_store(
                 if parts_csv:
                     df = pd.concat([pd.read_csv(p) for p in parts_csv], ignore_index=True)
                     df.to_csv(os.path.join(tables_dir, "aggregates_seed.csv"), index=False)
-        except Exception:
-            pass
 
+            log.info("Seed-level summary completed for seed %s", seed)
+        except Exception as ex:
             log.warning("Could not build seed-level summary: %s", ex)
+            pass
 
     # Write manifest last (so it exists even if run is partial)
     # Add dataset label hash to allow verifying consistent ordering later.
     try:
         # Use last computed labels if available in scope; if not, omit.
+        with open(os.path.join(root, "manifest.json"), "w", encoding="utf-8") as f:
+            json.dump(manifest, f, indent=2)
+    except Exception as ex:
         pass
-    except Exception:
-        pass
-
-    with open(os.path.join(root, "manifest.json"), "w", encoding="utf-8") as f:
-        json.dump(manifest, f, indent=2)
 
 
 @hydra.main(config_path="../conf", config_name="attack", version_base=None)
