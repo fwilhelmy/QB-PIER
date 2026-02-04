@@ -39,6 +39,8 @@ def crawl_experiments(path: str) -> List[str]:
 
 def _best_checkpoint(ckpt_dir: str) -> str:
     """Return path to the best checkpoint inside ``ckpt_dir``."""
+    if not os.path.exists(ckpt_dir):
+        return None
     ckpts = [f for f in os.listdir(ckpt_dir) if f.endswith(".ckpt")]
     if not ckpts:
         raise FileNotFoundError("No checkpoint files found")
