@@ -227,11 +227,7 @@ def _write_table_chunk(table_dir: str, chunk_name: str, rows: List[dict]) -> str
 # Core experiment runner
 # ---------------------------
 
-def run_attacks_and_store(
-    trained_models: Dict[str, Dict[int, torch.nn.Module]],
-    cfg: DictConfig,
-    root: str,
-) -> None:
+def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]], cfg: DictConfig, root: str) -> None:
     discord_logger = DiscordWebhook()
     # epsilons: 0..1 inclusive, step 0.05 -> 21 points
     epsilons = [i / 100 for i in range(0, 105, 5)]
@@ -383,17 +379,18 @@ def run_attacks_and_store(
             audit_adv = np.zeros((E, audit_indices.shape[0], 28, 28), dtype=np.uint8)
             rows_buffer: List[dict] = []
 
-            # Prepare output memmaps for each victim (avoid reruns; write eps slices as computed)
-            victim_memmaps = {}
-            victims_to_run: List[Tuple[str, torch.nn.Module]] = []
+            # Prepare output memmaps for each victim.
+            # If a logits cube already exists, load it so we can still compute aggregates on resume.
+            victim_memmaps: Dict[str, Tuple[np.memmap, str]] = {}
+            victim_loaded_logits: Dict[str, Tuple[np.ndarray, str]] = {}
+            victims_to_compute: List[Tuple[str, torch.nn.Module]] = []
             for victim_name, victim_model in models:
-                # allow skipping full attacker->victim if logits cube already exists
                 out_path = os.path.join(attacks_dir, f"source={a_safe}__target={_safe_name(victim_name)}.npy")
                 if os.path.exists(out_path):
+                    victim_loaded_logits[victim_name] = (np.load(out_path, mmap_mode="r"), out_path)
                     continue
-                victims_to_run.append((victim_name, victim_model))
 
-                # Create / overwrite if partial (safer than attempting partial resumes without checks)
+                # Create / overwrite if partial (safer than attempting partial resume without checks)
                 mm = np.lib.format.open_memmap(
                     out_path,
                     mode="w+",
@@ -401,29 +398,24 @@ def run_attacks_and_store(
                     shape=(E, N, num_classes),
                 )
                 victim_memmaps[victim_name] = (mm, out_path)
-
-            if not victims_to_run:
-                # still may want audit images if missing
-                audit_out = os.path.join(audit_adv_dir, f"source={a_safe}.npz")
-                if not os.path.exists(audit_out):
-                    # We do not have adv examples without recomputing; skip quietly.
-                    pass
-                continue
+                victims_to_compute.append((victim_name, victim_model))
 
             # Epsilon loop: generate adv examples once per epsilon, reuse across all victims
             for e_idx, eps in enumerate(tqdm(epsilons, desc=f"Epsilons (seed={seed}, src={attacker_name})", leave=False)):
-                adv_examples = attack.attack(attacker_model, eps).to(device)
+                adv_examples = None
+                if victims_to_compute:
+                    adv_examples = attack.attack(attacker_model, eps).to(device)
 
-                # Store audit images for this epsilon
-                try:
-                    audit_adv[e_idx] = _to_uint8_images(adv_examples[audit_indices])
-                except Exception:
-                    # If indexing fails for some reason, skip audit images
-                    pass                # Victim loop (collect rows for this epsilon first so we can compute transfer_gap)
+                    # Store audit images for this epsilon
+                    try:
+                        audit_adv[e_idx] = _to_uint8_images(adv_examples[audit_indices])
+                    except Exception:
+                        # If indexing fails for some reason, skip audit images
+                        pass                # Victim loop (collect rows for this epsilon first so we can compute transfer_gap)
                 rows_this_eps: List[dict] = []
                 asr_whitebox: float | None = None
 
-                for victim_name, victim_model in victims_to_run:
+                for victim_name, victim_model in victims_to_compute:
                     logits_adv = _forward_logits_batched(victim_model, adv_examples, device=device, batch_size=batch_size)
                     victim_memmaps[victim_name][0][e_idx] = logits_adv.astype(np.float16)
 
@@ -451,7 +443,43 @@ def run_attacks_and_store(
                         "robust_accuracy": _accuracy_from_preds(preds_adv, labels),
                         "flip_rate": float((preds_adv != preds_clean).mean()),
                         "ASR": asr_val,
-                        "macro_f1": _macro_f1_from_cm(cm),
+                        "mean_confidence_drop": mean_conf_drop,
+                        "mean_margin_drop": mean_margin_drop,
+                        "n_samples": int(N),
+                    }
+
+                    if victim_name == attacker_name:
+                        asr_whitebox = asr_val
+
+                    rows_this_eps.append(row)
+
+                for victim_name, (logits_cube_ro, _) in victim_loaded_logits.items():
+                    logits_adv = np.asarray(logits_cube_ro[e_idx])
+
+                    logits_clean = baseline_logits[victim_name]
+                    preds_clean = baseline_preds[victim_name]
+                    preds_adv = np.argmax(logits_adv, axis=1).astype(np.uint8)
+
+                    cm = _confusion_matrix(preds_adv, labels, num_classes)
+                    asr_val = _asr(preds_adv, labels, preds_clean)
+
+                    # confidence/margin drops computed on true label / logit margin
+                    p_true_clean = _p_true_from_logits(logits_clean, labels)
+                    p_true_adv = _p_true_from_logits(logits_adv, labels)
+                    mean_conf_drop = float(np.mean(p_true_clean - p_true_adv))
+
+                    margin_clean = _margin_from_logits(logits_clean, labels)
+                    margin_adv = _margin_from_logits(logits_adv, labels)
+                    mean_margin_drop = float(np.mean(margin_clean - margin_adv))
+
+                    row = {
+                        "seed": seed,
+                        "source_model": attacker_name,
+                        "target_model": victim_name,
+                        "epsilon": float(eps),
+                        "robust_accuracy": _accuracy_from_preds(preds_adv, labels),
+                        "flip_rate": float((preds_adv != preds_clean).mean()),
+                        "ASR": asr_val,
                         "mean_confidence_drop": mean_conf_drop,
                         "mean_margin_drop": mean_margin_drop,
                         "n_samples": int(N),
@@ -487,13 +515,14 @@ def run_attacks_and_store(
                 out_tbl = _write_table_chunk(global_tables_dir, chunk_name, rows_buffer)
                 log.info("Wrote aggregates chunk: %s (%d rows)", out_tbl, len(rows_buffer))
 
-            # Save attacker audit adv images
-            np.savez_compressed(
-                os.path.join(audit_adv_dir, f"source={a_safe}.npz"),
-                epsilons=np.array(epsilons, dtype=np.float32),
-                audit_indices=audit_indices,
-                adv_images_uint8=audit_adv,
-            )
+            # Save attacker audit adv images (only if we actually generated adv examples)
+            if victims_to_compute:
+                np.savez_compressed(
+                    os.path.join(audit_adv_dir, f"source={a_safe}.npz"),
+                    epsilons=np.array(epsilons, dtype=np.float32),
+                    audit_indices=audit_indices,
+                    adv_images_uint8=audit_adv,
+                )
 
             discord_logger.log_transfer_attack_finished(
                 str(getattr(cfg.attack, "name", "attack")),
