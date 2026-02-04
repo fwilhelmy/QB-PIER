@@ -294,7 +294,7 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
         np.save(os.path.join(seed_dir, "labels.npy"), labels)
 
         N = int(labels.shape[0])
-        num_classes = int(getattr(cfg.dataset, "num_classes", 10))
+        num_classes = int(getattr(cfg.dataset, "classes", 10))
         log.info("Seed %s: %d models, N=%d, C=%d, E=%d epsilons", seed, len(models), N, num_classes, E)
 
         # Audit indices + clean images (3 per class by default)
@@ -336,7 +336,7 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
         attack = AttackFactory.create(cfg.attack.name, dataset=dm.dataset, **attack_args)
 
         device = cfg.device.device
-        batch_size = int(getattr(cfg.attack, "eval_batch_size", 512))
+        batch_size = int(getattr(cfg.attack, "batch_size", 512))
 
         # -----------------
         # Baselines (clean)
@@ -375,8 +375,13 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
             a_safe = _safe_name(attacker_name)
             attacker_model.eval()
 
-            # Audit storage for this attacker: [E, K, 28, 28] uint8
-            audit_adv = np.zeros((E, audit_indices.shape[0], 28, 28), dtype=np.uint8)
+            # Audit storage for this attacker: shaped by cfg.dataset.input_shape uint8
+            C, H, W = [int(x) for x in cfg.dataset.input_shape]
+            if C == 1:
+                audit_adv = np.zeros((E, audit_indices.shape[0], H, W), dtype=np.uint8)
+            else:
+                audit_adv = np.zeros((E, audit_indices.shape[0], C, H, W), dtype=np.uint8)
+
             rows_buffer: List[dict] = []
 
             # Prepare output memmaps for each victim.
