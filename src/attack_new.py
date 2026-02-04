@@ -233,7 +233,6 @@ def run_attacks_and_store(
     root: str,
 ) -> None:
     discord_logger = DiscordWebhookLogger()
-    run_dir = HydraConfig.get().run.dir
     # epsilons: 0..1 inclusive, step 0.05 -> 21 points
     epsilons = [i / 100 for i in range(0, 105, 5)]
     E = len(epsilons)
@@ -495,13 +494,12 @@ def run_attacks_and_store(
                 audit_indices=audit_indices,
                 adv_images_uint8=audit_adv,
             )
+
             discord_logger.log_transfer_attack_finished(
                 str(getattr(cfg.attack, "name", "attack")),
                 attacker_name,
                 seed,
-                run_dir,
             )
-
             log.info("Seed %s: attacker %s complete", seed, attacker_name)
 
         # Seed-level summary: merge all chunk tables for this seed (best-effort)

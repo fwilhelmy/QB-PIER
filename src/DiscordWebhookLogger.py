@@ -54,7 +54,7 @@ class DiscordWebhookLogger:
         message = f"Run directory: `{run_dir}`\nError: ```{error}```"
         self._send(title, message)
 
-    def log_transfer_attack_finished(self, attack_name: str, source_model: str, seed: int, run_dir: str) -> None:
+    def log_transfer_attack_finished(self, attack_name: str, source_model: str, seed: int) -> None:
         title = f"Transfer attack completed for `{source_model}`"
-        message = f"Attack: `{attack_name}`\nSeed: {seed}\nRun directory: `{run_dir}`"
+        message = f"Attack: `{attack_name}`\nSeed: {seed}"
         self._send(title, message)
