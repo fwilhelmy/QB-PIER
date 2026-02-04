@@ -437,9 +437,20 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
                     p_true_adv = _p_true_from_logits(logits_adv, labels)
                     mean_conf_drop = float(np.mean(p_true_clean - p_true_adv))
 
+                    # Drop metrics over clean-correct subset (aligns with ASR definition)
+                    clean_correct = (preds_clean == labels)
+                    if bool(np.any(clean_correct)):
+                        mean_conf_drop_cc = float(np.mean((p_true_clean - p_true_adv)[clean_correct]))
+                    else:
+                        mean_conf_drop_cc = float("nan")
+
                     margin_clean = _margin_from_logits(logits_clean, labels)
                     margin_adv = _margin_from_logits(logits_adv, labels)
                     mean_margin_drop = float(np.mean(margin_clean - margin_adv))
+                    if bool(np.any(clean_correct)):
+                        mean_margin_drop_cc = float(np.mean((margin_clean - margin_adv)[clean_correct]))
+                    else:
+                        mean_margin_drop_cc = float("nan")
 
                     row = {
                         "seed": seed,
@@ -449,8 +460,11 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
                         "robust_accuracy": _accuracy_from_preds(preds_adv, labels),
                         "flip_rate": float((preds_adv != preds_clean).mean()),
                         "ASR": asr_val,
-                        "mean_confidence_drop": mean_conf_drop,
-                        "mean_margin_drop": mean_margin_drop,
+                        # Explicit variants
+                        "mean_confidence_drop_all": mean_conf_drop,
+                        "mean_margin_drop_all": mean_margin_drop,
+                        "mean_confidence_drop_cc": mean_conf_drop_cc,
+                        "mean_margin_drop_cc": mean_margin_drop_cc,
                         "n_samples": int(N),
                     }
 
@@ -478,6 +492,15 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
                     margin_adv = _margin_from_logits(logits_adv, labels)
                     mean_margin_drop = float(np.mean(margin_clean - margin_adv))
 
+                    # also compute confidence/margin drops on clean-correct subset (aligns with ASR conditioning)
+                    clean_correct = (preds_clean == labels)
+                    if np.any(clean_correct):
+                        mean_conf_drop_cc = float(np.mean((p_true_clean - p_true_adv)[clean_correct]))
+                        mean_margin_drop_cc = float(np.mean((margin_clean - margin_adv)[clean_correct]))
+                    else:
+                        mean_conf_drop_cc = float('nan')
+                        mean_margin_drop_cc = float('nan')
+
                     row = {
                         "seed": seed,
                         "source_model": attacker_name,
@@ -486,8 +509,10 @@ def run_attacks_and_store(trained_models: Dict[str, Dict[int, torch.nn.Module]],
                         "robust_accuracy": _accuracy_from_preds(preds_adv, labels),
                         "flip_rate": float((preds_adv != preds_clean).mean()),
                         "ASR": asr_val,
-                        "mean_confidence_drop": mean_conf_drop,
-                        "mean_margin_drop": mean_margin_drop,
+                        "mean_confidence_drop_all": mean_conf_drop,
+                        "mean_margin_drop_all": mean_margin_drop,
+                        "mean_confidence_drop_cc": mean_conf_drop_cc,
+                        "mean_margin_drop_cc": mean_margin_drop_cc,
                         "n_samples": int(N),
                     }
 
