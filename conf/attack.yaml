@@ -16,9 +16,9 @@ models_path: ???
 
 hydra:
   run:
-    dir: ${LOGS_DIR}/${expdir}/${now:%Y-%m-%d@%H-%M-%S}
+    dir: ${LOGS_DIR}/${expdir}
   sweep:
-    dir: ${LOGS_DIR}/${expdir}/${now:%Y-%m-%d@%H-%M-%S}
+    dir: ${LOGS_DIR}/${expdir}
     subdir: ${hydra.job.override_dirname}
   job:
     config:
@@ -28,6 +28,8 @@ hydra:
           - device
           - attack
           - experiment_dir
+          - results_path
+          - models_path
           - model_load
           - DATA_DIR
           - LOGS_DIR
