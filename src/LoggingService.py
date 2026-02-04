@@ -9,6 +9,8 @@ from typing import Optional
 import torch
 from pytorch_lightning.utilities import rank_zero_only
 
+from DiscordWebhookLogger import DiscordWebhook
+
 log = logging.getLogger(__name__)
 from __init__ import __version__
 
@@ -62,6 +64,7 @@ class LoggingService:
             self._init_root_dir()
             logging.captureWarnings(True)
             warnings.simplefilter("default")
+            self._init_discord_logging()
 
     @property
     def root_dir(self) -> str:
@@ -70,3 +73,14 @@ class LoggingService:
     @rank_zero_only
     def _init_root_dir(self):
         os.makedirs(self._root_dir, exist_ok=True)
+
+    @rank_zero_only
+    def _init_discord_logging(self) -> None:
+        if getattr(self, "_discord_handler", None):
+            return
+
+        handler = DiscordWebhook()
+        handler.setLevel(logging.WARNING)
+        handler.setFormatter(logging.Formatter("%(message)s"))
+        logging.getLogger().addHandler(handler)
+        self._discord_handler = handler
