@@ -7,7 +7,7 @@ import torch
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
 
-from DiscordWebhookLogger import DiscordWebhookLogger
+from DiscordWebhookLogger import DiscordWebhook
 from datasets import DatasetFactory
 from LoggingService import LoggingService, ExperimentManager
 from models.ModelFactory import ModelFactory
@@ -112,7 +112,7 @@ def main(cfg: DictConfig) -> None:
     log_dir = HydraConfig.get().job.override_dirname
     log.info(f"Starting experiment ({log_dir or model_name}) with seeds: {seeds}")
 
-    discord_logger = DiscordWebhookLogger()
+    discord_logger = DiscordWebhook()
 
     if not fast_dev_run:
         discord_logger.log_exp_start(model_name, seeds, log_dir)
