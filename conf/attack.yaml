@@ -11,7 +11,6 @@ DATA_DIR: ./data/processed
 LOGS_DIR: ./logs
 
 model_load: final
-results_path: null
 models_path: ???
 
 hydra:
