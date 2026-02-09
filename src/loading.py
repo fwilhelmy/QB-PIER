@@ -157,12 +157,12 @@ def load_attacks(path: str) -> pd.DataFrame:
 
     return results
 
+from visualisation.training import generate_gradient_flow_plots, plot_models_together
 if __name__ == "__main__":
     log_root = "logs/MODELS"
     os.makedirs(log_root, exist_ok=True)
     data = load_experiment(log_root, load="final")
     log.info("Loaded data for %s model configurations.", len(data))
-    from visualisation.train import generate_gradient_flow_plots
     for model_name, model_data in data.items():
         for seed, model in model_data.items():
             log.info("Generating gradient flow plots for %s (seed=%d).", model_name, seed)

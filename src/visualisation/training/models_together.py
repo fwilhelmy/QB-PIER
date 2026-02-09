@@ -10,7 +10,7 @@ import numpy as np
 from lightning.pytorch.utilities import rank_zero_only
 from matplotlib.ticker import MaxNLocator
 
-from .utils import line_with_std
+from ..utils import line_with_std
 
 __all__ = ["plot_models_together"]
 

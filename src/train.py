@@ -13,7 +13,7 @@ from LoggingService import LoggingService, ExperimentManager
 from models.ModelFactory import ModelFactory
 
 from utils import seed_experiment
-from visualisation.train import generate_gradient_flow_plots, plot_training_curves
+from visualisation.training import generate_gradient_flow_plots, plot_training_curves
 
 log = logging.getLogger(__name__)
 

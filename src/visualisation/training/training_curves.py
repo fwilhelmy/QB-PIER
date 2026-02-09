@@ -11,8 +11,6 @@ from matplotlib.ticker import FuncFormatter, MaxNLocator
 
 from visualisation.utils import line_with_std
 
-__all__ = ["plot_training_curves"]
-
 @rank_zero_only
 def plot_training_curves(model_name, seed_dict, fig_dir=None):
     """Plot averaged loss, accuracy and weights norm over multiple seeds."""
