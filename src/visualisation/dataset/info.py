@@ -6,7 +6,6 @@ from lightning.pytorch.utilities import rank_zero_only
 
 __all__ = ["print_dataset_info"]
 
-
 @rank_zero_only
 def print_dataset_info(dataset):
     print("Dataset Information:")
