@@ -22,27 +22,22 @@ Inside the experiment root, outputs are organized by model class, model
 configuration, and seed:
 
 ```
-experiment_dir/
-└─ <model_class_name>/
-   └─ <model_config_name>/
+<experiment_dir>/
+└─ <model_name>/
+      ├─ .model
+      ├─ training.log
+      ├─ model.info
+      ├─ .hydra/
+         ├─ config.yaml
+         ├─ hydra.yaml
+         └─ overrides.yaml
       └─ <seed>/
          ├─ checkpoints/
          ├─ metrics/
+            ├─ logger.pkl
+            └─ metrics.csv
          ├─ tensorboard/
+            ├─ <tensorboard output file>
+            └─ hparams.yaml
          └─ final.ckpt
 ```
-
-Notes:
-- A `.model` anchor file is created in each model configuration directory to
-  mark it as loadable by utilities that crawl experiment folders.
-- `final.ckpt` is the final checkpoint; the `checkpoints/` folder may include
-  additional or best checkpoints depending on configuration.
-- `metrics/` stores aggregated metrics (via `MetricsContainer` and `pandas`).
-- `tensorboard/` holds TensorBoard event files for live monitoring.
-
-## Example overrides
-
-- `LOGS_DIR=./logs` (default)
-- `expdir=training` or `expdir=attacks` (from Hydra configs)
-
-These overrides control the experiment root under `logs/`.
