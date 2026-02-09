@@ -50,12 +50,12 @@ Global run metadata (pipeline/version, timestamps, seeds, resolved overrides, op
 This per-model layout is identical across models and experiments.
 
 ## File semantics (brief)
-- `.model`: Marker for a valid model directory (optionally minimal ID).
-- `training.log`: Plain-text execution log (training/eval/attack).
-- `model.info`: Structured model metadata (architecture, data, training setup).
+- `.model`: Marker for a valid model directory.
+- `training.log`: Plain-text training execution log.
+- `model.info`: Structured model metadata (architecture, data, training time, etc..).
 - `.hydra/`: Exact Hydra snapshot for reproducibility.
-- `<seed>/checkpoints/`: Intermediate checkpoints.
-- `<seed>/metrics/logger.pkl`: Full serialized metric history.
+- `<seed>/checkpoints/`: Top 3 recorded checkpoints during training based on validation loss.
+- `<seed>/metrics/logger.pkl`: Full serialized metrics.
 - `<seed>/metrics/metrics.csv`: Flat tabular metrics export.
 - `<seed>/tensorboard/`: TensorBoard logs and hyperparameters.
-- `<seed>/final.ckpt`: Final trained checkpoint.
+- `<seed>/final.ckpt`: Final state of the model at the end of the training.
