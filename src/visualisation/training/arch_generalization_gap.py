@@ -175,16 +175,17 @@ def _build_gap_series(
     return steps, gap, {"train": train_tag, "val": val_tag}
 
 
-def main() -> None:
-    args = parse_args()
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s - %(message)s",
-    )
-
-    raw_entries = _read_model_entries(args.models)
+def generate_arch_generalization_gap(
+    models: Sequence[str | Path],
+    out_dir: str | Path,
+    gap_type: str = "loss",
+    output_format: str = "pdf",
+    metrics_source: str = "tensorboard",
+    tb_size_guidance: int = 0,
+) -> tuple[Path, Path]:
+    raw_entries = [str(Path(model).expanduser().resolve()) for model in models]
     if not raw_entries:
-        raise ValueError("No models were provided. Use --models at least once.")
+        raise ValueError("No models were provided.")
 
     resolved_inputs: List[Dict[str, str]] = []
     plotted = 0
@@ -197,7 +198,7 @@ def main() -> None:
             LOGGER.warning("Skipping '%s': could not resolve to a run directory.", entry)
             continue
 
-        series = _build_gap_series(resolved, args.gap_type, args.tb_size_guidance)
+        series = _build_gap_series(resolved, gap_type, tb_size_guidance)
         if series is None:
             continue
 
@@ -219,31 +220,50 @@ def main() -> None:
     if plotted == 0:
         raise RuntimeError("No model could be plotted. Check paths and scalar tags.")
 
-    ylabel = "val/loss - train/loss" if args.gap_type == "loss" else "train/acc - val/acc"
-    plt.title(f"Generalization gap across epochs ({args.gap_type})")
+    ylabel = "val/loss - train/loss" if gap_type == "loss" else "train/acc - val/acc"
+    plt.title(f"Generalization gap across epochs ({gap_type})")
     plt.xlabel("Epoch step")
     plt.ylabel(ylabel)
     plt.grid(True, alpha=0.25)
     plt.legend(loc="best")
     plt.tight_layout()
 
-    out_dir = Path(args.out_dir)
+    out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    fig_path = out_dir / f"arch_generalization_gap.{args.format}"
+    fig_path = out_dir / f"arch_generalization_gap.{output_format}"
     sidecar_path = out_dir / "arch_generalization_gap.json"
 
     plt.savefig(fig_path)
     plt.close()
 
     sidecar = {
-        "metrics_source": args.metrics_source,
-        "gap_type": args.gap_type,
+        "metrics_source": metrics_source,
+        "gap_type": gap_type,
         "raw_inputs": raw_entries,
         "resolved_models": resolved_inputs,
         "output_figure": str(fig_path),
     }
     sidecar_path.write_text(json.dumps(sidecar, indent=2), encoding="utf-8")
+    return fig_path, sidecar_path
+
+
+def main() -> None:
+    args = parse_args()
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s - %(message)s",
+    )
+
+    raw_entries = _read_model_entries(args.models)
+    fig_path, sidecar_path = generate_arch_generalization_gap(
+        models=raw_entries,
+        out_dir=args.out_dir,
+        gap_type=args.gap_type,
+        output_format=args.format,
+        metrics_source=args.metrics_source,
+        tb_size_guidance=args.tb_size_guidance,
+    )
 
     LOGGER.info("Saved figure: %s", fig_path)
     LOGGER.info("Saved sidecar: %s", sidecar_path)

@@ -10,6 +10,10 @@ from typing import Dict
 
 from loading import crawl_experiments, load_model
 from visualisation.training import (
+    generate_arch_accuracy_vs_time,
+    generate_arch_generalization_gap,
+    generate_arch_gradient_norms,
+    generate_baseline_training_summary,
     generate_gradient_flow_plots,
     plot_models_together,
     plot_training_curves,
@@ -63,10 +67,25 @@ def generate_training_figures(
         rel_parent = os.path.dirname(rel_model_dir)
         grouped_models[rel_parent][model_name] = seed_dict
 
+    representative_seed_dirs: list[str] = []
+
     for rel_parent_dir, models_in_group in grouped_models.items():
         source_parent_dir = os.path.join(training_dir, rel_parent_dir)
         target_parent_dir = mirror_dir(training_dir, source_parent_dir, output_dir)
         plot_models_together(models_in_group, fig_dir=target_parent_dir)
+
+    for rel_model_dir, seed_dict in loaded_models.items():
+        if not seed_dict:
+            continue
+        first_seed = min(seed_dict)
+        representative_seed_dirs.append(os.path.join(training_dir, rel_model_dir, str(first_seed)))
+
+    if representative_seed_dirs:
+        root_output_dir = output_dir or training_dir
+        generate_arch_accuracy_vs_time(models=representative_seed_dirs, out_dir=root_output_dir)
+        generate_arch_generalization_gap(models=representative_seed_dirs, out_dir=root_output_dir)
+        generate_arch_gradient_norms(models=representative_seed_dirs, out_dir=root_output_dir)
+        generate_baseline_training_summary(models=representative_seed_dirs, out_dir=root_output_dir)
 
 
 def generate_attack_figures(attacks_dir: str, output_dir: str | None) -> None:
