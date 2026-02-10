@@ -1,8 +1,28 @@
-GET MORE ML METRICS FOR THE AVERAGE ACCURACY
+========================================================================
+LITERATURE
 
 plot histogram of the original accuracy of the models
     - benchmarking grids
     - table for configs with final metrics
+
+========================================================================
+
+IN METHODOLOGY FIGURES:
+
+- Pipeline overview diagram : Data → model factory → training loop → logging → checkpointing → attack runner → analysis.
+
+- Experiment folder / artifact layout : A diagram or compact tree showing: configs, checkpoints, metrics, attack outputs (logits), etc.
+
+- Training protocol schematic: A single schematic showing: seeds, splits, checkpoint selection rule (best vs final), evaluation. : Especially important because your attack comparisons depend on the checkpoint.
+
+TABLE: Methodology table: hyperparameters that are fixed across all models (dataset, epochs, optimizer family if fixed, loss, batch size, etc.), and what varies.
+
+========================================================================
+Architectures:
+
+Model family map (one figure) :A visual summary (like your table image but nicer): family → what varies (depth/ansatz/blocks/etc.) and how many variants.
+    - This is the reader’s legend for the rest of the thesis.
+    - What was explored (depths, ansatz, etc...)
 
 training curves per models architecture
     - classical models together
@@ -23,6 +43,9 @@ Stacked quantum layer gradient flow to see if gradient flow is improved in any o
         - VQM
     - FOR DIFF DEPTH VQMs AND MAYBE 1 HYBRID?
 
+========================================================================
+ATTACKS
+
 Adversarial Attacks 
     - GRID 3X3 of average transferability BETWEEN QUANTUM, HYBRID AND CLASSICAL
     - Adversarial fig of epsilons rising
@@ -38,3 +61,26 @@ Adversarial Attacks
 
 Adversarial examples
     - original image stacked with average look of quantum/classical/hybrid adversarial perturbation
+
+==========================================================================
+TOP TIER PLOTS IN DISCUSSION:
+Observations → Hypotheses → Evidence → Limitations → Next steps
+
+Clean accuracy vs robustness tradeoff scatter
+    - x = clean acc
+    - y = AUC_robust or ASR@ε
+    - color = type/family
+    - This answers: “Are quantum/hybrid robust because they’re weaker, or robust despite being weaker?”
+
+Efficiency vs robustness scatter
+    - x = training time (or inference cost)
+    - y = robustness summary
+    - This answers: “Is robustness gained at unrealistic compute cost?”
+
+Stability vs robustness
+    - x = across-seed std of clean acc (or robustness)
+    - y = robustness
+    - This answers: “Are the robust models consistent or fragile?”
+
+Transferability vs gradient proxy
+    - show whether models with certain gradient norm behaviors transfer more/less (if you have it).
