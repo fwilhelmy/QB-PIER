@@ -17,32 +17,6 @@ from visualisation.training import (
 
 log = logging.getLogger(__name__)
 
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate training and attack figures from saved runs.")
-    parser.add_argument(
-        "--training-dir",
-        required=True,
-        help="Root directory containing model folders marked by a .model file.",
-    )
-    parser.add_argument(
-        "--attacks-dir",
-        default=None,
-        help="Optional attack-results directory. If omitted, attack figures are skipped.",
-    )
-    parser.add_argument(
-        "--output-dir",
-        default=None,
-        help="Optional output root. When provided, the directory tree from training/attacks inputs is mirrored here.",
-    )
-    parser.add_argument(
-        "--map-location",
-        default="cpu",
-        help="Device mapping passed to checkpoint loading.",
-    )
-    return parser.parse_args()
-
-
 def mirror_dir(source_root: str, source_path: str, output_root: str | None) -> str:
     if output_root is None:
         return source_path
@@ -103,16 +77,20 @@ def generate_attack_figures(attacks_dir: str, output_dir: str | None) -> None:
 
 
 def main() -> None:
-    args = parse_args()
+    training_dir = "./logs/ByModel"
+    attack_dir = None
+    output_dir = "./logs/test"
+    map_location = "cpu"
+
     logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
-    build_mirror_structure(args.training_dir, args.output_dir)
-    loaded_models = load_training_data(args.training_dir, args.map_location)
-    generate_training_figures(args.training_dir, loaded_models, args.output_dir)
+    build_mirror_structure(training_dir, output_dir)
+    loaded_models = load_training_data(training_dir, map_location)
+    generate_training_figures(training_dir, loaded_models, output_dir)
 
-    if args.attacks_dir:
-        build_mirror_structure(args.attacks_dir, args.output_dir)
-        generate_attack_figures(args.attacks_dir, args.output_dir)
+    if attack_dir is not None:
+        build_mirror_structure(attack_dir, output_dir)
+        generate_attack_figures(attack_dir, output_dir)
 
 
 if __name__ == "__main__":
