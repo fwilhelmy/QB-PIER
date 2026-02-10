@@ -182,16 +182,20 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main() -> None:
-    args = build_parser().parse_args()
 
-    run_dirs = [Path(path).expanduser().resolve() for path in args.models]
-    out_dir = Path(args.out_dir).expanduser().resolve()
+def generate_arch_gradient_norms(
+    models: Iterable[str | Path],
+    out_dir: str | Path,
+    qname_pattern: str = "qlayer",
+    output_format: str = "pdf",
+) -> tuple[Path, Path]:
+    run_dirs = [Path(path).expanduser().resolve() for path in models]
+    out_dir = Path(out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
     fig, ax = plt.subplots(figsize=(11, 6.5))
     sidecar: dict[str, object] = {
-        "qname_pattern": args.qname_pattern,
+        "qname_pattern": qname_pattern,
         "models": [],
         "aggregation": "rms",
     }
@@ -200,7 +204,7 @@ def main() -> None:
     for run_dir in run_dirs:
         scalars = _read_tensorboard_scalars(run_dir)
         global_series, quantum_series, classical_series, meta = _resolve_gradient_series(
-            scalars, qname_pattern=args.qname_pattern
+            scalars, qname_pattern=qname_pattern
         )
 
         model_summary = {
@@ -260,9 +264,9 @@ def main() -> None:
 
     fig.tight_layout()
 
-    figure_path = out_dir / f"arch_gradient_norms.{args.format}"
+    figure_path = out_dir / f"arch_gradient_norms.{output_format}"
     sidecar_path = out_dir / "arch_gradient_norms.tags.json"
-    fig.savefig(figure_path, dpi=220 if args.format == "png" else None)
+    fig.savefig(figure_path, dpi=220 if output_format == "png" else None)
     plt.close(fig)
 
     with sidecar_path.open("w", encoding="utf-8") as f:
@@ -270,6 +274,16 @@ def main() -> None:
 
     print(f"Saved figure: {figure_path}")
     print(f"Saved sidecar: {sidecar_path}")
+    return figure_path, sidecar_path
+
+def main() -> None:
+    args = build_parser().parse_args()
+    generate_arch_gradient_norms(
+        models=args.models,
+        out_dir=args.out_dir,
+        qname_pattern=args.qname_pattern,
+        output_format=args.format,
+    )
 
 
 if __name__ == "__main__":

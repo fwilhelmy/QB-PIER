@@ -324,6 +324,23 @@ def write_outputs(
     return csv_path, latex_path
 
 
+
+def generate_baseline_training_summary(
+    models: list[str | Path],
+    out_dir: str | Path,
+    qname_pattern: str = "qlayer",
+    latex_filename: str = "baseline_training_summary.tex",
+    full_table_env: bool = False,
+) -> tuple[Path, Path]:
+    normalized_models = [str(Path(model).expanduser().resolve()) for model in models]
+    df = build_summary_dataframe(models=normalized_models, qname_pattern=qname_pattern)
+    return write_outputs(
+        df=df,
+        out_dir=out_dir,
+        latex_filename=latex_filename,
+        full_table_env=full_table_env,
+    )
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate baseline training summary table from model run directories.")
     parser.add_argument("--models", action="append", required=True, help="Model run directory path. Repeat for multiple models.")
@@ -336,8 +353,13 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    df = build_summary_dataframe(models=args.models, qname_pattern=args.qname_pattern)
-    csv_path, latex_path = write_outputs(df=df, out_dir=args.out_dir, latex_filename=args.latex, full_table_env=args.full_table_env)
+    csv_path, latex_path = generate_baseline_training_summary(
+        models=args.models,
+        out_dir=args.out_dir,
+        qname_pattern=args.qname_pattern,
+        latex_filename=args.latex,
+        full_table_env=args.full_table_env,
+    )
     print(f"Wrote CSV: {csv_path}")
     print(f"Wrote LaTeX: {latex_path}")
 

@@ -166,18 +166,36 @@ def _write_sidecar(
     return sidecar_path
 
 
-def main() -> None:
-    args = _parse_args()
-    out_dir = Path(args.out_dir)
+def generate_arch_accuracy_vs_time(
+    models: Iterable[str | Path],
+    out_dir: str | Path,
+    output_format: str = "pdf",
+    include_train: bool = False,
+    x_units: str = "minutes",
+) -> tuple[Path, Path]:
+    resolved_models = [str(Path(model).expanduser().resolve()) for model in models]
+    out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    runs = _collect_runs(models=args.models, include_train=args.include_train)
-    figure_path = out_dir / f"arch_accuracy_vs_time.{args.format}"
-    _plot_runs(runs=runs, x_units=args.x_units, include_train=args.include_train, output_path=figure_path)
-    _write_sidecar(
+    runs = _collect_runs(models=resolved_models, include_train=include_train)
+    figure_path = out_dir / f"arch_accuracy_vs_time.{output_format}"
+    _plot_runs(runs=runs, x_units=x_units, include_train=include_train, output_path=figure_path)
+    sidecar_path = _write_sidecar(
         output_path=figure_path,
-        model_inputs=args.models,
-        resolved_model_paths=[str(Path(model).expanduser().resolve()) for model in args.models],
+        model_inputs=resolved_models,
+        resolved_model_paths=resolved_models,
+        include_train=include_train,
+        x_units=x_units,
+    )
+    return figure_path, sidecar_path
+
+
+def main() -> None:
+    args = _parse_args()
+    generate_arch_accuracy_vs_time(
+        models=args.models,
+        out_dir=args.out_dir,
+        output_format=args.format,
         include_train=args.include_train,
         x_units=args.x_units,
     )
