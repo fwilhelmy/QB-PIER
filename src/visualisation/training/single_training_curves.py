@@ -24,12 +24,17 @@ def plot_training_curves(model_name, seed_dict, fig_dir=None):
     step_lists = []
     for seed in seeds:
         df = seed_dict[seed].metrics.to_pandas()
+        if df.empty:
+            continue
         step_lists.append(df["step"].to_numpy())
         train_loss_seeds.append(df["train_loss"].to_numpy())
         val_loss_seeds.append(df["val_loss"].to_numpy())
         train_acc_seeds.append(df["train_acc"].to_numpy())
         val_acc_seeds.append(df["val_acc"].to_numpy())
         train_w2_seeds.append(df["train_weights_l2"].to_numpy())
+
+    if not step_lists:
+        raise ValueError("No valid metrics found across seeds")
 
     steps = step_lists[0]
     if any(len(sl) != len(steps) for sl in step_lists):
