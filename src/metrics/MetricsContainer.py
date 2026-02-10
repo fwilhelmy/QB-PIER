@@ -14,7 +14,6 @@ from lightning.pytorch.utilities import rank_zero_only
 
 log = logging.getLogger(__name__)
 
-
 class MetricsContainer(Logger):
     def __init__(
         self,
@@ -58,15 +57,18 @@ class MetricsContainer(Logger):
             group, metric = key.split("/", 1)
             group_metrics = self._raw.get(group)
             if group_metrics is None:
-                raise AttributeError(f"Metric group {group!r} not found")
+                log.warning(f"Metric group {group!r} not found")
+                return None
             if metric not in group_metrics:
-                raise AttributeError(f"Metric {metric!r} not found in group {group!r}")
+                log.warning(f"Metric {metric!r} not found in group {group!r}")
+                return None
             return group_metrics[metric]
 
         if key in self._raw:
             return self._raw[key]
 
-        raise AttributeError(f"{self.__class__.__name__!s} object has no attribute {key!r}")
+        log.warning(f"Metric {key!r} not found")
+        return None
 
     def __getattr__(self, item: str) -> Any:
         """Allow direct attribute access to stored metric groups."""

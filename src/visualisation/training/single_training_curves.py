@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,14 +12,23 @@ from matplotlib.ticker import FuncFormatter, MaxNLocator
 
 from visualisation.utils import line_with_std
 
+log = logging.getLogger(__name__)
+
 @rank_zero_only
 def plot_training_curves(model_name, seed_dict, fig_dir=None):
     """Plot averaged loss, accuracy and weights norm over multiple seeds."""
 
-    seeds = sorted(seed_dict.keys())
-    if not seeds:
-        raise ValueError("No seeds were provided")
-    first_model = seed_dict[seeds[0]]
+    valid_seeds = []
+    for seed, model in seed_dict.items():
+        required_metrics = {"train_loss", "val_loss", "train_acc", "val_acc", "train_weights_l2"}
+        if all(model.metrics[metric] is not None for metric in required_metrics):
+            valid_seeds.append(seed)
+        else:
+            missing = required_metrics - set(model.metrics._raw)
+            log.warning(f"Seed {seed} is missing required metrics: {missing}")
+    if not valid_seeds:
+        raise ValueError("No seeds with required metrics found for plotting")
+    first_model = seed_dict[valid_seeds[0]]
 
     fig, (ax_loss, ax_acc, ax_w2) = plt.subplots(3, 1, figsize=(12, 16), sharex=True)
 
