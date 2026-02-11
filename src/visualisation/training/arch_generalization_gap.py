@@ -1,235 +1,115 @@
-"""Plot per-model generalization gap curves from TensorBoard scalars."""
+"""Plot per-model generalization gap curves from loaded model dictionaries."""
 
 from __future__ import annotations
 
-import argparse
 import json
-import logging
 from pathlib import Path
-from typing import Dict, Iterable, List, Sequence, Tuple
+from typing import Mapping
 
 import matplotlib.pyplot as plt
 import numpy as np
-from tensorboard.backend.event_processing import event_accumulator
 
-LOGGER = logging.getLogger(__name__)
 
-REQUIRED_TAGS = {
-    "acc": ("train/acc", "val/acc"),
-    "loss": ("train/loss", "val/loss"),
+_REQUIRED_METRICS = {
+    "loss": ("train_loss", "val_loss"),
+    "acc": ("train_acc", "val_acc"),
 }
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Plot train/val generalization gap per model from TensorBoard logs.",
-    )
-    parser.add_argument(
-        "--models",
-        action="append",
-        default=[],
-        help=(
-            "Model run directory or model id. Repeat for multiple models. "
-            "If a value points to a text file, each non-empty/non-comment line is read as a model entry."
-        ),
-    )
-    parser.add_argument(
-        "--gap_type",
-        choices=("loss", "acc"),
-        default="loss",
-        help=(
-            "Gap definition: 'loss' => val/loss - train/loss (default), "
-            "'acc' => train/acc - val/acc."
-        ),
-    )
-    parser.add_argument(
-        "--metrics_source",
-        choices=("tensorboard",),
-        default="tensorboard",
-        help="Metrics backend. Currently only tensorboard is implemented.",
-    )
-    parser.add_argument("--out_dir", default="outputs/figures", help="Output directory.")
-    parser.add_argument("--format", choices=("pdf", "png"), default="pdf", help="Figure format.")
-    parser.add_argument("--tb_size_guidance", type=int, default=0, help="TensorBoard scalar size guidance.")
-    parser.add_argument("--verbose", action="store_true", help="Enable debug logs.")
-    return parser.parse_args()
+def _mean_curve_for_metric(seed_dict: Mapping[int, object], metric_name: str) -> np.ndarray | None:
+    curves: list[np.ndarray] = []
 
+    for _, model in seed_dict.items():
+        values = model.metrics[metric_name]
+        if values is None:
+            continue
 
-def _read_model_entries(models: Sequence[str]) -> List[str]:
-    entries: List[str] = []
-    for model in models:
-        model_path = Path(model)
-        if model_path.is_file() and model_path.suffix.lower() in {".txt", ".list"}:
-            for line in model_path.read_text(encoding="utf-8").splitlines():
-                value = line.strip()
-                if value and not value.startswith("#"):
-                    entries.append(value)
-        else:
-            entries.append(model)
-    return entries
+        curve = np.asarray(values, dtype=np.float64)
+        if curve.size == 0:
+            continue
+        curves.append(curve)
 
-
-def _candidate_roots() -> Iterable[Path]:
-    cwd = Path.cwd()
-    yield cwd
-    logs = cwd / "logs"
-    if logs.exists():
-        yield logs
-
-
-def _resolve_model_path(entry: str) -> Path | None:
-    p = Path(entry)
-    if p.exists():
-        return p.resolve()
-
-    # Resolve model IDs by searching folders containing TensorBoard event files.
-    for root in _candidate_roots():
-        for event_file in root.rglob("events.out.tfevents.*"):
-            run_dir = event_file.parent
-            run_str = str(run_dir)
-            if run_dir.name == entry or run_str.endswith(entry):
-                return run_dir.resolve()
-    return None
-
-
-def _load_scalar_series(
-    model_dir: Path,
-    tag: str,
-    size_guidance: int,
-) -> Tuple[np.ndarray, np.ndarray] | None:
-    accumulator = event_accumulator.EventAccumulator(
-        str(model_dir),
-        size_guidance={event_accumulator.SCALARS: size_guidance},
-    )
-    try:
-        accumulator.Reload()
-    except Exception as exc:  # pragma: no cover - external TB parsing errors.
-        LOGGER.warning("Failed to read TensorBoard events in %s: %s", model_dir, exc)
+    if not curves:
         return None
 
-    available = accumulator.Tags().get("scalars", [])
-    if tag not in available:
+    min_len = min(curve.size for curve in curves)
+    aligned = np.vstack([curve[:min_len] for curve in curves])
+    return aligned.mean(axis=0)
+
+
+def _build_gap_curve(seed_dict: Mapping[int, object], gap_type: str) -> np.ndarray | None:
+    train_metric, val_metric = _REQUIRED_METRICS[gap_type]
+    train_curve = _mean_curve_for_metric(seed_dict, train_metric)
+    val_curve = _mean_curve_for_metric(seed_dict, val_metric)
+
+    if train_curve is None or val_curve is None:
         return None
 
-    events = accumulator.Scalars(tag)
-    steps = np.asarray([event.step for event in events], dtype=np.int64)
-    values = np.asarray([event.value for event in events], dtype=np.float64)
-    return steps, values
-
-
-def _align_steps(
-    lhs_steps: np.ndarray,
-    lhs_values: np.ndarray,
-    rhs_steps: np.ndarray,
-    rhs_values: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    common_steps = np.intersect1d(lhs_steps, rhs_steps)
-    if common_steps.size == 0:
-        return common_steps, np.array([]), np.array([])
-
-    lhs_idx = np.searchsorted(lhs_steps, common_steps)
-    rhs_idx = np.searchsorted(rhs_steps, common_steps)
-    return common_steps, lhs_values[lhs_idx], rhs_values[rhs_idx]
-
-
-def _derive_label(model_dir: Path) -> str:
-    basename = model_dir.name
-    parent = model_dir.parent.name
-    if basename.lower().startswith("seed") and model_dir.parent.parent != model_dir.parent:
-        grandparent = model_dir.parent.parent.name
-        return f"{grandparent}/{basename}"
-    return f"{parent}/{basename}"
-
-
-def _build_gap_series(
-    model_dir: Path,
-    gap_type: str,
-    size_guidance: int,
-) -> Tuple[np.ndarray, np.ndarray, Dict[str, str]] | None:
-    train_tag, val_tag = REQUIRED_TAGS[gap_type]
-
-    train_data = _load_scalar_series(model_dir, train_tag, size_guidance)
-    val_data = _load_scalar_series(model_dir, val_tag, size_guidance)
-    if train_data is None or val_data is None:
-        LOGGER.warning(
-            "Skipping %s because required tags are missing (needed: %s, %s)",
-            model_dir,
-            train_tag,
-            val_tag,
-        )
+    min_len = min(train_curve.size, val_curve.size)
+    if min_len == 0:
         return None
 
-    train_steps, train_values = train_data
-    val_steps, val_values = val_data
-
-    steps, train_aligned, val_aligned = _align_steps(train_steps, train_values, val_steps, val_values)
-    if steps.size == 0:
-        LOGGER.warning("Skipping %s because train/val steps do not overlap.", model_dir)
-        return None
+    train_curve = train_curve[:min_len]
+    val_curve = val_curve[:min_len]
 
     if gap_type == "loss":
-        gap = val_aligned - train_aligned
-    else:
-        gap = train_aligned - val_aligned
-
-    return steps, gap, {"train": train_tag, "val": val_tag}
+        return val_curve - train_curve
+    return train_curve - val_curve
 
 
 def generate_arch_generalization_gap(
-    models: Sequence[str | Path],
+    models: Mapping[str, Mapping[int, object]],
     out_dir: str | Path,
     gap_type: str = "loss",
     output_format: str = "pdf",
-    metrics_source: str = "tensorboard",
+    metrics_source: str = "model_dict",
     tb_size_guidance: int = 0,
 ) -> tuple[Path, Path]:
-    raw_entries = [str(Path(model).expanduser().resolve()) for model in models]
-    if not raw_entries:
+    if gap_type not in _REQUIRED_METRICS:
+        raise ValueError(f"Unsupported gap_type '{gap_type}'. Expected one of: {tuple(_REQUIRED_METRICS)}")
+
+    if not models:
         raise ValueError("No models were provided.")
 
-    resolved_inputs: List[Dict[str, str]] = []
-    plotted = 0
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     plt.figure(figsize=(10, 6))
+    resolved_models: list[dict[str, object]] = []
 
-    for entry in raw_entries:
-        resolved = _resolve_model_path(entry)
-        if resolved is None:
-            LOGGER.warning("Skipping '%s': could not resolve to a run directory.", entry)
+    for model_name, seed_dict in models.items():
+        if not seed_dict:
             continue
 
-        series = _build_gap_series(resolved, gap_type, tb_size_guidance)
-        if series is None:
+        gap_curve = _build_gap_curve(seed_dict=seed_dict, gap_type=gap_type)
+        if gap_curve is None:
             continue
 
-        steps, gap, tags = series
-        label = _derive_label(resolved)
-        plt.plot(steps, gap, label=label, linewidth=1.8)
-        plotted += 1
+        epochs = np.arange(1, gap_curve.size + 1)
+        plt.plot(epochs, gap_curve, label=model_name, linewidth=1.8)
 
-        resolved_inputs.append(
+        resolved_models.append(
             {
-                "input": entry,
-                "resolved_path": str(resolved),
-                "label": label,
-                "resolved_scalar_tags": tags,
-                "points": int(len(steps)),
+                "label": model_name,
+                "seeds": sorted(seed_dict.keys()),
+                "points": int(gap_curve.size),
+                "resolved_metrics": {
+                    "train": _REQUIRED_METRICS[gap_type][0],
+                    "val": _REQUIRED_METRICS[gap_type][1],
+                },
             }
         )
 
-    if plotted == 0:
-        raise RuntimeError("No model could be plotted. Check paths and scalar tags.")
+    if not resolved_models:
+        raise RuntimeError("No model could be plotted. Check loaded model metrics.")
 
-    ylabel = "val/loss - train/loss" if gap_type == "loss" else "train/acc - val/acc"
+    ylabel = "val loss - train loss" if gap_type == "loss" else "train acc - val acc"
     plt.title(f"Generalization gap across epochs ({gap_type})")
-    plt.xlabel("Epoch step")
+    plt.xlabel("Epoch")
     plt.ylabel(ylabel)
     plt.grid(True, alpha=0.25)
     plt.legend(loc="best")
     plt.tight_layout()
-
-    out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
 
     fig_path = out_dir / f"arch_generalization_gap.{output_format}"
     sidecar_path = out_dir / "arch_generalization_gap.json"
@@ -240,34 +120,10 @@ def generate_arch_generalization_gap(
     sidecar = {
         "metrics_source": metrics_source,
         "gap_type": gap_type,
-        "raw_inputs": raw_entries,
-        "resolved_models": resolved_inputs,
+        "tb_size_guidance": tb_size_guidance,
+        "models": list(models.keys()),
+        "resolved_models": resolved_models,
         "output_figure": str(fig_path),
     }
     sidecar_path.write_text(json.dumps(sidecar, indent=2), encoding="utf-8")
     return fig_path, sidecar_path
-
-
-def main() -> None:
-    args = parse_args()
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s - %(message)s",
-    )
-
-    raw_entries = _read_model_entries(args.models)
-    fig_path, sidecar_path = generate_arch_generalization_gap(
-        models=raw_entries,
-        out_dir=args.out_dir,
-        gap_type=args.gap_type,
-        output_format=args.format,
-        metrics_source=args.metrics_source,
-        tb_size_guidance=args.tb_size_guidance,
-    )
-
-    LOGGER.info("Saved figure: %s", fig_path)
-    LOGGER.info("Saved sidecar: %s", sidecar_path)
-
-
-if __name__ == "__main__":
-    main()
