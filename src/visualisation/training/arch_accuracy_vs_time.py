@@ -84,12 +84,15 @@ def _collect_runs(models: Iterable[str], include_train: bool) -> list[RunSeries]
         run_dir = Path(model_str).expanduser().resolve()
         if not run_dir.exists():
             raise FileNotFoundError(f"Run directory does not exist: {run_dir}")
-        tb_dir = find_tensorboard_dir(run_dir)
-        val_acc = _extract_scalar_series(tb_dir=tb_dir, scalar_tag="val/acc")
-        train_acc = (
-            _extract_scalar_series(tb_dir=tb_dir, scalar_tag="train/acc") if include_train else None
-        )
-        runs.append(RunSeries(label=default_run_label(run_dir), val_acc=val_acc, train_acc=train_acc))
+        try:
+            tb_dir = _find_tensorboard_dir(run_dir)
+            val_acc = _extract_scalar_series(tb_dir=tb_dir, scalar_tag="val/acc")
+            train_acc = (
+                _extract_scalar_series(tb_dir=tb_dir, scalar_tag="train/acc") if include_train else None
+            )
+            runs.append(RunSeries(label=_default_label(run_dir), val_acc=val_acc, train_acc=train_acc))
+        except Exception as e:
+            print(f"Error processing run directory {run_dir}: {e}")
     return runs
 
 

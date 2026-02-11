@@ -46,11 +46,9 @@ def plot_gradient_flow(grad_dict, title):
 
 @rank_zero_only
 def generate_gradient_flow_plots(model, fig_dir=None):
-    try:
-        grad_norms = model.metrics["grad_l2"]
-    except AttributeError:
-        log.warning("No gradient norms found in model metrics; skipping gradient flow plots.")
-        return
+    grad_norms = model.metrics["grad_l2"]
+    if grad_norms is None:
+        raise ValueError("No gradient norms found in metrics for this model.")
 
     weight_grads = {
         k: v

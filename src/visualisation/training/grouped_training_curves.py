@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from lightning.pytorch.utilities import rank_zero_only
 from matplotlib.ticker import MaxNLocator
 
-from ..utils import line_with_std
+from ..utils import line_with_std, metric_stats_from_seeds
 
 __all__ = ["plot_models_together"]
 
@@ -30,36 +30,16 @@ def plot_models_together(trained_models, fig_dir: str = "logs"):
     ax_val_loss.set_ylabel("")
     ax_val_acc.set_ylabel("")
 
+    metrics = (
+        ("train", {"loss": ax_train_loss, "acc": ax_train_acc}),
+        ("val", {"loss": ax_val_loss, "acc": ax_val_acc}),
+    )
     for name, seed_dict in trained_models.items():
-        line_with_std(
-            ax_train_loss,
-            seed_dict=seed_dict,
-            metric_name="train/loss",
-            step_name="train/step",
-            label=name,
-        )
-        line_with_std(
-            ax_val_loss,
-            seed_dict=seed_dict,
-            metric_name="val/loss",
-            step_name="val/step",
-            label=name,
-        )
-        line_with_std(
-            ax_train_acc,
-            seed_dict=seed_dict,
-            metric_name="train/acc",
-            step_name="train/step",
-            label=name,
-        )
-        line_with_std(
-            ax_val_acc,
-            seed_dict=seed_dict,
-            metric_name="val/acc",
-            step_name="val/step",
-            label=name,
-        )
-
+        for group, axes in metrics:
+            for metric, ax in axes.items():
+                x, mean, std = metric_stats_from_seeds(seed_dict, metric=metric, group=group)
+                line_with_std(ax, x=x, mean=mean, std=std, label=name)
+                
     first_model = list(next(iter(trained_models.values())).values())[0]
     epoch_steps = first_model.metrics["epoch"]
     n_epochs = len(epoch_steps)
