@@ -20,6 +20,9 @@ TABLE: Methodology table: hyperparameters that are fixed across all models (data
 ========================================================================
 Architectures:
 
+Accuracy markers:
+- Baseline lines / Checkpoints Markers / A certain treshold like 90% line /
+
 Model family map (one figure) :A visual summary (like your table image but nicer): family → what varies (depth/ansatz/blocks/etc.) and how many variants.
     - This is the reader’s legend for the rest of the thesis.
     - What was explored (depths, ansatz, etc...)

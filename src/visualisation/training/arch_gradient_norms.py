@@ -13,7 +13,7 @@ from typing import Iterable
 import matplotlib.pyplot as plt
 import numpy as np
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
-
+from .utils import default_run_label, find_tensorboard_dir, load_scalar_events
 
 @dataclass
 class ScalarSeries:
@@ -202,7 +202,8 @@ def generate_arch_gradient_norms(
 
     plotted_any = False
     for run_dir in run_dirs:
-        scalars = _read_tensorboard_scalars(run_dir)
+        tb_dir = find_tensorboard_dir(run_dir)
+        scalars = _read_tensorboard_scalars(tb_dir)
         global_series, quantum_series, classical_series, meta = _resolve_gradient_series(
             scalars, qname_pattern=qname_pattern
         )
@@ -218,7 +219,7 @@ def generate_arch_gradient_norms(
         }
         sidecar["models"].append(model_summary)
 
-        label = _model_label(run_dir)
+        label = default_run_label(run_dir)
         print(
             f"[{label}] tags: {meta['direct_tags']} | "
             f"points(global={model_summary['num_points']['global']}, "
