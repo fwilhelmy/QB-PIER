@@ -9,7 +9,8 @@ from pathlib import Path
 from typing import Iterable
 
 import matplotlib.pyplot as plt
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+
+from .utils import default_run_label, find_tensorboard_dir, load_scalar_events
 
 
 SUPPORTED_FORMATS = ("pdf", "png")
@@ -68,35 +69,8 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _default_label(run_dir: Path) -> str:
-    parent = run_dir.parent.name
-    return f"{parent}/{run_dir.name}" if parent else run_dir.name
-
-
-def _find_tensorboard_dir(run_dir: Path) -> Path:
-    candidates = [
-        run_dir / "tensorboard",
-        run_dir / "seed_0" / "tensorboard",
-    ]
-    for candidate in candidates:
-        if candidate.is_dir():
-            return candidate
-    nested = sorted(p for p in run_dir.glob("*/tensorboard") if p.is_dir())
-    if nested:
-        return nested[0]
-    raise FileNotFoundError(f"No tensorboard directory found under: {run_dir}")
-
-
 def _extract_scalar_series(tb_dir: Path, scalar_tag: str) -> ScalarSeries:
-    accumulator = EventAccumulator(str(tb_dir))
-    accumulator.Reload()
-
-    if scalar_tag not in accumulator.Tags().get("scalars", []):
-        raise ValueError(f"Missing scalar tag '{scalar_tag}' in TensorBoard logs at {tb_dir}")
-
-    events = accumulator.Scalars(scalar_tag)
-    if not events:
-        raise ValueError(f"Scalar tag '{scalar_tag}' has no events in TensorBoard logs at {tb_dir}")
+    events = load_scalar_events(tb_dir=tb_dir, scalar_tag=scalar_tag)
 
     first_wall_time = events[0].wall_time
     elapsed_seconds = [event.wall_time - first_wall_time for event in events]
