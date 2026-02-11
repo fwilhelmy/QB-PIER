@@ -11,6 +11,7 @@ from typing import Dict, Iterable, List, Sequence, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 from tensorboard.backend.event_processing import event_accumulator
+from visualisation.training.arch_accuracy_vs_time import _find_tensorboard_dir
 
 LOGGER = logging.getLogger(__name__)
 
@@ -97,14 +98,15 @@ def _load_scalar_series(
     tag: str,
     size_guidance: int,
 ) -> Tuple[np.ndarray, np.ndarray] | None:
+    tb_dir = _find_tensorboard_dir(model_dir)
     accumulator = event_accumulator.EventAccumulator(
-        str(model_dir),
+        str(tb_dir),
         size_guidance={event_accumulator.SCALARS: size_guidance},
     )
     try:
         accumulator.Reload()
     except Exception as exc:  # pragma: no cover - external TB parsing errors.
-        LOGGER.warning("Failed to read TensorBoard events in %s: %s", model_dir, exc)
+        LOGGER.warning("Failed to read TensorBoard events in %s: %s", tb_dir, exc)
         return None
 
     available = accumulator.Tags().get("scalars", [])
