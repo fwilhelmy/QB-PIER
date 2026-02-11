@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 from .utils import default_run_label, find_tensorboard_dir, load_scalar_events
 
 
-SUPPORTED_FORMATS = ("pdf", "png")
 X_UNITS_TO_SECONDS = {"seconds": 1.0, "minutes": 60.0, "hours": 3600.0}
 
 
@@ -33,42 +32,6 @@ class RunSeries:
     val_acc: ScalarSeries
     train_acc: ScalarSeries | None
 
-
-def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Plot validation accuracy versus elapsed wall-clock time for model runs.",
-    )
-    parser.add_argument(
-        "--models",
-        action="append",
-        required=True,
-        help="Model run directory (repeat for each run).",
-    )
-    parser.add_argument(
-        "--out_dir",
-        default="outputs/figures",
-        help="Directory where figure and JSON sidecar are written.",
-    )
-    parser.add_argument(
-        "--format",
-        default="pdf",
-        choices=SUPPORTED_FORMATS,
-        help="Output figure format.",
-    )
-    parser.add_argument(
-        "--include_train",
-        action="store_true",
-        help="Include train/acc in addition to val/acc for each model.",
-    )
-    parser.add_argument(
-        "--x_units",
-        default="minutes",
-        choices=tuple(X_UNITS_TO_SECONDS.keys()),
-        help="Units for elapsed wall-clock time on the x-axis.",
-    )
-    return parser.parse_args()
-
-
 def _extract_scalar_series(tb_dir: Path, scalar_tag: str) -> ScalarSeries:
     events = load_scalar_events(tb_dir=tb_dir, scalar_tag=scalar_tag)
 
@@ -85,12 +48,12 @@ def _collect_runs(models: Iterable[str], include_train: bool) -> list[RunSeries]
         if not run_dir.exists():
             raise FileNotFoundError(f"Run directory does not exist: {run_dir}")
         try:
-            tb_dir = _find_tensorboard_dir(run_dir)
+            tb_dir = find_tensorboard_dir(run_dir)
             val_acc = _extract_scalar_series(tb_dir=tb_dir, scalar_tag="val/acc")
             train_acc = (
                 _extract_scalar_series(tb_dir=tb_dir, scalar_tag="train/acc") if include_train else None
             )
-            runs.append(RunSeries(label=_default_label(run_dir), val_acc=val_acc, train_acc=train_acc))
+            runs.append(RunSeries(label=default_run_label(run_dir), val_acc=val_acc, train_acc=train_acc))
         except Exception as e:
             print(f"Error processing run directory {run_dir}: {e}")
     return runs
@@ -146,7 +109,6 @@ def _write_sidecar(
 def generate_arch_accuracy_vs_time(
     models: Iterable[str | Path],
     out_dir: str | Path,
-    output_format: str = "pdf",
     include_train: bool = False,
     x_units: str = "minutes",
 ) -> tuple[Path, Path]:
@@ -155,7 +117,7 @@ def generate_arch_accuracy_vs_time(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     runs = _collect_runs(models=resolved_models, include_train=include_train)
-    figure_path = out_dir / f"arch_accuracy_vs_time.{output_format}"
+    figure_path = out_dir / f"arch_accuracy_vs_time.png"
     _plot_runs(runs=runs, x_units=x_units, include_train=include_train, output_path=figure_path)
     sidecar_path = _write_sidecar(
         output_path=figure_path,
@@ -165,18 +127,3 @@ def generate_arch_accuracy_vs_time(
         x_units=x_units,
     )
     return figure_path, sidecar_path
-
-
-def main() -> None:
-    args = _parse_args()
-    generate_arch_accuracy_vs_time(
-        models=args.models,
-        out_dir=args.out_dir,
-        output_format=args.format,
-        include_train=args.include_train,
-        x_units=args.x_units,
-    )
-
-
-if __name__ == "__main__":
-    main()
