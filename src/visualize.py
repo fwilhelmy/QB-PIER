@@ -65,7 +65,7 @@ def generate_training_figures(
             plot_training_curves(model_name, seed_dict, fig_dir=target_model_dir)
 
             generate_gradient_flow_plots(seed_dict, fig_dir=target_model_dir)
-            generate_gradient_map_plots(seed_dict[first_seed], fig_dir=target_model_dir)
+            generate_gradient_map_plots(seed_dict, fig_dir=target_model_dir)
 
             rel_parent = os.path.dirname(rel_model_dir)
             grouped_models[rel_parent][model_name] = seed_dict

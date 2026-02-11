@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
 from lightning.pytorch.utilities import rank_zero_only
+
+from visualisation.utils import metric_stats_from_seeds
 
 log = logging.getLogger(__name__)
 
@@ -87,17 +90,24 @@ def plot_gradient_map(grad_dict, title):
 
 
 @rank_zero_only
-def generate_gradient_flow_plots(model, fig_dir=None):
+def generate_gradient_flow_plots(seed_dict: dict[Any, Any], fig_dir=None):
     """Generate and save smoothed gradient map visualizations."""
-    try:
-        grad_norms = model.metrics["grad_l2"]
-    except AttributeError:
-        log.warning("No gradient norms found in model metrics; skipping gradient map plots.")
-        return
+    if not seed_dict:
+        raise ValueError("No seeds provided for gradient map plotting.")
+
+    first_seed = next(iter(seed_dict.values()))
+    grad_norms = first_seed.metrics["grad_l2"]
+    if grad_norms is None:
+        raise ValueError("No gradient norms found in metrics for this model.")
+
+    mean_grad_norms: dict[str, np.ndarray] = {}
+    for layer_name in grad_norms:
+        _, mean_values, _ = metric_stats_from_seeds(seed_dict, metric=layer_name, group="grad_l2")
+        mean_grad_norms[layer_name] = mean_values
 
     weight_grads = {
         k: v
-        for k, v in grad_norms.items()
+        for k, v in mean_grad_norms.items()
         if "weight" in k and "bias" not in k and "bn" not in k and "norm" not in k
     }
     if weight_grads == {}:
@@ -112,7 +122,7 @@ def generate_gradient_flow_plots(model, fig_dir=None):
 
     bias_grads = {
         k: v
-        for k, v in grad_norms.items()
+        for k, v in mean_grad_norms.items()
         if "bias" in k and "bn" not in k and "norm" not in k
     }
     if bias_grads == {}:
@@ -127,6 +137,6 @@ def generate_gradient_flow_plots(model, fig_dir=None):
 
 
 
-def generate_gradient_map_plots(model, fig_dir=None):
+def generate_gradient_map_plots(seed_dict: dict[Any, Any], fig_dir=None):
     """Backward-compatible alias for gradient map generation."""
-    return generate_gradient_flow_plots(model, fig_dir=fig_dir)
+    return generate_gradient_flow_plots(seed_dict, fig_dir=fig_dir)
