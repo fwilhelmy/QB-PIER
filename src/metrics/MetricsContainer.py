@@ -218,13 +218,8 @@ class MetricsContainer(Logger):
             for col in df.columns:
                 if col == "epoch":
                     continue
-                if col == "step":
-                    if group == "train":
-                        rename_map[col] = "step"
-                    else:
-                        rename_map[col] = f"{prefix}step" if prefix else col
                 else:
-                    rename_map[col] = f"{prefix}{col}"
+                    rename_map[col] = f"{prefix}{col}" if prefix else col
             df = df.rename(columns=rename_map)
 
             frames.append(df)
