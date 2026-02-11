@@ -87,7 +87,7 @@ def plot_gradient_map(grad_dict, title):
 
 
 @rank_zero_only
-def generate_gradient_map_plots(model, fig_dir=None):
+def generate_gradient_flow_plots(model, fig_dir=None):
     """Generate and save smoothed gradient map visualizations."""
     try:
         grad_norms = model.metrics["grad_l2"]
@@ -124,3 +124,9 @@ def generate_gradient_map_plots(model, fig_dir=None):
     os.makedirs(output_dir, exist_ok=True)
     bias_fig.savefig(os.path.join(output_dir, "gradient_map_bias.png"))
     plt.close(bias_fig)
+
+
+
+def generate_gradient_map_plots(model, fig_dir=None):
+    """Backward-compatible alias for gradient map generation."""
+    return generate_gradient_flow_plots(model, fig_dir=fig_dir)
