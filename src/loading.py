@@ -164,6 +164,5 @@ if __name__ == "__main__":
     data = load_experiment(log_root, load="final")
     log.info("Loaded data for %s model configurations.", len(data))
     for model_name, model_data in data.items():
-        for seed, model in model_data.items():
-            log.info("Generating gradient flow plots for %s (seed=%d).", model_name, seed)
-            generate_gradient_flow_plots(model, fig_dir=os.path.join(log_root, model_name))
+        log.info("Generating gradient flow plots for %s.", model_name)
+        generate_gradient_flow_plots(model_data, fig_dir=os.path.join(log_root, model_name))
