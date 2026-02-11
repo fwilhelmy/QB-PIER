@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import Any
+
 import numpy as np
 import seaborn as sns
 
 import matplotlib.pyplot as plt
 from lightning.pytorch.utilities import rank_zero_only
+
+from visualisation.utils import metric_stats_from_seeds
 
 log = logging.getLogger(__name__)
 
@@ -45,14 +49,23 @@ def plot_gradient_flow(grad_dict, title):
     return fig, axes
 
 @rank_zero_only
-def generate_gradient_flow_plots(model, fig_dir=None):
-    grad_norms = model.metrics["grad_l2"]
+def generate_gradient_flow_plots(seed_dict: dict[Any, Any], fig_dir=None):
+    if not seed_dict:
+        raise ValueError("No seeds provided for gradient flow plotting.")
+
+    first_seed = next(iter(seed_dict.values()))
+    grad_norms = first_seed.metrics["grad_l2"]
     if grad_norms is None:
         raise ValueError("No gradient norms found in metrics for this model.")
 
+    mean_grad_norms: dict[str, np.ndarray] = {}
+    for layer_name in grad_norms:
+        _, mean_values, _ = metric_stats_from_seeds(seed_dict, metric=layer_name, group="grad_l2")
+        mean_grad_norms[layer_name] = mean_values
+
     weight_grads = {
         k: v
-        for k, v in grad_norms.items()
+        for k, v in mean_grad_norms.items()
         if "weight" in k and "bias" not in k and "bn" not in k and "norm" not in k
     }
     if weight_grads == {}:
@@ -67,7 +80,7 @@ def generate_gradient_flow_plots(model, fig_dir=None):
 
     bias_grads = {
         k: v
-        for k, v in grad_norms.items()
+        for k, v in mean_grad_norms.items()
         if "bias" in k and "bn" not in k and "norm" not in k
     }
     if bias_grads == {}:

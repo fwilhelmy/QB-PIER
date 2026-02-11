@@ -122,7 +122,7 @@ def main(cfg: DictConfig) -> None:
 
     if not fast_dev_run and trained_models:
         figure_path = plot_training_curves(model_name, trained_models, experiment_dir)
-        generate_gradient_flow_plots(list(trained_models.values())[0], experiment_dir)
+        generate_gradient_flow_plots(trained_models, experiment_dir)
         discord_logger.log_exp_finished(
             model_name,
             trained=len(trained_models),
