@@ -64,8 +64,7 @@ def generate_training_figures(
             model_name = os.path.basename(source_model_dir)
             plot_training_curves(model_name, seed_dict, fig_dir=target_model_dir)
 
-            first_seed = min(seed_dict)
-            generate_gradient_flow_plots(seed_dict[first_seed], fig_dir=target_model_dir)
+            generate_gradient_flow_plots(seed_dict, fig_dir=target_model_dir)
             generate_gradient_map_plots(seed_dict[first_seed], fig_dir=target_model_dir)
 
             rel_parent = os.path.dirname(rel_model_dir)
@@ -78,8 +77,6 @@ def generate_training_figures(
         except Exception as e:
             log.error(f"Error processing model directory {rel_model_dir}: {e}")
 
-    representative_seed_dirs: list[str] = []
-
     for rel_parent_dir, models_in_group in grouped_models.items():
         source_parent_dir = os.path.join(training_dir, rel_parent_dir)
         target_parent_dir = mirror_dir(training_dir, source_parent_dir, output_dir)
@@ -90,16 +87,16 @@ def generate_training_figures(
         generate_arch_gradient_norms(models=grouped_paths[rel_parent_dir], out_dir=target_parent_dir)
         generate_baseline_training_summary(models=grouped_paths[rel_parent_dir], out_dir=target_parent_dir)
 
+    representative_seed_dirs: list[str] = []
     for rel_model_dir, seed_dict in loaded_models.items():
-        if not seed_dict:
-            continue
-        first_seed = min(seed_dict)
-        representative_seed_dirs.append(os.path.join(training_dir, rel_model_dir, str(first_seed)))
+        if seed_dict:
+            first_seed = min(seed_dict)
+            representative_seed_dirs.append(os.path.join(training_dir, rel_model_dir, str(first_seed)))
 
-    if representative_seed_dirs:
+    if grouped_models:
         root_output_dir = output_dir or training_dir
         generate_arch_accuracy_vs_time(models=representative_seed_dirs, out_dir=root_output_dir)
-        generate_arch_generalization_gap(models=representative_seed_dirs, out_dir=root_output_dir)
+        generate_arch_generalization_gap(models=grouped_models, out_dir=root_output_dir)
         generate_arch_gradient_norms(models=representative_seed_dirs, out_dir=root_output_dir)
         generate_baseline_training_summary(models=representative_seed_dirs, out_dir=root_output_dir)
 
