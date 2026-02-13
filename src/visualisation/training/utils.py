@@ -6,7 +6,7 @@ from pathlib import Path
 
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
-from src.visualisation.training.arch_gradient_norms import ScalarSeries
+from visualisation.training.arch_gradient_norms import ScalarSeries
 
 
 def default_run_label(run_dir: Path) -> str:
