@@ -11,6 +11,20 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 
 log = logging.getLogger(__name__)
 
+
+def find_tensorboard_dir(run_dir: Path) -> Path:
+    """Locate the TensorBoard directory under a run path."""
+    direct = run_dir / "tensorboard"
+    if direct.is_dir():
+        return direct
+
+    nested = sorted(path for path in run_dir.glob("*/tensorboard") if path.is_dir())
+    if nested:
+        return nested[0]
+
+    raise FileNotFoundError(f"No tensorboard directory found under: {run_dir}")
+
+
 def _extract_scalar_series(tb_dir: Path, scalar_tag: str) -> tuple[list[float], list[float]]:
     events = load_scalar_events(tb_dir=tb_dir, scalar_tag=scalar_tag)
 
@@ -49,17 +63,28 @@ def metric_stats_from_seeds(
 
     for seed, seed_model in seed_dict.items():
         if x_axis == "time":
-            tb_dir = Path(seed_model.log_dir) / "tensorboard"
-            if not tb_dir.is_dir():
-                log.error(f"Missing tensorboard directory for seed {seed} at expected location: {tb_dir}")
+            try:
+                tb_dir = find_tensorboard_dir(Path(seed_model.log_dir))
+            except FileNotFoundError:
+                log.error(f"Missing tensorboard directory for seed {seed} under: {seed_model.log_dir}")
                 continue
 
-            seed_steps, seed_metrics = _extract_scalar_series(tb_dir=tb_dir, scalar_tag=metric_name)
-        else:
-            seed_metrics = np.asarray(seed_model.metrics[metric_name])
-            if seed_metrics is None:
+            seed_steps, _ = _extract_scalar_series(tb_dir=tb_dir, scalar_tag=metric_name)
+            seed_steps = np.asarray(seed_steps)
+            raw_metrics = seed_model.metrics[metric_name]
+            if raw_metrics is None:
                 log.error(f"Missing '{metric_name}' column for seed {seed}")
                 continue
+            seed_metrics = np.asarray(raw_metrics)
+            min_len = min(seed_steps.shape[0], seed_metrics.shape[0])
+            seed_steps = seed_steps[:min_len]
+            seed_metrics = seed_metrics[:min_len]
+        else:
+            raw_metrics = seed_model.metrics[metric_name]
+            if raw_metrics is None:
+                log.error(f"Missing '{metric_name}' column for seed {seed}")
+                continue
+            seed_metrics = np.asarray(raw_metrics)
 
             step_name = f"{group}/step" if group else "epoch"
             seed_steps = np.asarray(seed_model.metrics[step_name]) if x_axis == "step" else np.arange(seed_metrics.shape[0])

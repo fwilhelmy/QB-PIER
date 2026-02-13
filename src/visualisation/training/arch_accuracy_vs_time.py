@@ -1,81 +1,104 @@
-"""Plot accuracy versus wall-clock time for user-provided model run directories."""
+"""Plot architecture accuracy versus wall-clock time from loaded seed dictionaries."""
 
 from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Mapping
 
 import matplotlib.pyplot as plt
 
-from .utils import default_run_label, find_tensorboard_dir, load_scalar_events
+from ..utils import line_with_std, metric_stats_from_seeds
 
 
 X_UNITS_TO_SECONDS = {"seconds": 1.0, "minutes": 60.0, "hours": 3600.0}
 
 
-@dataclass
-class ScalarSeries:
-    """Container for scalar points aligned to elapsed wall-clock time."""
-
-    elapsed_seconds: list[float]
-    values: list[float]
-
-
-@dataclass
-class RunSeries:
-    """Container for plot series associated to one model run."""
-
-    label: str
-    val_acc: ScalarSeries
-    train_acc: ScalarSeries | None
-
-def _extract_scalar_series(tb_dir: Path, scalar_tag: str) -> ScalarSeries:
-    events = load_scalar_events(tb_dir=tb_dir, scalar_tag=scalar_tag)
-
-    first_wall_time = events[0].wall_time
-    elapsed_seconds = [event.wall_time - first_wall_time for event in events]
-    values = [event.value for event in events]
-    return ScalarSeries(elapsed_seconds=elapsed_seconds, values=values)
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--models",
+        action="append",
+        required=True,
+        help="Reserved for legacy CLI compatibility. Use programmatic API with loaded model dictionaries.",
+    )
+    parser.add_argument("--out_dir", default="outputs/figures", help="Output directory for figure + JSON sidecar.")
+    parser.add_argument("--include_train", action="store_true", help="Also include train/acc curves.")
+    parser.add_argument("--x_units", choices=sorted(X_UNITS_TO_SECONDS), default="minutes")
+    return parser
 
 
-def _collect_runs(models: Iterable[str], include_train: bool) -> list[RunSeries]:
-    runs: list[RunSeries] = []
-    for model_str in models:
-        run_dir = Path(model_str).expanduser().resolve()
-        if not run_dir.exists():
-            raise FileNotFoundError(f"Run directory does not exist: {run_dir}")
-        try:
-            tb_dir = find_tensorboard_dir(run_dir)
-            val_acc = _extract_scalar_series(tb_dir=tb_dir, scalar_tag="val/acc")
-            train_acc = (
-                _extract_scalar_series(tb_dir=tb_dir, scalar_tag="train/acc") if include_train else None
-            )
-            runs.append(RunSeries(label=default_run_label(run_dir), val_acc=val_acc, train_acc=train_acc))
-        except Exception as e:
-            print(f"Error processing run directory {run_dir}: {e}")
-    return runs
+def generate_arch_accuracy_vs_time(
+    models: Mapping[str, Mapping[int, object]],
+    out_dir: str | Path,
+    include_train: bool = False,
+    x_units: str = "minutes",
+) -> tuple[Path, Path]:
+    if x_units not in X_UNITS_TO_SECONDS:
+        raise ValueError(f"Unsupported x_units '{x_units}'. Expected one of: {sorted(X_UNITS_TO_SECONDS)}")
+    if not models:
+        raise ValueError("No models were provided.")
 
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-def _plot_runs(runs: list[RunSeries], x_units: str, include_train: bool, output_path: Path) -> None:
     unit_seconds = X_UNITS_TO_SECONDS[x_units]
-
     fig, ax = plt.subplots(figsize=(10, 6))
-    for run in runs:
-        val_x = [value / unit_seconds for value in run.val_acc.elapsed_seconds]
-        ax.plot(val_x, run.val_acc.values, label=f"{run.label} val/acc", linewidth=2)
+    resolved_models: list[dict[str, object]] = []
+    plotted_any = False
 
-        if include_train and run.train_acc is not None:
-            train_x = [value / unit_seconds for value in run.train_acc.elapsed_seconds]
-            ax.plot(
-                train_x,
-                run.train_acc.values,
-                label=f"{run.label} train/acc",
-                linestyle="--",
-                alpha=0.8,
+    for model_name, seed_dict in models.items():
+        if not seed_dict:
+            continue
+
+        try:
+            x, val_mean, val_std = metric_stats_from_seeds(seed_dict, metric="acc", group="val", x_axis="time")
+            line_with_std(
+                ax,
+                x=x / unit_seconds,
+                mean=val_mean,
+                std=val_std,
+                label=f"{model_name} val/acc",
+                linewidth=2,
             )
+            plotted_any = True
+        except Exception as e:
+            print(f"Error processing val/acc for {model_name}: {e}")
+            continue
+
+        model_meta: dict[str, object] = {
+            "model_name": model_name,
+            "seeds": sorted(seed_dict.keys()),
+            "points": int(val_mean.shape[0]),
+            "metrics": ["val/acc"],
+        }
+
+        if include_train:
+            try:
+                train_x, train_mean, train_std = metric_stats_from_seeds(
+                    seed_dict,
+                    metric="acc",
+                    group="train",
+                    x_axis="time",
+                )
+                line_with_std(
+                    ax,
+                    x=train_x / unit_seconds,
+                    mean=train_mean,
+                    std=train_std,
+                    label=f"{model_name} train/acc",
+                    linestyle="--",
+                    alpha=0.8,
+                )
+                model_meta["metrics"].append("train/acc")
+            except Exception as e:
+                print(f"Error processing train/acc for {model_name}: {e}")
+
+        resolved_models.append(model_meta)
+
+    if not plotted_any:
+        raise RuntimeError("No model could be plotted. Check loaded model metrics/tensorboard logs.")
 
     ax.set_xlabel(f"Elapsed time ({x_units})")
     ax.set_ylabel("Accuracy")
@@ -83,47 +106,28 @@ def _plot_runs(runs: list[RunSeries], x_units: str, include_train: bool, output_
     ax.grid(True, linestyle="--", alpha=0.4)
     ax.legend(loc="best")
     fig.tight_layout()
-    fig.savefig(output_path)
+
+    figure_path = out_dir / "arch_accuracy_vs_time.png"
+    fig.savefig(figure_path)
     plt.close(fig)
 
-
-def _write_sidecar(
-    output_path: Path,
-    model_inputs: list[str],
-    resolved_model_paths: list[str],
-    include_train: bool,
-    x_units: str,
-) -> Path:
+    sidecar_path = out_dir / "arch_accuracy_vs_time.json"
     payload = {
-        "models": model_inputs,
-        "resolved_model_paths": resolved_model_paths,
         "include_train": include_train,
         "x_units": x_units,
-        "figure_path": str(output_path),
+        "models": list(models.keys()),
+        "resolved_models": resolved_models,
+        "figure_path": str(figure_path),
+        "metrics_source": "metric_stats_from_seeds",
     }
-    sidecar_path = output_path.with_suffix(".json")
     sidecar_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    return sidecar_path
-
-
-def generate_arch_accuracy_vs_time(
-    models: Iterable[str | Path],
-    out_dir: str | Path,
-    include_train: bool = False,
-    x_units: str = "minutes",
-) -> tuple[Path, Path]:
-    resolved_models = [str(Path(model).expanduser().resolve()) for model in models]
-    out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    runs = _collect_runs(models=resolved_models, include_train=include_train)
-    figure_path = out_dir / f"arch_accuracy_vs_time.png"
-    _plot_runs(runs=runs, x_units=x_units, include_train=include_train, output_path=figure_path)
-    sidecar_path = _write_sidecar(
-        output_path=figure_path,
-        model_inputs=resolved_models,
-        resolved_model_paths=resolved_models,
-        include_train=include_train,
-        x_units=x_units,
-    )
     return figure_path, sidecar_path
+
+
+def main() -> None:
+    _ = build_parser().parse_args()
+    raise RuntimeError("CLI mode is not supported for arch_accuracy_vs_time; use loaded model dictionaries.")
+
+
+if __name__ == "__main__":
+    main()
