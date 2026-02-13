@@ -9,7 +9,6 @@ from .gradient_map import generate_gradient_map_plots, plot_gradient_map
 from .grouped_training_curves import plot_models_together
 from .single_training_curves import plot_training_curves
 from .table_baseline_training_summary import generate_baseline_training_summary
-from ..utils import line_with_std
 
 __all__ = [
     "generate_arch_accuracy_vs_time",
@@ -22,5 +21,4 @@ __all__ = [
     "plot_gradient_map",
     "plot_models_together",
     "plot_training_curves",
-    "line_with_std",
 ]
