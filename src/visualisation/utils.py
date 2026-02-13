@@ -7,10 +7,31 @@ from pathlib import Path
 
 import logging
 import numpy as np
-
-from .training.utils import find_tensorboard_dir, load_scalar_events
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 log = logging.getLogger(__name__)
+
+def _extract_scalar_series(tb_dir: Path, scalar_tag: str) -> tuple[list[float], list[float]]:
+    events = load_scalar_events(tb_dir=tb_dir, scalar_tag=scalar_tag)
+
+    first_wall_time = events[0].wall_time
+    elapsed_seconds = [event.wall_time - first_wall_time for event in events]
+    values = [event.value for event in events]
+    return elapsed_seconds, values
+
+def load_scalar_events(tb_dir: Path, scalar_tag: str, size_guidance: int = 0):
+    """Return TensorBoard scalar events for a tag from one run directory."""
+    accumulator = EventAccumulator(str(tb_dir), size_guidance={EventAccumulator.SCALARS: size_guidance})
+    accumulator.Reload()
+
+    if scalar_tag not in accumulator.Tags().get("scalars", []):
+        raise ValueError(f"Missing scalar tag '{scalar_tag}' in TensorBoard logs at {tb_dir}")
+
+    events = accumulator.Scalars(scalar_tag)
+    if not events:
+        raise ValueError(f"Scalar tag '{scalar_tag}' has no events in TensorBoard logs at {tb_dir}")
+
+    return events
 
 def metric_stats_from_seeds(
     seed_dict: dict[Any, Any],
@@ -19,44 +40,32 @@ def metric_stats_from_seeds(
     x_axis: str = "step",
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Build aligned step/mean/std arrays for a metric across model seeds."""
-
     valid_x_axis = {"step", "epoch", "indice", "time"}
     if x_axis not in valid_x_axis:
         raise ValueError(f"Invalid x_axis '{x_axis}'. Expected one of: {sorted(valid_x_axis)}")
-
+    
     metric_name = f"{group}/{metric}" if group else metric
-    step_name = f"{group}/step" if group else "step"
     metric_values, step_values = [], []
 
     for seed, seed_model in seed_dict.items():
-        seed_metrics = np.asarray(seed_model.metrics[metric_name])
-        if seed_metrics is None:
-            log.error(f"Missing '{metric_name}' column for seed {seed}")
-            continue
-
-        if x_axis == "step":
-            seed_steps = np.asarray(seed_model.metrics[step_name])
-            if seed_steps is None:
-                log.error(f"Missing '{step_name}' column for seed {seed}")
-                continue
-            if seed_steps.shape != seed_metrics.shape:
-                log.error(f"Metric '{metric_name}' and steps lengths do not match for seed {seed}")
-                continue
-        elif x_axis in {"epoch", "indice"}:
-            seed_steps = np.arange(seed_metrics.shape[0])
-        else:  # x_axis == "time"
-            try:
-                tb_dir = find_tensorboard_dir(Path(seed_model.log_dir))
-                scalar_events = load_scalar_events(tb_dir=tb_dir, scalar_tag=metric_name)
-                first_wall_time = scalar_events[0].wall_time
-                seed_steps = np.asarray([event.wall_time - first_wall_time for event in scalar_events])
-            except Exception as exc:
-                log.error(f"Failed to load time axis for metric '{metric_name}' and seed {seed}: {exc}")
+        if x_axis == "time":
+            tb_dir = Path(seed_model.log_dir) / "tensorboard"
+            if not tb_dir.is_dir():
+                log.error(f"Missing tensorboard directory for seed {seed} at expected location: {tb_dir}")
                 continue
 
-            if seed_steps.shape != seed_metrics.shape:
-                log.error(f"Metric '{metric_name}' and time lengths do not match for seed {seed}")
+            seed_steps, seed_metrics = _extract_scalar_series(tb_dir=tb_dir, scalar_tag=metric_name)
+        else:
+            seed_metrics = np.asarray(seed_model.metrics[metric_name])
+            if seed_metrics is None:
+                log.error(f"Missing '{metric_name}' column for seed {seed}")
                 continue
+
+            step_name = f"{group}/step" if group else "epoch"
+            seed_steps = np.asarray(seed_model.metrics[step_name]) if x_axis == "step" else np.arange(seed_metrics.shape[0])
+
+        if seed_steps.shape != seed_metrics.shape:
+            raise ValueError(f"Inconsistent step and metric counts for seed {seed}: steps shape {seed_steps.shape}, metrics shape {seed_metrics.shape}")
 
         step_values.append(seed_steps)
         metric_values.append(seed_metrics)

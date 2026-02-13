@@ -6,6 +6,8 @@ from pathlib import Path
 
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
+from src.visualisation.training.arch_gradient_norms import ScalarSeries
+
 
 def default_run_label(run_dir: Path) -> str:
     """Return a concise default label derived from the run directory path."""
@@ -33,6 +35,13 @@ def find_tensorboard_dir(run_dir: Path) -> Path:
 
     raise FileNotFoundError(f"No tensorboard directory found under: {run_dir}")
 
+def _extract_scalar_series(tb_dir: Path, scalar_tag: str) -> ScalarSeries:
+    events = load_scalar_events(tb_dir=tb_dir, scalar_tag=scalar_tag)
+
+    first_wall_time = events[0].wall_time
+    elapsed_seconds = [event.wall_time - first_wall_time for event in events]
+    values = [event.value for event in events]
+    return ScalarSeries(elapsed_seconds=elapsed_seconds, values=values)
 
 def load_scalar_events(tb_dir: Path, scalar_tag: str, size_guidance: int = 0):
     """Return TensorBoard scalar events for a tag from one run directory."""
