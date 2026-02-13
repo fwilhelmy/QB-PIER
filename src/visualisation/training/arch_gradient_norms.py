@@ -1,23 +1,19 @@
-"""Plot gradient-norm evolution (global/quantum/classical) for provided model runs."""
+"""Plot gradient-norm evolution (global/quantum/classical) from loaded model dictionaries."""
 
 from __future__ import annotations
 
 import argparse
 import json
-import math
-import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Mapping
 
 import matplotlib.pyplot as plt
 import numpy as np
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
-from .utils import default_run_label, find_tensorboard_dir, load_scalar_events
 
 @dataclass
 class ScalarSeries:
-    """Scalar points aligned by TensorBoard step."""
+    """Scalar points aligned by training step."""
 
     steps: np.ndarray
     values: np.ndarray
@@ -33,139 +29,97 @@ def _as_epoch_axis(steps: np.ndarray) -> np.ndarray:
     return np.array([mapping[s] for s in steps], dtype=float)
 
 
-def _read_tensorboard_scalars(run_dir: Path) -> dict[str, ScalarSeries]:
-    tb_dir = run_dir / "tensorboard"
-    if not tb_dir.exists():
-        return {}
-
-    event_files = sorted(tb_dir.glob("events.out.tfevents.*"))
-    if not event_files:
-        return {}
-
-    accumulator = EventAccumulator(str(tb_dir))
-    accumulator.Reload()
-
-    all_scalars: dict[str, ScalarSeries] = {}
-    for tag in accumulator.Tags().get("scalars", []):
-        events = accumulator.Scalars(tag)
-        if not events:
-            continue
-        steps = np.array([int(evt.step) for evt in events], dtype=int)
-        values = np.array([float(evt.value) for evt in events], dtype=float)
-        all_scalars[tag] = ScalarSeries(steps=steps, values=values)
-    return all_scalars
-
-
-def _rms(values: Iterable[float]) -> float:
-    arr = np.asarray(list(values), dtype=float)
-    if arr.size == 0:
-        return float("nan")
-    return float(math.sqrt(np.mean(np.square(arr))))
-
-
-def _aggregate_by_step_rms(series_by_tag: dict[str, ScalarSeries], tags: list[str]) -> ScalarSeries | None:
-    if not tags:
+def _aggregate_by_step_rms(series_by_metric: Mapping[str, np.ndarray], metric_names: list[str]) -> np.ndarray | None:
+    if not metric_names:
         return None
 
-    values_by_step: dict[int, list[float]] = {}
-    for tag in tags:
-        series = series_by_tag[tag]
-        for step, value in zip(series.steps.tolist(), series.values.tolist()):
-            values_by_step.setdefault(step, []).append(value)
-
-    if not values_by_step:
+    available = [name for name in metric_names if name in series_by_metric]
+    if not available:
+        return None
+    min_len = min(np.asarray(series_by_metric[name]).size for name in available)
+    if min_len == 0:
         return None
 
-    steps = np.array(sorted(values_by_step.keys()), dtype=int)
-    values = np.array([_rms(values_by_step[int(step)]) for step in steps], dtype=float)
-    return ScalarSeries(steps=steps, values=values)
-
-
-def _contains_any(text: str, needles: Iterable[str]) -> bool:
-    text_lower = text.lower()
-    return any(needle in text_lower for needle in needles)
-
-
-def _pick_direct_tag(series_by_tag: dict[str, ScalarSeries], include: Iterable[str], exclude: Iterable[str] = ()) -> str | None:
-    include_lower = [item.lower() for item in include]
-    exclude_lower = [item.lower() for item in exclude]
-
-    candidates = []
-    for tag in series_by_tag:
-        tag_lower = tag.lower()
-        if all(token in tag_lower for token in include_lower) and not _contains_any(tag_lower, exclude_lower):
-            candidates.append(tag)
-
-    if not candidates:
-        return None
-
-    candidates.sort(key=lambda t: (len(t), t))
-    return candidates[0]
-
-
-def _find_per_parameter_tags(series_by_tag: dict[str, ScalarSeries], qname_pattern: str) -> tuple[list[str], list[str]]:
-    quantum_tags: list[str] = []
-    classical_tags: list[str] = []
-    q_re = re.compile(re.escape(qname_pattern), flags=re.IGNORECASE)
-
-    for tag in series_by_tag:
-        lower = tag.lower()
-        if not lower.startswith("grad_l2/"):
-            continue
-        param_name = tag.split("/", 1)[1]
-        if q_re.search(param_name):
-            quantum_tags.append(tag)
-        else:
-            classical_tags.append(tag)
-
-    return sorted(quantum_tags), sorted(classical_tags)
+    aligned = np.vstack([np.asarray(series_by_metric[name], dtype=float)[:min_len] for name in available])
+    return np.sqrt(np.mean(np.square(aligned), axis=0))
 
 
 def _resolve_gradient_series(
-    series_by_tag: dict[str, ScalarSeries],
+    seed_dict: Mapping[int, object],
     qname_pattern: str,
 ) -> tuple[ScalarSeries | None, ScalarSeries | None, ScalarSeries | None, dict[str, object]]:
-    # Prefer explicitly logged aggregate series if they exist.
-    direct_global_tag = _pick_direct_tag(series_by_tag, include=["grad", "norm"], exclude=["qlayer", "quant", "classical"])
-    direct_quantum_tag = _pick_direct_tag(series_by_tag, include=["grad", "norm", "quant"])
-    direct_classical_tag = _pick_direct_tag(series_by_tag, include=["grad", "norm", "classical"])
+    global_curves: list[np.ndarray] = []
+    quantum_curves: list[np.ndarray] = []
+    classical_curves: list[np.ndarray] = []
+    step_curves: list[np.ndarray] = []
+    seed_metadata: list[dict[str, object]] = []
 
-    global_series = series_by_tag.get(direct_global_tag) if direct_global_tag else None
-    quantum_series = series_by_tag.get(direct_quantum_tag) if direct_quantum_tag else None
-    classical_series = series_by_tag.get(direct_classical_tag) if direct_classical_tag else None
+    for seed, model in seed_dict.items():
+        grad_metrics = model.metrics["grad_l2"]
+        steps = np.asarray(model.metrics["grad_l2/step"])
+        if grad_metrics is None or steps is None:
+            seed_metadata.append({"seed": seed, "status": "missing_grad_l2"})
+            continue
+        if not isinstance(grad_metrics, dict) or not grad_metrics:
+            seed_metadata.append({"seed": seed, "status": "empty_grad_l2"})
+            continue
 
-    q_param_tags, c_param_tags = _find_per_parameter_tags(series_by_tag, qname_pattern=qname_pattern)
+        q_metrics = sorted([name for name in grad_metrics if qname_pattern.lower() in name.lower()])
+        c_metrics = sorted([name for name in grad_metrics if qname_pattern.lower() not in name.lower()])
+        all_metrics = sorted(grad_metrics.keys())
 
-    # Fallback aggregation from per-parameter gradient norms (RMS across params per step).
-    if quantum_series is None and q_param_tags:
-        quantum_series = _aggregate_by_step_rms(series_by_tag, q_param_tags)
-    if classical_series is None and c_param_tags:
-        classical_series = _aggregate_by_step_rms(series_by_tag, c_param_tags)
+        seed_quantum = _aggregate_by_step_rms(grad_metrics, q_metrics)
+        seed_classical = _aggregate_by_step_rms(grad_metrics, c_metrics)
+        seed_global = _aggregate_by_step_rms(grad_metrics, all_metrics)
+        if seed_global is None and seed_quantum is None and seed_classical is None:
+            seed_metadata.append({"seed": seed, "status": "no_usable_curves"})
+            continue
 
-    if global_series is None:
-        all_param_tags = sorted(q_param_tags + c_param_tags)
-        if all_param_tags:
-            global_series = _aggregate_by_step_rms(series_by_tag, all_param_tags)
+        valid_lengths = [arr.size for arr in [seed_global, seed_quantum, seed_classical] if arr is not None]
+        min_len = min([steps.size] + valid_lengths)
+        if min_len == 0:
+            seed_metadata.append({"seed": seed, "status": "zero_length"})
+            continue
+
+        step_curves.append(steps[:min_len])
+        if seed_global is not None:
+            global_curves.append(seed_global[:min_len])
+        if seed_quantum is not None:
+            quantum_curves.append(seed_quantum[:min_len])
+        if seed_classical is not None:
+            classical_curves.append(seed_classical[:min_len])
+
+        seed_metadata.append(
+            {
+                "seed": seed,
+                "status": "ok",
+                "param_groups": {
+                    "quantum": q_metrics,
+                    "classical": c_metrics,
+                },
+            }
+        )
+
+    if not step_curves:
+        return None, None, None, {"seeds": seed_metadata, "aggregation": "rms"}
+
+    shared_len = min(curve.size for curve in step_curves)
+    shared_steps = step_curves[0][:shared_len].astype(int)
+
+    def _mean_curve(curves: list[np.ndarray]) -> ScalarSeries | None:
+        if not curves:
+            return None
+        min_len = min(shared_len, min(curve.size for curve in curves))
+        if min_len == 0:
+            return None
+        aligned = np.vstack([curve[:min_len] for curve in curves])
+        return ScalarSeries(steps=shared_steps[:min_len], values=aligned.mean(axis=0))
 
     metadata = {
-        "direct_tags": {
-            "global": direct_global_tag,
-            "quantum": direct_quantum_tag,
-            "classical": direct_classical_tag,
-        },
-        "aggregated_from_param_tags": {
-            "quantum": q_param_tags if direct_quantum_tag is None else [],
-            "classical": c_param_tags if direct_classical_tag is None else [],
-            "global": sorted(q_param_tags + c_param_tags) if direct_global_tag is None else [],
-        },
+        "seeds": seed_metadata,
         "aggregation": "rms",
     }
-
-    return global_series, quantum_series, classical_series, metadata
-
-
-def _model_label(run_dir: Path) -> str:
-    return run_dir.name
+    return _mean_curve(global_curves), _mean_curve(quantum_curves), _mean_curve(classical_curves), metadata
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -174,7 +128,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--models",
         action="append",
         required=True,
-        help="Model run directory (repeatable). Expected to contain tensorboard events.",
+        help="Reserved for legacy CLI compatibility. Use programmatic API with loaded model dictionaries.",
     )
     parser.add_argument("--qname_pattern", default="qlayer", help="Substring used to identify quantum parameter names.")
     parser.add_argument("--out_dir", default="outputs/figures", help="Output directory for figure + JSON sidecar.")
@@ -184,12 +138,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def generate_arch_gradient_norms(
-    models: Iterable[str | Path],
+    models: Mapping[str, Mapping[int, object]],
     out_dir: str | Path,
     qname_pattern: str = "qlayer",
     output_format: str = "pdf",
 ) -> tuple[Path, Path]:
-    run_dirs = [Path(path).expanduser().resolve() for path in models]
+    if not models:
+        raise ValueError("No models were provided.")
+
     out_dir = Path(out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -201,15 +157,14 @@ def generate_arch_gradient_norms(
     }
 
     plotted_any = False
-    for run_dir in run_dirs:
-        tb_dir = find_tensorboard_dir(run_dir)
-        scalars = _read_tensorboard_scalars(tb_dir)
+    for model_name, seed_dict in models.items():
         global_series, quantum_series, classical_series, meta = _resolve_gradient_series(
-            scalars, qname_pattern=qname_pattern
+            seed_dict=seed_dict,
+            qname_pattern=qname_pattern,
         )
 
         model_summary = {
-            "run_dir": str(run_dir),
+            "model_name": model_name,
             "resolved": meta,
             "num_points": {
                 "global": int(global_series.values.size) if global_series is not None else 0,
@@ -219,9 +174,9 @@ def generate_arch_gradient_norms(
         }
         sidecar["models"].append(model_summary)
 
-        label = default_run_label(run_dir)
+        label = model_name
         print(
-            f"[{label}] tags: {meta['direct_tags']} | "
+            f"[{label}] "
             f"points(global={model_summary['num_points']['global']}, "
             f"quantum={model_summary['num_points']['quantum']}, "
             f"classical={model_summary['num_points']['classical']})"
@@ -278,13 +233,8 @@ def generate_arch_gradient_norms(
     return figure_path, sidecar_path
 
 def main() -> None:
-    args = build_parser().parse_args()
-    generate_arch_gradient_norms(
-        models=args.models,
-        out_dir=args.out_dir,
-        qname_pattern=args.qname_pattern,
-        output_format=args.format,
-    )
+    _ = build_parser().parse_args()
+    raise RuntimeError("CLI mode is not supported for arch_gradient_norms; use loaded model dictionaries.")
 
 
 if __name__ == "__main__":
