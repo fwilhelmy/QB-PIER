@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from typing import Any, Iterable
+from pathlib import Path
 
 import logging
 import numpy as np
+
+from .training.utils import find_tensorboard_dir, load_scalar_events
 
 log = logging.getLogger(__name__)
 
@@ -13,8 +16,13 @@ def metric_stats_from_seeds(
     seed_dict: dict[Any, Any],
     metric: str,
     group: str | None = None,
+    x_axis: str = "step",
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Build aligned step/mean/std arrays for a metric across model seeds."""
+
+    valid_x_axis = {"step", "epoch", "indice", "time"}
+    if x_axis not in valid_x_axis:
+        raise ValueError(f"Invalid x_axis '{x_axis}'. Expected one of: {sorted(valid_x_axis)}")
 
     metric_name = f"{group}/{metric}" if group else metric
     step_name = f"{group}/step" if group else "step"
@@ -22,16 +30,33 @@ def metric_stats_from_seeds(
 
     for seed, seed_model in seed_dict.items():
         seed_metrics = np.asarray(seed_model.metrics[metric_name])
-        seed_steps = np.asarray(seed_model.metrics[step_name])
         if seed_metrics is None:
             log.error(f"Missing '{metric_name}' column for seed {seed}")
             continue
-        if seed_steps is None:
-            log.error(f"Missing '{step_name}' column for seed {seed}")
-            continue
-        if seed_steps.shape != seed_metrics.shape:
-            log.error(f"Metric '{metric_name}' and steps lengths do not match for seed {seed}")
-            continue
+
+        if x_axis == "step":
+            seed_steps = np.asarray(seed_model.metrics[step_name])
+            if seed_steps is None:
+                log.error(f"Missing '{step_name}' column for seed {seed}")
+                continue
+            if seed_steps.shape != seed_metrics.shape:
+                log.error(f"Metric '{metric_name}' and steps lengths do not match for seed {seed}")
+                continue
+        elif x_axis in {"epoch", "indice"}:
+            seed_steps = np.arange(seed_metrics.shape[0])
+        else:  # x_axis == "time"
+            try:
+                tb_dir = find_tensorboard_dir(Path(seed_model.log_dir))
+                scalar_events = load_scalar_events(tb_dir=tb_dir, scalar_tag=metric_name)
+                first_wall_time = scalar_events[0].wall_time
+                seed_steps = np.asarray([event.wall_time - first_wall_time for event in scalar_events])
+            except Exception as exc:
+                log.error(f"Failed to load time axis for metric '{metric_name}' and seed {seed}: {exc}")
+                continue
+
+            if seed_steps.shape != seed_metrics.shape:
+                log.error(f"Metric '{metric_name}' and time lengths do not match for seed {seed}")
+                continue
 
         step_values.append(seed_steps)
         metric_values.append(seed_metrics)
