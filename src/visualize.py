@@ -69,7 +69,7 @@ def generate_training_figures(
         rel_parent = os.path.dirname(rel_model_dir)
         grouped_models[rel_parent][model_name] = seed_dict
         grouped_paths[rel_parent].append(source_model_dir)
-        generate_arch_accuracy_vs_time(models=[source_model_dir], out_dir=target_model_dir)
+        generate_arch_accuracy_vs_time(models={model_name: seed_dict}, out_dir=target_model_dir)
         generate_arch_generalization_gap(models=[seed_dict], out_dir=target_model_dir)
         generate_arch_gradient_norms(models={model_name: seed_dict}, out_dir=target_model_dir)
         generate_baseline_training_summary(models=[source_model_dir], out_dir=target_model_dir)
@@ -80,7 +80,7 @@ def generate_training_figures(
         target_parent_dir = mirror_dir(training_dir, source_parent_dir, output_dir)
 
         plot_models_together(models_in_group, fig_dir=target_parent_dir)
-        generate_arch_accuracy_vs_time(models=grouped_paths[rel_parent_dir], out_dir=target_parent_dir)
+        generate_arch_accuracy_vs_time(models=models_in_group, out_dir=target_parent_dir)
         generate_arch_generalization_gap(models=models_in_group, out_dir=target_parent_dir)
         generate_arch_gradient_norms(models=models_in_group, out_dir=target_parent_dir)
         generate_baseline_training_summary(models=grouped_paths[rel_parent_dir], out_dir=target_parent_dir)
