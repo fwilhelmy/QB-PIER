@@ -56,24 +56,52 @@ class MetricsContainer(Logger):
         if "/" in key:
             group, metric = key.split("/", 1)
             group_metrics = self._raw.get(group)
-            if group_metrics is None:
-                log.warning(f"Metric group {group!r} not found")
-                return None
-            if metric not in group_metrics:
-                log.warning(f"Metric {metric!r} not found in group {group!r}")
-                return None
-            return group_metrics[metric]
+            if group_metrics is not None and metric in group_metrics:
+                return group_metrics[metric]
 
         if key in self._raw:
             return self._raw[key]
 
         log.warning(f"Metric {key!r} not found")
-        return None
+        return {}
 
     def __getattr__(self, item: str) -> Any:
         """Allow direct attribute access to stored metric groups."""
 
         return self[item]
+    
+    def series2(self, group: str, metric: str) -> pd.Series:
+        if "/" in key:
+            group, metric = key.split("/", 1)
+            group_metrics = self._raw.get(group)
+            if group_metrics is not None and metric in group_metrics:
+                return group_metrics[metric]
+
+        if key in self._raw:
+            return self._raw[key]
+        if group:
+                step_name = f"{group}/step" if group else "epoch"
+
+        seed_steps = np.asarray(seed_model.metrics[step_name])
+
+        if seed_metrics.size == 0 or seed_steps.shape[0] != seed_metrics.shape[0]:
+            log.warning(f"Could not properly load metric {metric_name} for seed {seed}")
+            continue
+        elif seed_steps.size == 0:
+            seed_steps = np.arange(seed_metrics.shape[0])
+            log.warning(f"Missing steps column for seed {seed}, using step indices")
+        elif seed_steps.shape[0] != seed_metrics.shape[0]:
+            log.warning(f"Step count {seed_steps.shape[0]} does not match metric count {seed_metrics.shape[0]} for seed {seed}")
+        return self.series(key)
+    
+    def series(self, key: str) -> pd.Series:
+        """Return a pandas Series for a given metric key, indexed by epoch."""
+        df = self.to_pandas()
+        if key in df.columns:
+            return df[key]
+        else:
+            log.warning(f"Metric {key!r} not found in DataFrame columns")
+            return pd.Series(dtype=float)
     
     @rank_zero_only
     def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
