@@ -57,25 +57,23 @@ def generate_training_figures(
     grouped_paths: dict[str, list[str]] = defaultdict(list)
 
     for rel_model_dir, seed_dict in loaded_models.items():
-        try:
-            source_model_dir = os.path.join(training_dir, rel_model_dir)
-            target_model_dir = mirror_dir(training_dir, source_model_dir, output_dir)
+        source_model_dir = os.path.join(training_dir, rel_model_dir)
+        target_model_dir = mirror_dir(training_dir, source_model_dir, output_dir)
 
-            model_name = os.path.basename(source_model_dir)
-            plot_training_curves(model_name, seed_dict, fig_dir=target_model_dir)
+        model_name = os.path.basename(source_model_dir)
+        plot_training_curves(model_name, seed_dict, fig_dir=target_model_dir)
 
-            generate_gradient_flow_plots(seed_dict, fig_dir=target_model_dir)
-            generate_gradient_map_plots(seed_dict, fig_dir=target_model_dir)
+        generate_gradient_flow_plots(seed_dict, fig_dir=target_model_dir)
+        generate_gradient_map_plots(seed_dict, fig_dir=target_model_dir)
 
-            rel_parent = os.path.dirname(rel_model_dir)
-            grouped_models[rel_parent][model_name] = seed_dict
-            grouped_paths[rel_parent].append(source_model_dir)
-            generate_arch_accuracy_vs_time(models=[source_model_dir], out_dir=target_model_dir)
-            #generate_arch_generalization_gap(models=[seed_dict], out_dir=target_model_dir)
-            generate_arch_gradient_norms(models={model_name: seed_dict}, out_dir=target_model_dir)
-            generate_baseline_training_summary(models=[source_model_dir], out_dir=target_model_dir)
-        except Exception as e:
-            log.error(f"Error processing model directory {rel_model_dir}: {e}")
+        rel_parent = os.path.dirname(rel_model_dir)
+        grouped_models[rel_parent][model_name] = seed_dict
+        grouped_paths[rel_parent].append(source_model_dir)
+        generate_arch_accuracy_vs_time(models=[source_model_dir], out_dir=target_model_dir)
+        generate_arch_generalization_gap(models=[seed_dict], out_dir=target_model_dir)
+        generate_arch_gradient_norms(models={model_name: seed_dict}, out_dir=target_model_dir)
+        generate_baseline_training_summary(models=[source_model_dir], out_dir=target_model_dir)
+
 
     for rel_parent_dir, models_in_group in grouped_models.items():
         source_parent_dir = os.path.join(training_dir, rel_parent_dir)
@@ -83,23 +81,9 @@ def generate_training_figures(
 
         plot_models_together(models_in_group, fig_dir=target_parent_dir)
         generate_arch_accuracy_vs_time(models=grouped_paths[rel_parent_dir], out_dir=target_parent_dir)
-        generate_arch_generalization_gap(models=grouped_paths[rel_parent_dir], out_dir=target_parent_dir)
+        generate_arch_generalization_gap(models=models_in_group, out_dir=target_parent_dir)
         generate_arch_gradient_norms(models=models_in_group, out_dir=target_parent_dir)
         generate_baseline_training_summary(models=grouped_paths[rel_parent_dir], out_dir=target_parent_dir)
-
-    representative_seed_dirs: list[str] = []
-    for rel_model_dir, seed_dict in loaded_models.items():
-        if seed_dict:
-            first_seed = min(seed_dict)
-            representative_seed_dirs.append(os.path.join(training_dir, rel_model_dir, str(first_seed)))
-
-    if grouped_models:
-        root_output_dir = output_dir or training_dir
-        generate_arch_accuracy_vs_time(models=representative_seed_dirs, out_dir=root_output_dir)
-        generate_arch_generalization_gap(models=grouped_models, out_dir=root_output_dir)
-        generate_arch_gradient_norms(models=loaded_models, out_dir=root_output_dir)
-        generate_baseline_training_summary(models=representative_seed_dirs, out_dir=root_output_dir)
-
 
 def generate_attack_figures(attacks_dir: str, output_dir: str | None) -> None:
     """TODO: Add attack-figure generation pipeline."""
