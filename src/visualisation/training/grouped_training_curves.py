@@ -9,10 +9,10 @@ import matplotlib.pyplot as plt
 from lightning.pytorch.utilities import rank_zero_only
 from matplotlib.ticker import MaxNLocator
 
-from visualisation.utils import line_with_std, metric_stats_from_seeds
+from visualisation.utils import line_with_std, metric_stats_from_seeds, format_x_axis
 
-__all__ = ["plot_models_together"]
-
+import numpy as np
+from matplotlib.ticker import FuncFormatter, MaxNLocator
 
 @rank_zero_only
 def plot_models_together(trained_models, fig_dir: str = "logs"):
@@ -41,39 +41,19 @@ def plot_models_together(trained_models, fig_dir: str = "logs"):
                 line_with_std(ax, x=x, mean=mean, std=std, label=name)
                 
     first_model = list(next(iter(trained_models.values())).values())[0]
-    epoch_steps = first_model.metrics["epoch"]
-    n_epochs = len(epoch_steps)
-    epoch_nums = list(range(1, n_epochs + 1))
-    max_ticks = 8
-    if n_epochs > max_ticks:
-        stride = math.ceil(n_epochs / max_ticks)
-        idxs = list(range(0, n_epochs, stride))
-        if idxs[-1] != n_epochs - 1:
-            idxs.append(n_epochs - 1)
-        bottom_steps = [epoch_steps[i] for i in idxs]
-        bottom_labels = [epoch_nums[i] for i in idxs]
-    else:
-        bottom_steps = epoch_steps
-        bottom_labels = epoch_nums
+    epoch_steps = np.array(first_model.metrics["epoch"], dtype=float)
 
     for subax, (row, col) in zip(
         (ax_train_loss, ax_val_loss, ax_train_acc, ax_val_acc),
         [(0, 0), (0, 1), (1, 0), (1, 1)],
     ):
-        subax.set_xticks(bottom_steps)
-        subax.set_xticklabels(bottom_labels)
+        ax_top = format_x_axis(subax, epoch_steps, bottom="epoch", top="step", nbins=8)
         subax.set_xlabel("Epoch" if row == 1 else "")
 
-        ax_top = subax.twiny()
-        ax_top.set_xlim(subax.get_xlim())
-        ax_top.xaxis.set_major_locator(MaxNLocator(nbins=10, integer=True))
-        if row == 1:
+        if ax_top is not None:
             ax_top.set_xlabel("")
-            ax_top.set_xticklabels([])
-        else:
-            ax_top.set_xlabel("")
-        ax_top.xaxis.set_label_position("top")
-        ax_top.xaxis.tick_top()
+            if row == 1:
+                ax_top.set_xticklabels([])
 
         if col == 1:
             subax.set_ylabel("")

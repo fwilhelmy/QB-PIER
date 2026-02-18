@@ -1,9 +1,9 @@
 """Training visualisation helpers."""
 
 from .gradient_flow import generate_gradient_flow_plots
-from .arch_accuracy_vs_time import generate_arch_accuracy_vs_time
-from .arch_generalization_gap import generate_arch_generalization_gap
-from .arch_gradient_norms import generate_arch_gradient_norms
+from .accuracy_vs_time import generate_arch_accuracy_vs_time
+from .generalization_gap import generate_arch_generalization_gap
+from .gradient_norms import generate_arch_gradient_norms
 from .gradient_flow import plot_gradient_flow
 from .gradient_map import generate_gradient_map_plots, plot_gradient_map
 from .grouped_training_curves import plot_models_together
