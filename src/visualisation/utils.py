@@ -7,6 +7,7 @@ from pathlib import Path
 
 import logging
 import numpy as np
+from matplotlib.ticker import FuncFormatter, MaxNLocator
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 log = logging.getLogger(__name__)
@@ -26,16 +27,7 @@ def find_tensorboard_dir(run_dir: Path) -> Path:
 
 
 def _extract_scalar_series(tb_dir: Path, scalar_tag: str) -> tuple[list[float], list[float]]:
-    events = load_scalar_events(tb_dir=tb_dir, scalar_tag=scalar_tag)
-
-    first_wall_time = events[0].wall_time
-    elapsed_seconds = [event.wall_time - first_wall_time for event in events]
-    values = [event.value for event in events]
-    return elapsed_seconds, values
-
-def load_scalar_events(tb_dir: Path, scalar_tag: str, size_guidance: int = 0):
-    """Return TensorBoard scalar events for a tag from one run directory."""
-    accumulator = EventAccumulator(str(tb_dir), size_guidance={EventAccumulator.SCALARS: size_guidance})
+    accumulator = EventAccumulator(str(tb_dir))
     accumulator.Reload()
 
     if scalar_tag not in accumulator.Tags().get("scalars", []):
@@ -45,7 +37,10 @@ def load_scalar_events(tb_dir: Path, scalar_tag: str, size_guidance: int = 0):
     if not events:
         raise ValueError(f"Scalar tag '{scalar_tag}' has no events in TensorBoard logs at {tb_dir}")
 
-    return events
+    first_wall_time = events[0].wall_time
+    elapsed_seconds = [event.wall_time - first_wall_time for event in events]
+    values = [event.value for event in events]
+    return elapsed_seconds, values
 
 def metric_stats_from_seeds(
     seed_dict: dict[Any, Any],
@@ -65,26 +60,15 @@ def metric_stats_from_seeds(
         if x_axis == "time":
             try:
                 tb_dir = find_tensorboard_dir(Path(seed_model.log_dir))
-            except FileNotFoundError:
-                log.error(f"Missing tensorboard directory for seed {seed} under: {seed_model.log_dir}")
+                seed_steps, seed_metrics = _extract_scalar_series(tb_dir=tb_dir, scalar_tag=metric_name)
+            except FileNotFoundError as e:
+                log.warning(f"Could not load metrics from tensorboard for seed {seed}: {e}")
                 continue
-
-            seed_steps, _ = _extract_scalar_series(tb_dir=tb_dir, scalar_tag=metric_name)
-            seed_steps = np.asarray(seed_steps)
-            raw_metrics = seed_model.metrics[metric_name]
-            if raw_metrics is None:
-                log.error(f"Missing '{metric_name}' column for seed {seed}")
-                continue
-            seed_metrics = np.asarray(raw_metrics)
-            min_len = min(seed_steps.shape[0], seed_metrics.shape[0])
-            seed_steps = seed_steps[:min_len]
-            seed_metrics = seed_metrics[:min_len]
         else:
-            raw_metrics = seed_model.metrics[metric_name]
-            if raw_metrics is None:
-                log.error(f"Missing '{metric_name}' column for seed {seed}")
+            seed_metrics = np.asarray(seed_model.metrics[metric_name])
+            if seed_metrics.size == 0:
+                log.error(f"Could not find metric '{metric_name}' for seed {seed} in model metrics")
                 continue
-            seed_metrics = np.asarray(raw_metrics)
 
             step_name = f"{group}/step" if group else "epoch"
             seed_steps = np.asarray(seed_model.metrics[step_name]) if x_axis == "step" else np.arange(seed_metrics.shape[0])
@@ -122,3 +106,58 @@ def line_with_std(
     """
     ax.plot(x, mean, label=label, **plot_kwargs)
     ax.fill_between(x, np.asarray(mean) - np.asarray(std), np.asarray(mean) + np.asarray(std), alpha=0.2)
+
+def format_x_axis(
+    ax,
+    epochs,
+    bottom="step",      # "step" or "epoch"
+    top="epoch",        # "step", "epoch" or None
+    nbins=8
+):
+    """
+    Unbiased x-axis formatter.
+
+    Curves remain plotted against STEP.
+    Epoch labels are mapped from step positions via:
+        epoch(step) = max e such that epochs[e] <= step
+
+    epochs: array where epochs[i] is the step at which epoch i+1 ended
+    """
+
+    epochs = np.asarray(epochs)
+    epoch_numbers = np.arange(1, len(epochs) + 1)
+
+    def epoch_fmt(x, pos):
+        idx = np.searchsorted(epochs, x, side="right") - 1
+        if 0 <= idx < len(epoch_numbers):
+            return str(epoch_numbers[idx])
+        return ""
+
+    def step_fmt(x, pos):
+        return str(int(x))
+
+    # --- bottom axis ---
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=nbins, integer=True))
+
+    if bottom == "epoch":
+        ax.xaxis.set_major_formatter(FuncFormatter(epoch_fmt))
+        ax.set_xlabel("Epoch")
+    else:
+        ax.xaxis.set_major_formatter(FuncFormatter(step_fmt))
+        ax.set_xlabel("Step")
+
+    # --- top axis ---
+    if top is not None and top != bottom:
+        ax_top = ax.twiny()
+        ax_top.set_xlim(ax.get_xlim())
+        ax_top.xaxis.set_major_locator(MaxNLocator(nbins=nbins, integer=True))
+
+        if top == "epoch":
+            ax_top.xaxis.set_major_formatter(FuncFormatter(epoch_fmt))
+            ax_top.set_xlabel("Epoch")
+        else:
+            ax_top.xaxis.set_major_formatter(FuncFormatter(step_fmt))
+            ax_top.set_xlabel("Step")
+
+        ax_top.xaxis.set_label_position("top")
+        ax_top.xaxis.tick_top()
