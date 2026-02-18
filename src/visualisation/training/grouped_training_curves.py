@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from lightning.pytorch.utilities import rank_zero_only
 from matplotlib.ticker import MaxNLocator
 
-from ..utils import line_with_std, metric_stats_from_seeds
+from visualisation.utils import line_with_std, metric_stats_from_seeds
 
 __all__ = ["plot_models_together"]
 
