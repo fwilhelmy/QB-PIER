@@ -9,25 +9,10 @@ from typing import Mapping
 
 import matplotlib.pyplot as plt
 
-from ..utils import line_with_std, metric_stats_from_seeds
+from visualisation.utils import line_with_std, metric_stats_from_seeds
 
 
 X_UNITS_TO_SECONDS = {"seconds": 1.0, "minutes": 60.0, "hours": 3600.0}
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--models",
-        action="append",
-        required=True,
-        help="Reserved for legacy CLI compatibility. Use programmatic API with loaded model dictionaries.",
-    )
-    parser.add_argument("--out_dir", default="outputs/figures", help="Output directory for figure + JSON sidecar.")
-    parser.add_argument("--include_train", action="store_true", help="Also include train/acc curves.")
-    parser.add_argument("--x_units", choices=sorted(X_UNITS_TO_SECONDS), default="minutes")
-    return parser
-
 
 def generate_arch_accuracy_vs_time(
     models: Mapping[str, Mapping[int, object]],
@@ -122,12 +107,3 @@ def generate_arch_accuracy_vs_time(
     }
     sidecar_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return figure_path, sidecar_path
-
-
-def main() -> None:
-    _ = build_parser().parse_args()
-    raise RuntimeError("CLI mode is not supported for arch_accuracy_vs_time; use loaded model dictionaries.")
-
-
-if __name__ == "__main__":
-    main()

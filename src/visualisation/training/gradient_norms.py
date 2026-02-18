@@ -231,11 +231,3 @@ def generate_arch_gradient_norms(
     print(f"Saved figure: {figure_path}")
     print(f"Saved sidecar: {sidecar_path}")
     return figure_path, sidecar_path
-
-def main() -> None:
-    _ = build_parser().parse_args()
-    raise RuntimeError("CLI mode is not supported for arch_gradient_norms; use loaded model dictionaries.")
-
-
-if __name__ == "__main__":
-    main()

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from lightning.pytorch.utilities import rank_zero_only
 
-from visualisation.training import line_with_std
+from visualisation.utils import line_with_std
 
 __all__ = ["plot_transfer_attack_effects"]
 
