@@ -8,6 +8,8 @@ import os
 from collections import defaultdict
 from typing import Dict
 
+from tqdm.auto import tqdm
+
 from loading import crawl_experiments, load_model
 from visualisation.training import (
     generate_arch_accuracy_vs_time,
@@ -36,13 +38,18 @@ def build_mirror_structure(source_root: str, output_root: str | None) -> None:
     if output_root is None:
         return
 
-    for current_dir, _, _ in os.walk(source_root):
+    for current_dir, _, _ in tqdm(
+        os.walk(source_root),
+        desc=f"Mirroring directories from {source_root}",
+        unit="dir",
+    ):
         mirror_dir(source_root, current_dir, output_root)
 
 
 def load_training_data(training_dir: str, map_location: str) -> Dict[str, Dict[int, object]]:
     loaded_models: Dict[str, Dict[int, object]] = {}
-    for model_dir in crawl_experiments(training_dir):
+    model_dirs = list(crawl_experiments(training_dir))
+    for model_dir in tqdm(model_dirs, desc="Loading model checkpoints", unit="model"):
         rel_model_dir = os.path.relpath(model_dir, training_dir)
         loaded_models[rel_model_dir] = load_model(model_dir, best=False, map_location=map_location)
     return loaded_models
@@ -56,7 +63,11 @@ def generate_training_figures(
     grouped_models: dict[str, dict[str, dict[int, object]]] = defaultdict(dict)
     grouped_paths: dict[str, list[str]] = defaultdict(list)
 
-    for rel_model_dir, seed_dict in loaded_models.items():
+    for rel_model_dir, seed_dict in tqdm(
+        loaded_models.items(),
+        desc="Generating per-model figures",
+        unit="model",
+    ):
         source_model_dir = os.path.join(training_dir, rel_model_dir)
         target_model_dir = mirror_dir(training_dir, source_model_dir, output_dir)
 
@@ -74,8 +85,11 @@ def generate_training_figures(
         generate_arch_gradient_norms(models={model_name: seed_dict}, out_dir=target_model_dir)
         generate_baseline_training_summary(models=[source_model_dir], out_dir=target_model_dir)
 
-
-    for rel_parent_dir, models_in_group in grouped_models.items():
+    for rel_parent_dir, models_in_group in tqdm(
+        grouped_models.items(),
+        desc="Generating grouped figures",
+        unit="group",
+    ):
         source_parent_dir = os.path.join(training_dir, rel_parent_dir)
         target_parent_dir = mirror_dir(training_dir, source_parent_dir, output_dir)
 
