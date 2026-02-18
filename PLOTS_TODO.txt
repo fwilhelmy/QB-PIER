@@ -37,6 +37,7 @@ training curves per models architecture
     - HPVQM Training Curves
     - Quanvolution Solo
     - RES AND DROP AND BASELINE TOGETHER
+    - Low Accuracy Models Together (in conclusion of architecture chapter about the point that we can compare those together)
 
 Stacked quantum layer gradient flow to see if gradient flow is improved in any of the layers
     - FOR ALL DIFF ANSATZ EXPERIMENTS
