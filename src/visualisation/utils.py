@@ -107,57 +107,61 @@ def line_with_std(
     ax.plot(x, mean, label=label, **plot_kwargs)
     ax.fill_between(x, np.asarray(mean) - np.asarray(std), np.asarray(mean) + np.asarray(std), alpha=0.2)
 
-def format_x_axis(
-    ax,
-    epochs,
-    bottom="step",      # "step" or "epoch"
-    top="epoch",        # "step", "epoch" or None
-    nbins=8
-):
+def format_x_axis(ax, epochs, *, bottom="step", top="epoch", nbins=8):
     """
     Unbiased x-axis formatter.
 
-    Curves remain plotted against STEP.
-    Epoch labels are mapped from step positions via:
-        epoch(step) = max e such that epochs[e] <= step
+    Curves remain plotted against STEP (true x). Tick positions remain in step-space.
+    Epoch is displayed only via a label mapping step -> epoch using `epochs`.
 
-    epochs: array where epochs[i] is the step at which epoch i+1 ended
+    Parameters
+    ----------
+    ax : matplotlib Axes
+        Axis with data plotted vs step.
+    epochs : array-like
+        epochs[i] is the step where epoch i+1 ended.
+    bottom : {"step","epoch"}
+        What to display on the bottom axis.
+    top : {"step","epoch",None}
+        What to display on the top axis. If same as bottom, top axis is omitted.
+    nbins : int
+        Tick density for both axes (MaxNLocator in step-space).
     """
-
-    epochs = np.asarray(epochs)
+    epochs = np.asarray(epochs, dtype=float)
+    epochs = np.unique(epochs)
+    if epochs.size == 0:
+        raise ValueError("`epochs` must be a non-empty array of epoch-end steps.")
     epoch_numbers = np.arange(1, len(epochs) + 1)
 
     def epoch_fmt(x, pos):
         idx = np.searchsorted(epochs, x, side="right") - 1
         if 0 <= idx < len(epoch_numbers):
-            return str(epoch_numbers[idx])
+            return str(int(epoch_numbers[idx]))
         return ""
 
     def step_fmt(x, pos):
         return str(int(x))
 
-    # --- bottom axis ---
-    ax.xaxis.set_major_locator(MaxNLocator(nbins=nbins, integer=True))
+    def apply(axis, mode):
+        axis.xaxis.set_major_locator(MaxNLocator(nbins=nbins, integer=True))
+        axis.xaxis.set_major_formatter(FuncFormatter(epoch_fmt if mode == "epoch" else step_fmt))
 
-    if bottom == "epoch":
-        ax.xaxis.set_major_formatter(FuncFormatter(epoch_fmt))
-        ax.set_xlabel("Epoch")
-    else:
-        ax.xaxis.set_major_formatter(FuncFormatter(step_fmt))
-        ax.set_xlabel("Step")
+        # Keep ticks within the epoch span and include endpoints (still step-space positions)
+        ticks = np.asarray(axis.get_xticks(), dtype=float)
+        ticks = ticks[(ticks >= epochs[0]) & (ticks <= epochs[-1])]
+        ticks = np.unique(np.concatenate([ticks, [epochs[0], epochs[-1]]]))
+        axis.set_xticks(ticks)
 
-    # --- top axis ---
+    # Bottom (real axis)
+    apply(ax, "epoch" if bottom == "epoch" else "step")
+
+    # Top (optional)
+    ax_top = None
     if top is not None and top != bottom:
         ax_top = ax.twiny()
         ax_top.set_xlim(ax.get_xlim())
-        ax_top.xaxis.set_major_locator(MaxNLocator(nbins=nbins, integer=True))
-
-        if top == "epoch":
-            ax_top.xaxis.set_major_formatter(FuncFormatter(epoch_fmt))
-            ax_top.set_xlabel("Epoch")
-        else:
-            ax_top.xaxis.set_major_formatter(FuncFormatter(step_fmt))
-            ax_top.set_xlabel("Step")
-
+        apply(ax_top, "epoch" if top == "epoch" else "step")
         ax_top.xaxis.set_label_position("top")
         ax_top.xaxis.tick_top()
+
+    return ax_top
