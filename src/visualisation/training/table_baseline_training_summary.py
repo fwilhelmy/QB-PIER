@@ -1,253 +1,204 @@
 from __future__ import annotations
 
+"""
+Baseline training summary table (simplified).
+
+Design goals:
+- One function per extracted metric (easy to read / modify).
+- Reuse your MetricsContainer for metrics loading + epoch-aligned DataFrame.
+- Minimal configuration: just paths in, CSV + LaTeX out.
+
+Expected run_dir layout (seed directory):
+- metrics/logger.pkl  (written by MetricsContainer.save_metrics)
+- final.ckpt          (optional, for parameter counting)
+- model.info          (optional, for time/hardware)
+- training.log        (optional, fallback for time/hardware)
+"""
+
 import argparse
-import pickle
 import re
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 import pandas as pd
 import torch
 
-
-def _find_metrics_csv(run_dir: Path) -> Path | None:
-    candidates = [
-        run_dir / "metrics" / "metrics.csv",
-        run_dir / "metrics.csv",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return None
+from metrics import MetricsContainer
 
 
-def _find_logger_pkl(run_dir: Path) -> Path | None:
-    candidates = [
-        run_dir / "metrics" / "logger.pkl",
-        run_dir / "logger.pkl",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return None
+# ---------------------------
+# Small helpers
+# ---------------------------
 
+@dataclass(frozen=True)
+class Run:
+    path: Path
 
-def _load_metrics_df(run_dir: Path) -> pd.DataFrame:
-    metrics_csv = _find_metrics_csv(run_dir)
-    if metrics_csv is not None:
+    def metrics_df(self) -> pd.DataFrame:
+        """Load metrics via MetricsContainer -> pandas, or return empty df."""
+        container = MetricsContainer(str(self.path))
         try:
-            return pd.read_csv(metrics_csv)
+            container.load_metrics(str(self.path))
+            return container.to_pandas()
         except Exception:
-            pass
+            return pd.DataFrame()
 
-    logger_pkl = _find_logger_pkl(run_dir)
-    if logger_pkl is not None:
+    def read_text(self, filename: str) -> str | None:
+        p = self.path / filename
+        if not p.exists():
+            return None
         try:
-            with open(logger_pkl, "rb") as fp:
-                payload = pickle.load(fp)
-            raw = payload.get("_raw", {}) if isinstance(payload, dict) else {}
-            frames: list[pd.DataFrame] = []
-            epoch_steps = raw.get("epoch", [])
-            if not epoch_steps:
-                return pd.DataFrame()
-
-            def _assign_epochs(steps: pd.Series) -> list[int]:
-                epochs = []
-                boundary_idx = 0
-                n_epochs = len(epoch_steps)
-                for step in steps:
-                    while boundary_idx < n_epochs and step > epoch_steps[boundary_idx]:
-                        boundary_idx += 1
-                    epochs.append(boundary_idx)
-                return epochs
-
-            for group, metrics in raw.items():
-                if group == "epoch" or not isinstance(metrics, dict):
-                    continue
-                frame = pd.DataFrame(metrics)
-                if frame.empty or "step" not in frame.columns:
-                    continue
-                frame = frame.sort_values("step").reset_index(drop=True)
-                frame.insert(0, "epoch", _assign_epochs(frame["step"]))
-                frame = frame.rename(
-                    columns={
-                        col: (
-                            col
-                            if col in {"epoch", "step"} and group == "train"
-                            else (f"{group}_{col}" if col != "epoch" else "epoch")
-                        )
-                        for col in frame.columns
-                    }
-                )
-                frames.append(frame)
-            if not frames:
-                return pd.DataFrame()
-            merged = frames[0]
-            for frame in frames[1:]:
-                merged = pd.merge(merged, frame, on="epoch", how="outer", sort=True)
-            return merged.sort_values("epoch").reset_index(drop=True)
+            return p.read_text(encoding="utf-8", errors="ignore")
         except Exception:
-            pass
+            return None
 
-    return pd.DataFrame()
+    def load_state_dict(self) -> dict[str, Any] | None:
+        ckpt = self.path / "final.ckpt"
+        if not ckpt.exists():
+            return None
+        try:
+            payload = torch.load(ckpt, map_location="cpu")
+        except Exception:
+            return None
 
-
-def _extract_last_metric(run_dir: Path, candidates: list[str]) -> float | None:
-    df = _load_metrics_df(run_dir)
-    if df.empty:
+        if isinstance(payload, dict) and isinstance(payload.get("state_dict"), dict):
+            return payload["state_dict"]
+        if isinstance(payload, dict):
+            return payload
         return None
 
-    for column in candidates:
-        if column not in df.columns:
+
+def _last_numeric(df: pd.DataFrame, candidates: Iterable[str]) -> float | None:
+    for col in candidates:
+        if col not in df.columns:
             continue
-        series = pd.to_numeric(df[column], errors="coerce").dropna()
-        if not series.empty:
-            return float(series.iloc[-1])
+        s = pd.to_numeric(df[col], errors="coerce").dropna()
+        if not s.empty:
+            return float(s.iloc[-1])
+    return None
+
+
+def _extract_seconds(text: str) -> float | None:
+    # "Total training time : 123.45 seconds"
+    m = re.search(
+        r"Total training time\s*:\s*([0-9]+(?:\.[0-9]+)?)\s*seconds",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if m:
+        return float(m.group(1))
+
+    # "HH:MM:SS(.sss)"
+    m = re.search(r"(\d+):(\d{2}):(\d{2}(?:\.\d+)?)", text)
+    if m:
+        h, mm, ss = m.groups()
+        return int(h) * 3600 + int(mm) * 60 + float(ss)
 
     return None
 
 
-def _read_model_info(run_dir: Path) -> str | None:
-    model_info_path = run_dir / "model.info"
-    if not model_info_path.exists():
-        return None
-    try:
-        return model_info_path.read_text(encoding="utf-8")
-    except Exception:
-        return None
+def _format_hms(seconds: float | None) -> str:
+    if seconds is None:
+        return "--"
+    total = int(round(seconds))
+    h = total // 3600
+    m = (total % 3600) // 60
+    s = total % 60
+    return f"{h:02d}:{m:02d}:{s:02d}"
 
 
-def _extract_seconds_from_text(text: str) -> float | None:
-    match = re.search(r"Total training time\s*:\s*([0-9]+(?:\.[0-9]+)?)\s*seconds", text, flags=re.IGNORECASE)
-    if match:
-        return float(match.group(1))
-
-    match = re.search(r"(\d+):(\d{2}):(\d{2}(?:\.\d+)?)", text)
-    if match:
-        h, m, s = match.groups()
-        return int(h) * 3600 + int(m) * 60 + float(s)
-
-    return None
-
+# ---------------------------
+# One function per metric
+# ---------------------------
 
 def extract_train_final_acc(run_dir: str | Path) -> float | None:
-    run_dir = Path(run_dir)
-    return _extract_last_metric(run_dir, ["train_acc", "train/acc", "acc", "train_accuracy"])
+    run = Run(Path(run_dir))
+    df = run.metrics_df()
+    if df.empty:
+        return None
+    # MetricsContainer.to_pandas prefixes group names with "train_" / "val_".
+    return _last_numeric(df, ["train_acc", "train/acc", "train_accuracy", "acc"])
 
 
 def extract_val_final_acc(run_dir: str | Path) -> float | None:
-    run_dir = Path(run_dir)
-    return _extract_last_metric(run_dir, ["val_acc", "val/acc", "valid_acc", "validation_acc"])
+    run = Run(Path(run_dir))
+    df = run.metrics_df()
+    if df.empty:
+        return None
+    return _last_numeric(df, ["val_acc", "val/acc", "valid_acc", "validation_acc"])
 
 
-def extract_training_time(run_dir: str | Path) -> float | None:
-    run_dir = Path(run_dir)
+def extract_training_time_seconds(run_dir: str | Path) -> float | None:
+    run = Run(Path(run_dir))
 
-    model_info = _read_model_info(run_dir)
-    if model_info:
-        duration = _extract_seconds_from_text(model_info)
-        if duration is not None:
-            return duration
+    info = run.read_text("model.info")
+    if info:
+        v = _extract_seconds(info)
+        if v is not None:
+            return v
 
-    train_log = run_dir / "training.log"
-    if train_log.exists():
-        try:
-            log_text = train_log.read_text(encoding="utf-8", errors="ignore")
-            duration = _extract_seconds_from_text(log_text)
-            if duration is not None:
-                return duration
-        except Exception:
-            pass
+    log_text = run.read_text("training.log")
+    if log_text:
+        v = _extract_seconds(log_text)
+        if v is not None:
+            return v
 
     return None
 
 
 def extract_hardware(run_dir: str | Path) -> str | None:
-    run_dir = Path(run_dir)
+    run = Run(Path(run_dir))
 
-    model_info = _read_model_info(run_dir)
-    if model_info:
-        for line in model_info.splitlines():
+    info = run.read_text("model.info")
+    if info:
+        for line in info.splitlines():
             if "hardware" in line.lower():
                 return line.split(":", 1)[-1].strip() if ":" in line else line.strip()
 
-    train_log = run_dir / "training.log"
-    if train_log.exists():
-        try:
-            for line in train_log.read_text(encoding="utf-8", errors="ignore").splitlines():
-                lowered = line.lower()
-                if any(token in lowered for token in ["gpu", "cuda", "cpu", "tpu", "mps"]) and "available" in lowered:
-                    return line.strip()
-        except Exception:
-            pass
-
-    return None
-
-
-def _extract_total_params_from_model_info(model_info: str) -> int | None:
-    match = re.search(r"Total params:\s*([0-9,]+)", model_info)
-    if match:
-        return int(match.group(1).replace(",", ""))
-    return None
-
-
-def _load_checkpoint_state_dict(run_dir: Path) -> dict[str, Any] | None:
-    ckpt_path = run_dir / "final.ckpt"
-    if not ckpt_path.exists():
-        return None
-
-    try:
-        ckpt = torch.load(ckpt_path, map_location="cpu")
-        state_dict = ckpt.get("state_dict", ckpt if isinstance(ckpt, dict) else None)
-        if isinstance(state_dict, dict):
-            return state_dict
-    except Exception:
-        return None
+    log_text = run.read_text("training.log")
+    if log_text:
+        for line in log_text.splitlines():
+            lowered = line.lower()
+            if "available" in lowered and any(tok in lowered for tok in ("gpu", "cuda", "cpu", "tpu", "mps")):
+                return line.strip()
 
     return None
 
 
 def extract_num_params(run_dir: str | Path) -> int | None:
-    run_dir = Path(run_dir)
-
-    state_dict = _load_checkpoint_state_dict(run_dir)
-    if state_dict:
-        return int(sum(v.numel() for v in state_dict.values() if hasattr(v, "numel")))
-
-    model_info = _read_model_info(run_dir)
-    if model_info:
-        return _extract_total_params_from_model_info(model_info)
-
-    return None
+    run = Run(Path(run_dir))
+    sd = run.load_state_dict()
+    if not sd:
+        return None
+    return int(sum(t.numel() for t in sd.values() if hasattr(t, "numel")))
 
 
 def extract_num_quantum_params(run_dir: str | Path, qname_pattern: str = "qlayer") -> int | None:
-    run_dir = Path(run_dir)
-
-    state_dict = _load_checkpoint_state_dict(run_dir)
-    if not state_dict:
+    run = Run(Path(run_dir))
+    sd = run.load_state_dict()
+    if not sd:
         return None
 
-    pattern = re.compile(qname_pattern)
-    quantum_count = 0
-    for name, tensor in state_dict.items():
-        if pattern.search(name) and hasattr(tensor, "numel"):
-            quantum_count += int(tensor.numel())
-
-    return quantum_count
+    pat = re.compile(qname_pattern)
+    total = 0
+    for name, tensor in sd.items():
+        if pat.search(name) and hasattr(tensor, "numel"):
+            total += int(tensor.numel())
+    return total
 
 
 def extract_seed(run_dir: str | Path) -> int | None:
-    run_dir = Path(run_dir)
+    p = Path(run_dir)
 
-    match = re.search(r"seed[_=-]?(\d+)", run_dir.name, flags=re.IGNORECASE)
-    if match:
-        return int(match.group(1))
+    m = re.search(r"seed[_=-]?(\d+)", p.name, flags=re.IGNORECASE)
+    if m:
+        return int(m.group(1))
 
-    if run_dir.name.isdigit():
-        return int(run_dir.name)
+    if p.name.isdigit():
+        return int(p.name)
 
-    for part in reversed(run_dir.parts):
+    for part in reversed(p.parts):
         if part.isdigit():
             return int(part)
 
@@ -255,48 +206,41 @@ def extract_seed(run_dir: str | Path) -> int | None:
 
 
 def extract_model_label(run_dir: str | Path) -> str:
-    run_dir = Path(run_dir)
-    if run_dir.name.lower().startswith("seed") and run_dir.parent.name:
-        return run_dir.parent.name
-    return run_dir.name
+    p = Path(run_dir)
+    if p.name.lower().startswith("seed") and p.parent.name:
+        return p.parent.name
+    return p.name
 
 
-def _format_training_time(value: float | None) -> str:
-    if value is None:
-        return "--"
-    total_seconds = int(round(value))
-    hours = total_seconds // 3600
-    minutes = (total_seconds % 3600) // 60
-    seconds = total_seconds % 60
-    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+# ---------------------------
+# Table generation
+# ---------------------------
 
-
-def build_summary_dataframe(models: list[str], qname_pattern: str = "qlayer") -> pd.DataFrame:
-    rows = []
-    for model_dir in models:
-        run_dir = Path(model_dir)
+def build_summary_dataframe(run_dirs: list[str | Path], *, qname_pattern: str = "qlayer") -> pd.DataFrame:
+    rows: list[dict[str, object]] = []
+    for rd in run_dirs:
+        run_dir = Path(rd).expanduser().resolve()
         rows.append(
             {
                 "Model label": extract_model_label(run_dir),
                 "Seed": extract_seed(run_dir),
                 "Train final accuracy": extract_train_final_acc(run_dir),
                 "Val final accuracy": extract_val_final_acc(run_dir),
-                "Training time": _format_training_time(extract_training_time(run_dir)),
+                "Training time": _format_hms(extract_training_time_seconds(run_dir)),
                 "Hardware": extract_hardware(run_dir) or "--",
                 "parameters": extract_num_params(run_dir),
                 "quantum parameters": extract_num_quantum_params(run_dir, qname_pattern=qname_pattern),
-                # TODO: join with attack aggregates to fetch clean test acc once available
                 "Test accuracy": "TODO",
             }
         )
-
     return pd.DataFrame(rows)
 
 
 def write_outputs(
     df: pd.DataFrame,
     out_dir: str | Path,
-    latex_filename: str,
+    *,
+    latex_filename: str = "baseline_training_summary.tex",
     full_table_env: bool = False,
 ) -> tuple[Path, Path]:
     out_dir = Path(out_dir)
@@ -306,55 +250,52 @@ def write_outputs(
     df.to_csv(csv_path, index=False)
 
     latex_path = out_dir / latex_filename
-    latex_tabular = df.to_latex(index=False, escape=True, column_format="llccclrrc")
+    tabular = df.to_latex(index=False, escape=True, column_format="llccclrrc")
 
-    if full_table_env:
-        latex_content = (
-            "\\begin{table}[t]\n"
-            "\\centering\n"
-            f"{latex_tabular}\n"
-            "\\caption{Baseline training summary.}\n"
-            "\\label{tab:baseline_training_summary}\n"
-            "\\end{table}\n"
-        )
-    else:
-        latex_content = latex_tabular
-
-    latex_path.write_text(latex_content, encoding="utf-8")
+    latex = (
+        "\\begin{table}[t]\n"
+        "\\centering\n"
+        f"{tabular}\n"
+        "\\caption{Baseline training summary.}\n"
+        "\\label{tab:baseline_training_summary}\n"
+        "\\end{table}\n"
+        if full_table_env
+        else tabular
+    )
+    latex_path.write_text(latex, encoding="utf-8")
     return csv_path, latex_path
 
 
-
 def generate_baseline_training_summary(
-    models: list[str | Path],
-    out_dir: str | Path,
+    run_dirs: list[str | Path],
+    *,
+    out_dir: str | Path = "outputs/tables",
     qname_pattern: str = "qlayer",
     latex_filename: str = "baseline_training_summary.tex",
     full_table_env: bool = False,
 ) -> tuple[Path, Path]:
-    normalized_models = [str(Path(model).expanduser().resolve()) for model in models]
-    df = build_summary_dataframe(models=normalized_models, qname_pattern=qname_pattern)
-    return write_outputs(
-        df=df,
-        out_dir=out_dir,
-        latex_filename=latex_filename,
-        full_table_env=full_table_env,
-    )
+    df = build_summary_dataframe(run_dirs, qname_pattern=qname_pattern)
+    return write_outputs(df, out_dir, latex_filename=latex_filename, full_table_env=full_table_env)
+
+
+# ---------------------------
+# CLI
+# ---------------------------
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate baseline training summary table from model run directories.")
-    parser.add_argument("--models", action="append", required=True, help="Model run directory path. Repeat for multiple models.")
-    parser.add_argument("--qname_pattern", default="qlayer", help="Regex pattern to identify quantum parameter names.")
-    parser.add_argument("--out_dir", default="outputs/tables", help="Output directory for CSV and LaTeX files.")
-    parser.add_argument("--latex", default="baseline_training_summary.tex", help="Output LaTeX filename.")
-    parser.add_argument("--full_table_env", action="store_true", help="Wrap output in a full LaTeX table environment.")
-    return parser.parse_args()
+    p = argparse.ArgumentParser(description="Generate baseline training summary table from run directories.")
+    p.add_argument("--runs", action="append", required=True, help="Run directory path. Repeat for multiple runs.")
+    p.add_argument("--qname_pattern", default="qlayer", help="Regex pattern to identify quantum parameter names.")
+    p.add_argument("--out_dir", default="outputs/tables", help="Output directory for CSV and LaTeX files.")
+    p.add_argument("--latex", default="baseline_training_summary.tex", help="Output LaTeX filename.")
+    p.add_argument("--full_table_env", action="store_true", help="Wrap output in a full LaTeX table environment.")
+    return p.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     csv_path, latex_path = generate_baseline_training_summary(
-        models=args.models,
+        args.runs,
         out_dir=args.out_dir,
         qname_pattern=args.qname_pattern,
         latex_filename=args.latex,
