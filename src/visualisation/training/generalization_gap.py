@@ -1,129 +1,93 @@
-"""Plot per-model generalization gap curves from loaded model dictionaries."""
-
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Mapping
+import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
 
+from visualisation.utils import line_with_std, metric_stats_from_seeds
 
-_REQUIRED_METRICS = {
-    "loss": ("train_loss", "val_loss"),
-    "acc": ("train_acc", "val_acc"),
-}
+log = logging.getLogger(__name__)
 
-
-def _mean_curve_for_metric(seed_dict: Mapping[int, object], metric_name: str) -> np.ndarray | None:
-    curves: list[np.ndarray] = []
-
-    for _, model in seed_dict.items():
-        values = model.metrics[metric_name]
-        if values is None:
-            continue
-
-        curve = np.asarray(values, dtype=np.float64)
-        if curve.size == 0:
-            continue
-        curves.append(curve)
-
-    if not curves:
-        return None
-
-    min_len = min(curve.size for curve in curves)
-    aligned = np.vstack([curve[:min_len] for curve in curves])
-    return aligned.mean(axis=0)
-
-
-def _build_gap_curve(seed_dict: Mapping[int, object], gap_type: str) -> np.ndarray | None:
-    train_metric, val_metric = _REQUIRED_METRICS[gap_type]
-    train_curve = _mean_curve_for_metric(seed_dict, train_metric)
-    val_curve = _mean_curve_for_metric(seed_dict, val_metric)
-
-    if train_curve is None or val_curve is None:
-        return None
-
-    min_len = min(train_curve.size, val_curve.size)
-    if min_len == 0:
-        return None
-
-    train_curve = train_curve[:min_len]
-    val_curve = val_curve[:min_len]
-
-    if gap_type == "loss":
-        return val_curve - train_curve
-    return train_curve - val_curve
-
-
-def generate_arch_generalization_gap(
+def generalization_gap(
     models: Mapping[str, Mapping[int, object]],
-    out_dir: str | Path,
-    gap_type: str = "loss",
-    output_format: str = "pdf",
-    metrics_source: str = "model_dict",
-    tb_size_guidance: int = 0,
-) -> tuple[Path, Path]:
-    if gap_type not in _REQUIRED_METRICS:
-        raise ValueError(f"Unsupported gap_type '{gap_type}'. Expected one of: {tuple(_REQUIRED_METRICS)}")
+    out_dir: str | Path = "logs",
+    *,
+    gap_type: str = "loss",          # "loss" or "acc"
+) -> Path:
+    """
+    Plot per-model generalization gap curves as a function of STEP (real x).
 
+    Gap definition:
+      - loss:  val/loss - train/loss
+      - acc:   train/acc - val/acc
+
+    Saves one PNG and returns its path.
+
+    Notes:
+      - Uses metric_stats_from_seeds for mean/std per metric.
+      - Gap std is approximated as sqrt(std_train^2 + std_val^2). This is simple and
+        usually fine; if you want exact (per-seed gap then stats), say so.
+    """
+    if gap_type not in {"loss", "acc"}:
+        raise ValueError("gap_type must be 'loss' or 'acc'")
     if not models:
-        raise ValueError("No models were provided.")
+        raise ValueError("No models provided.")
 
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    plt.figure(figsize=(10, 6))
-    resolved_models: list[dict[str, object]] = []
+    fig, ax = plt.subplots(figsize=(10, 6))
+    plotted_any = False
 
     for model_name, seed_dict in models.items():
         if not seed_dict:
             continue
 
-        gap_curve = _build_gap_curve(seed_dict=seed_dict, gap_type=gap_type)
-        if gap_curve is None:
+        try:
+            # Pull both curves in the same x-domain (step by default).
+            x_tr, mean_tr, std_tr = metric_stats_from_seeds(seed_dict, metric=gap_type, group="train", x_axis="step")
+            x_va, mean_va, std_va = metric_stats_from_seeds(seed_dict, metric=gap_type, group="val",   x_axis="step")
+
+            # Align on common prefix (robust if one series is slightly shorter).
+            n = int(min(len(x_tr), len(x_va), len(mean_tr), len(mean_va), len(std_tr), len(std_va)))
+            if n <= 0:
+                continue
+
+            x = np.asarray(x_tr[:n], dtype=float)  # step-space x
+            mean_tr = np.asarray(mean_tr[:n], dtype=float)
+            mean_va = np.asarray(mean_va[:n], dtype=float)
+            std_tr = np.asarray(std_tr[:n], dtype=float)
+            std_va = np.asarray(std_va[:n], dtype=float)
+
+            if gap_type == "loss":
+                gap_mean = mean_va - mean_tr
+            else:  # acc
+                gap_mean = mean_tr - mean_va
+
+            gap_std = np.sqrt(std_tr**2 + std_va**2)
+
+            line_with_std(ax, x=x, mean=gap_mean, std=gap_std, label=model_name, linewidth=2)
+            plotted_any = True
+
+        except Exception as e:
+            log.error(f"Failed to plot generalization gap for model '{model_name}': {e}")
             continue
 
-        epochs = np.arange(1, gap_curve.size + 1)
-        plt.plot(epochs, gap_curve, label=model_name, linewidth=1.8)
+    if not plotted_any:
+        raise RuntimeError("Nothing was plotted (missing train/val metrics across all models).")
 
-        resolved_models.append(
-            {
-                "label": model_name,
-                "seeds": sorted(seed_dict.keys()),
-                "points": int(gap_curve.size),
-                "resolved_metrics": {
-                    "train": _REQUIRED_METRICS[gap_type][0],
-                    "val": _REQUIRED_METRICS[gap_type][1],
-                },
-            }
-        )
-
-    if not resolved_models:
-        raise RuntimeError("No model could be plotted. Check loaded model metrics.")
-
+    ax.set_xlabel("Step")
     ylabel = "val loss - train loss" if gap_type == "loss" else "train acc - val acc"
-    plt.title(f"Generalization gap across epochs ({gap_type})")
-    plt.xlabel("Epoch")
-    plt.ylabel(ylabel)
-    plt.grid(True, alpha=0.25)
-    plt.legend(loc="best")
-    plt.tight_layout()
+    ax.set_ylabel(ylabel)
+    ax.set_title(f"Generalization gap vs step ({gap_type})")
+    ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.4)
+    ax.legend(loc="best")
 
-    fig_path = out_dir / f"arch_generalization_gap.{output_format}"
-    sidecar_path = out_dir / "arch_generalization_gap.json"
-
-    plt.savefig(fig_path)
-    plt.close()
-
-    sidecar = {
-        "metrics_source": metrics_source,
-        "gap_type": gap_type,
-        "tb_size_guidance": tb_size_guidance,
-        "models": list(models.keys()),
-        "resolved_models": resolved_models,
-        "output_figure": str(fig_path),
-    }
-    sidecar_path.write_text(json.dumps(sidecar, indent=2), encoding="utf-8")
-    return fig_path, sidecar_path
+    fig.tight_layout()
+    out_path = out_dir / f"generalization_gap_{gap_type}.png"
+    fig.savefig(out_path)
+    plt.close(fig)
+    return out_path
