@@ -59,6 +59,8 @@ def plot_gradient_map(grad_dict, title):
         raise ValueError(f"Expected 2D gradient matrix, got shape {raw_data.shape}")
     if raw_data.shape[1] == 1:
         raw_data = np.repeat(raw_data, 2, axis=1)
+    if raw_data.shape[0] < 2:
+        raise ValueError(f"Need at least 2 layers for gradient map, got {raw_data.shape[0]} layer(s)")
 
     num_ticks = raw_data.shape[1]
     map_data = _smooth_matrix(raw_data)
@@ -89,20 +91,17 @@ def plot_gradient_map(grad_dict, title):
         linewidths=0.8,
     )
 
-    cbar = fig.colorbar(contour, ax=ax0, fraction=0.046, pad=0.03)
-    cbar.set_label("Smoothed Gradient Strength")
-
     tick_step = max(1, num_ticks // 10)
     ax0.set_xticks(np.arange(0, num_ticks, tick_step))
     ax0.set_xticklabels([str(i + 1) for i in range(0, num_ticks, tick_step)])
 
     ax0.set_yticks(y)
     ax0.set_yticklabels(layers)
-    ax0.invert_yaxis()  # put last layer at the top (after reversing)
+    ax0.yaxis.tick_left()
+    ax0.yaxis.set_label_position("left")
 
     ax0.set_title("Smoothed Gradient Map")
     ax0.set_xlabel("Training Step")
-    ax0.set_ylabel("Layer")
 
     # --- Summary bars ---
     ax1 = axes[1]
@@ -147,7 +146,11 @@ def generate_gradient_flow_plots(seed_dict: dict[Any, Any], fig_dir=None):
         raise ValueError("No weight gradients found.")
 
     weight_title = "Gradient Map of Weights"
-    weight_fig, _ = plot_gradient_map(weight_grads, weight_title)
+    try:
+        weight_fig, _ = plot_gradient_map(weight_grads, weight_title)
+    except ValueError as e:
+        log.warning(f"Could not generate weight gradient map: {e}")
+        return
     output_dir = fig_dir or "logs"
     os.makedirs(output_dir, exist_ok=True)
     weight_fig.savefig(os.path.join(output_dir, "gradient_map_weight.png"))
@@ -163,7 +166,11 @@ def generate_gradient_flow_plots(seed_dict: dict[Any, Any], fig_dir=None):
         return
 
     bias_title = "Gradient Map of Biases"
-    bias_fig, _ = plot_gradient_map(bias_grads, bias_title)
+    try:
+        bias_fig, _ = plot_gradient_map(bias_grads, bias_title)
+    except ValueError as e:
+        log.warning(f"Could not generate bias gradient map: {e}")
+        return
     os.makedirs(output_dir, exist_ok=True)
     bias_fig.savefig(os.path.join(output_dir, "gradient_map_bias.png"))
     plt.close(bias_fig)
@@ -173,3 +180,10 @@ def generate_gradient_flow_plots(seed_dict: dict[Any, Any], fig_dir=None):
 def generate_gradient_map_plots(seed_dict: dict[Any, Any], fig_dir=None):
     """Backward-compatible alias for gradient map generation."""
     return generate_gradient_flow_plots(seed_dict, fig_dir=fig_dir)
+
+def try_plot_gradient_map(seed_dict: dict[Any, Any], fig_dir=None):
+    try:
+        return generate_gradient_map_plots(seed_dict, fig_dir)
+    except ValueError as e:
+        log.warning(f"Could not generate gradient map plot for {fig_dir}: {e}")
+        return None, None

@@ -19,10 +19,6 @@ def find_tensorboard_dir(run_dir: Path) -> Path:
     if direct.is_dir():
         return direct
 
-    nested = sorted(path for path in run_dir.glob("*/tensorboard") if path.is_dir())
-    if nested:
-        return nested[0]
-
     raise FileNotFoundError(f"No tensorboard directory found under: {run_dir}")
 
 
@@ -40,7 +36,7 @@ def _extract_scalar_series(tb_dir: Path, scalar_tag: str) -> tuple[list[float], 
     first_wall_time = events[0].wall_time
     elapsed_seconds = [event.wall_time - first_wall_time for event in events]
     values = [event.value for event in events]
-    return elapsed_seconds, values
+    return np.asarray(elapsed_seconds), np.asarray(values)
 
 def metric_stats_from_seeds(
     seed_dict: dict[Any, Any],
@@ -66,7 +62,7 @@ def metric_stats_from_seeds(
                 continue
         else:
             seed_metrics = np.asarray(seed_model.metrics[metric_name])
-            if seed_metrics.size == 0:
+            if seed_metrics.size == 0 or seed_metrics.ndim != 1:
                 log.error(f"Could not find metric '{metric_name}' for seed {seed} in model metrics")
                 continue
 

@@ -55,7 +55,7 @@ def generate_gradient_flow_plots(seed_dict: dict[Any, Any], fig_dir=None):
 
     first_seed = next(iter(seed_dict.values()))
     grad_norms = first_seed.metrics["grad_l2"]
-    if grad_norms is None:
+    if grad_norms is None or grad_norms == {}:
         raise ValueError("No gradient norms found in metrics for this model.")
 
     mean_grad_norms: dict[str, np.ndarray] = {}
@@ -93,3 +93,10 @@ def generate_gradient_flow_plots(seed_dict: dict[Any, Any], fig_dir=None):
     bias_filename = "gradient_flow_bias.png"
     bias_fig.savefig(os.path.join(output_dir, bias_filename))
     plt.close(bias_fig)
+
+def try_plot_gradient_flow(seed_dict: dict[Any, Any], fig_dir=None):
+    try:
+        return generate_gradient_flow_plots(seed_dict, fig_dir)
+    except ValueError as e:
+        log.warning(f"Could not generate gradient flow plot for {fig_dir}: {e}")
+        return None, None

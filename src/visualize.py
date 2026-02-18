@@ -16,10 +16,11 @@ from visualisation.training import (
     generalization_gap,
     gradient_norms,
     generate_baseline_training_summary,
-    generate_gradient_flow_plots,
+    try_plot_gradient_flow,
     plot_models_together,
     plot_training_curves,
-    generate_gradient_map_plots
+    generate_gradient_map_plots,
+    try_plot_gradient_map
 )
 
 log = logging.getLogger(__name__)
@@ -74,16 +75,16 @@ def generate_training_figures(
         model_name = os.path.basename(source_model_dir)
         plot_training_curves(model_name, seed_dict, fig_dir=target_model_dir)
 
-        generate_gradient_flow_plots(seed_dict, fig_dir=target_model_dir)
-        generate_gradient_map_plots(seed_dict, fig_dir=target_model_dir)
+        try_plot_gradient_flow(seed_dict, fig_dir=target_model_dir)
+        try_plot_gradient_map(seed_dict, fig_dir=target_model_dir)
 
         rel_parent = os.path.dirname(rel_model_dir)
         grouped_models[rel_parent][model_name] = seed_dict
         grouped_paths[rel_parent].append(source_model_dir)
         accuracy_vs_time(models={model_name: seed_dict}, out_dir=target_model_dir)
-        generalization_gap(models=[seed_dict], out_dir=target_model_dir)
+        generalization_gap(models={model_name: seed_dict}, out_dir=target_model_dir)
         gradient_norms(models={model_name: seed_dict}, out_dir=target_model_dir)
-        generate_baseline_training_summary(models=[source_model_dir], out_dir=target_model_dir)
+        #generate_baseline_training_summary(models=[source_model_dir], out_dir=target_model_dir)
 
     for rel_parent_dir, models_in_group in tqdm(
         grouped_models.items(),
@@ -97,7 +98,7 @@ def generate_training_figures(
         accuracy_vs_time(models=models_in_group, out_dir=target_parent_dir)
         generalization_gap(models=models_in_group, out_dir=target_parent_dir)
         gradient_norms(models=models_in_group, out_dir=target_parent_dir)
-        generate_baseline_training_summary(models=grouped_paths[rel_parent_dir], out_dir=target_parent_dir)
+        #generate_baseline_training_summary(models=grouped_paths[rel_parent_dir], out_dir=target_parent_dir)
 
 def generate_attack_figures(attacks_dir: str, output_dir: str | None) -> None:
     """TODO: Add attack-figure generation pipeline."""

@@ -20,7 +20,7 @@ def plot_training_curves(model_name, seed_dict, fig_dir=None):
     valid_seeds = []
     for seed, model in seed_dict.items():
         required_metrics = {"train/loss", "val/loss", "train/acc", "val/acc", "train/weights_l2"}
-        if all(model.metrics[metric] is not None for metric in required_metrics):
+        if all(model.metrics[metric] is not None and len(model.metrics[metric]) > 0 for metric in required_metrics):
             valid_seeds.append(seed)
         else:
             missing = required_metrics - set(model.metrics._raw)

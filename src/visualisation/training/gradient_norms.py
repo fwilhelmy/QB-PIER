@@ -77,14 +77,12 @@ def gradient_norms(
 
         for seed, model in seed_dict.items():
             grad = model.metrics["grad_l2"]
-            steps = model.metrics["grad_l2/step"]
+            epochs = np.arange(len(model.metrics["epoch"]), dtype=float)
 
-            if grad is None or steps is None:
+            if grad is None or epochs is None:
                 continue
             if not isinstance(grad, dict) or not grad:
                 continue
-
-            steps = np.asarray(steps, dtype=float)
 
             all_keys = sorted(grad.keys())
             q_keys = [k for k in all_keys if qname_pattern.lower() in k.lower()]
@@ -98,11 +96,11 @@ def gradient_norms(
             if not candidates:
                 continue
 
-            min_len = min([steps.size] + [a.size for a in candidates])
+            min_len = min([epochs.size] + [a.size for a in candidates])
             if min_len <= 0:
                 continue
 
-            steps_curves.append(steps[:min_len])
+            steps_curves.append(epochs[:min_len])
             if seed_global is not None:
                 curves_global.append(seed_global[:min_len])
             if seed_quantum is not None:
