@@ -12,9 +12,9 @@ from tqdm.auto import tqdm
 
 from loading import crawl_experiments, load_model
 from visualisation.training import (
-    generate_arch_accuracy_vs_time,
-    generate_arch_generalization_gap,
-    generate_arch_gradient_norms,
+    accuracy_vs_time,
+    generalization_gap,
+    gradient_norms,
     generate_baseline_training_summary,
     generate_gradient_flow_plots,
     plot_models_together,
@@ -80,9 +80,9 @@ def generate_training_figures(
         rel_parent = os.path.dirname(rel_model_dir)
         grouped_models[rel_parent][model_name] = seed_dict
         grouped_paths[rel_parent].append(source_model_dir)
-        generate_arch_accuracy_vs_time(models={model_name: seed_dict}, out_dir=target_model_dir)
-        generate_arch_generalization_gap(models=[seed_dict], out_dir=target_model_dir)
-        generate_arch_gradient_norms(models={model_name: seed_dict}, out_dir=target_model_dir)
+        accuracy_vs_time(models={model_name: seed_dict}, out_dir=target_model_dir)
+        generalization_gap(models=[seed_dict], out_dir=target_model_dir)
+        gradient_norms(models={model_name: seed_dict}, out_dir=target_model_dir)
         generate_baseline_training_summary(models=[source_model_dir], out_dir=target_model_dir)
 
     for rel_parent_dir, models_in_group in tqdm(
@@ -94,9 +94,9 @@ def generate_training_figures(
         target_parent_dir = mirror_dir(training_dir, source_parent_dir, output_dir)
 
         plot_models_together(models_in_group, fig_dir=target_parent_dir)
-        generate_arch_accuracy_vs_time(models=models_in_group, out_dir=target_parent_dir)
-        generate_arch_generalization_gap(models=models_in_group, out_dir=target_parent_dir)
-        generate_arch_gradient_norms(models=models_in_group, out_dir=target_parent_dir)
+        accuracy_vs_time(models=models_in_group, out_dir=target_parent_dir)
+        generalization_gap(models=models_in_group, out_dir=target_parent_dir)
+        gradient_norms(models=models_in_group, out_dir=target_parent_dir)
         generate_baseline_training_summary(models=grouped_paths[rel_parent_dir], out_dir=target_parent_dir)
 
 def generate_attack_figures(attacks_dir: str, output_dir: str | None) -> None:

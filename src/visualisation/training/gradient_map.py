@@ -40,25 +40,54 @@ def _smooth_matrix(data: np.ndarray, kernel_size: int = 9, sigma: float = 1.8) -
 
 
 def plot_gradient_map(grad_dict, title):
-    """Plot a smoothed gradient-strength map plus layer-wise summary bars."""
-    layers = [k.replace(".weight", "").replace(".bias", "") for k in grad_dict.keys()]
-    num_ticks = len(next(iter(grad_dict.values())))
-    raw_data = np.array([grad_dict[k] for k in grad_dict.keys()], dtype=float)
+    """Plot a smoothed gradient-strength map plus layer-wise summary bars.
+
+    Fixes:
+      - If only a single gradient sample exists (matrix has 1 column), duplicate the
+        column so contourf receives at least a 2-column grid.
+      - Invert layer order (last layer shown at the top), matching common gradient-flow plots.
+    """
+    # Keep insertion order of dict (Py3.7+) but reverse it to invert layer order.
+    keys = list(grad_dict.keys())[::-1]
+
+    layers = [k.replace(".weight", "").replace(".bias", "") for k in keys]
+    raw_data = np.array([grad_dict[k] for k in keys], dtype=float)
+
+    # Contour plots require at least a (2, 2) grid. If we only have one time sample,
+    # duplicate the column to get shape (n_layers, 2).
+    if raw_data.ndim != 2:
+        raise ValueError(f"Expected 2D gradient matrix, got shape {raw_data.shape}")
+    if raw_data.shape[1] == 1:
+        raw_data = np.repeat(raw_data, 2, axis=1)
+
+    num_ticks = raw_data.shape[1]
     map_data = _smooth_matrix(raw_data)
 
-    means = [np.mean(grad_dict[k]) for k in grad_dict.keys()]
-    stds = [np.std(grad_dict[k]) for k in grad_dict.keys()]
+    means = [float(np.mean(grad_dict[k])) for k in keys]
+    stds = [float(np.std(grad_dict[k])) for k in keys]
 
-    fig, axes = plt.subplots(1, 2, figsize=(16, len(layers) * 0.45 + 3), gridspec_kw={"width_ratios": [70, 30]})
+    fig, axes = plt.subplots(
+        1, 2, figsize=(16, len(layers) * 0.45 + 3), gridspec_kw={"width_ratios": [70, 30]}
+    )
 
+    # --- Map ---
     ax0 = axes[0]
     x = np.arange(num_ticks)
     y = np.arange(len(layers))
+
     contour = ax0.contourf(x, y, map_data, levels=40, cmap="viridis")
     ax0.contour(x, y, map_data, levels=10, colors="white", linewidths=0.2, alpha=0.35)
 
     strongest = np.unravel_index(np.argmax(map_data), map_data.shape)
-    ax0.scatter(strongest[1], strongest[0], marker="*", s=180, color="gold", edgecolors="black", linewidths=0.8)
+    ax0.scatter(
+        strongest[1],
+        strongest[0],
+        marker="*",
+        s=180,
+        color="gold",
+        edgecolors="black",
+        linewidths=0.8,
+    )
 
     cbar = fig.colorbar(contour, ax=ax0, fraction=0.046, pad=0.03)
     cbar.set_label("Smoothed Gradient Strength")
@@ -66,12 +95,16 @@ def plot_gradient_map(grad_dict, title):
     tick_step = max(1, num_ticks // 10)
     ax0.set_xticks(np.arange(0, num_ticks, tick_step))
     ax0.set_xticklabels([str(i + 1) for i in range(0, num_ticks, tick_step)])
+
     ax0.set_yticks(y)
     ax0.set_yticklabels(layers)
+    ax0.invert_yaxis()  # put last layer at the top (after reversing)
+
     ax0.set_title("Smoothed Gradient Map")
     ax0.set_xlabel("Training Step")
     ax0.set_ylabel("Layer")
 
+    # --- Summary bars ---
     ax1 = axes[1]
     y_positions = np.arange(len(layers))
     ax1.barh(y_positions, means, xerr=stds, capsize=5, color="skyblue")
@@ -102,7 +135,7 @@ def generate_gradient_flow_plots(seed_dict: dict[Any, Any], fig_dir=None):
 
     mean_grad_norms: dict[str, np.ndarray] = {}
     for layer_name in grad_norms:
-        _, mean_values, _ = metric_stats_from_seeds(seed_dict, metric=layer_name, group="grad_l2")
+        _, mean_values, _ = metric_stats_from_seeds(seed_dict, metric=layer_name, group="grad_l2", x_axis="epoch")
         mean_grad_norms[layer_name] = mean_values
 
     weight_grads = {

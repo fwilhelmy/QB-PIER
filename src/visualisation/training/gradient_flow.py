@@ -60,7 +60,7 @@ def generate_gradient_flow_plots(seed_dict: dict[Any, Any], fig_dir=None):
 
     mean_grad_norms: dict[str, np.ndarray] = {}
     for layer_name in grad_norms:
-        _, mean_values, _ = metric_stats_from_seeds(seed_dict, metric=layer_name, group="grad_l2")
+        _, mean_values, _ = metric_stats_from_seeds(seed_dict, metric=layer_name, group="grad_l2", x_axis="epoch")
         mean_grad_norms[layer_name] = mean_values
 
     weight_grads = {
