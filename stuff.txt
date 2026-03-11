@@ -1,0 +1,9 @@
+refactor the plots as follow. There is the BaseFigure is a class that all the fitures inherite from. It receives the plot configuration + a seed_dict + a bool wether to show or not the figure +  a out_dir which is the directory in which the fig should be written and finnaly a file_name which is the file name of the image.
+file_name and out_dir can be none. If out_dir is none then no save. If file_name is none but out_dir is a string then save with default name.
+
+In this class we have 5 functions:
+- constructor which is basically the plotting. At the end of the constructor it should show the image if precised and it should save if precised.
+- save which is the function to save the figure
+- plot abstract and which is the function to format the data and plot the curves that the different figures implement and configure the axes and everything
+
+Then we have another function which is BaseAx which is for a single axe. For example we hav
