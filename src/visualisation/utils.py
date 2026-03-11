@@ -63,7 +63,6 @@ def metric_stats_from_seeds(
         else:
             seed_metrics = np.asarray(seed_model.metrics[metric_name])
             if seed_metrics.size == 0 or seed_metrics.ndim != 1:
-                log.error(f"Could not find metric '{metric_name}' for seed {seed} in model metrics")
                 continue
 
             step_name = f"{group}/step" if group else "epoch"
