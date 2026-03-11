@@ -28,16 +28,7 @@ Model family map (one figure) :A visual summary (like your table image but nicer
     - What was explored (depths, ansatz, etc...)
 
 training curves per models architecture
-    - classical models together
-    - VQM Training Curves
-        - VQM models per depth
-        - VQM50 per ansatz
-    - HVQM Training curves
-    - HQNNVQL Training curves
-    - HPVQM Training Curves
-    - Quanvolution Solo
-    - RES AND DROP AND BASELINE TOGETHER
-    - Low Accuracy Models Together (in conclusion of architecture chapter about the point that we can compare those together)
+    - RES AND DROP AND BASELINE HVQL TOGETHER
 
 Stacked quantum layer gradient flow to see if gradient flow is improved in any of the layers
     - FOR ALL DIFF ANSATZ EXPERIMENTS
