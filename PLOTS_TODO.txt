@@ -1,3 +1,8 @@
+TRAINING FIGURES TODO:
+TODO FIGURES
+- final step and epoch from the figures are fucked up
+- what to do to manage the shorter curves??
+
 ========================================================================
 LITERATURE
 

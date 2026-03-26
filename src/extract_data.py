@@ -89,7 +89,104 @@ def read_metrics_df(seed_dir: Path) -> pd.DataFrame:
 def parse_model_info(seed_dir: Path) -> str:
     return read_text_if_exists(seed_dir / "model.info")
 
+def _parse_number_token(token: str) -> Optional[int]:
+    token = token.strip().replace(",", "")
+    if not token or token == "--":
+        return None
+    if not re.fullmatch(r"\d+", token):
+        return None
+    return int(token)
 
+
+def parse_model_info_summary(text: str) -> Dict[str, Optional[float]]:
+    """Parse the persisted torchinfo-style model.info summary.
+
+    Handles both:
+    - Total training time: X seconds
+    - Total training time (per seed): X seconds
+    """
+    out: Dict[str, Optional[float]] = {
+        "total_params": None,
+        "trainable_params": None,
+        "non_trainable_params": None,
+        "trained_epochs": None,
+        "training_time_seconds": None,
+        "training_time_per_epoch_seconds": None,
+        "classical_params_from_lines": None,
+        "quantum_params_from_lines": None,
+    }
+
+    patterns = {
+        "total_params": r"Total params:\s*([\d,]+)",
+        "trainable_params": r"Trainable params:\s*([\d,]+)",
+        "non_trainable_params": r"Non-trainable params:\s*([\d,]+)",
+        "trained_epochs": r"Trained epochs:\s*(\d+)",
+        "training_time_per_epoch_seconds": r"Training time per epoch:\s*([0-9]+(?:\.[0-9]+)?)\s*seconds",
+        "training_time_seconds": r"Total training time(?:\s*\(per seed\))?:\s*([0-9]+(?:\.[0-9]+)?)\s*seconds",
+    }
+
+    for key, pattern in patterns.items():
+        m = re.search(pattern, text)
+        if not m:
+            continue
+        value = m.group(1).replace(",", "")
+        out[key] = float(value)
+
+    # Split params by parsing per-layer rows from torchinfo summary
+    classical_total = 0
+    quantum_total = 0
+    saw_any_param_line = False
+
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip()
+        if not line or "Param #" in line or "===" in line:
+            continue
+
+        m = re.match(r"^(?P<layer>.+?)\s{2,}(?P<params>[\d,]+|--)\s{2,}.*$", line)
+        if not m:
+            continue
+
+        param_count = _parse_number_token(m.group("params"))
+        if param_count is None:
+            continue
+
+        saw_any_param_line = True
+        layer_name = m.group("layer").lower()
+
+        is_quantum = any(token in layer_name for token in [
+            "qlayer",
+            "torchlayer",
+            "vqc",
+            "vql",
+            "quantum",
+            "qnode",
+            "ansatz",
+            "quanv",
+        ])
+
+        if is_quantum:
+            quantum_total += param_count
+        else:
+            classical_total += param_count
+
+    if saw_any_param_line:
+        out["classical_params_from_lines"] = float(classical_total)
+        out["quantum_params_from_lines"] = float(quantum_total)
+
+    return out
+
+
+def parse_training_time_from_model_info(text: str) -> Optional[float]:
+    return parse_model_info_summary(text)["training_time_seconds"]
+
+
+def parse_time_per_epoch_from_model_info(text: str) -> Optional[float]:
+    return parse_model_info_summary(text)["training_time_per_epoch_seconds"]
+
+
+def parse_trained_epochs_from_model_info(text: str) -> Optional[int]:
+    value = parse_model_info_summary(text)["trained_epochs"]
+    return int(value) if value is not None else None
 
 def infer_checkpoint_path(seed_dir: Path, load_mode: str) -> Optional[Path]:
     final_ckpt = seed_dir / "final.ckpt"
@@ -238,26 +335,6 @@ def metric_epoch_of_min(metrics_df: pd.DataFrame, metric_name: str) -> Optional[
     idx = series.idxmin()
     value = metrics_df.loc[idx, "epoch"]
     return int(value) if pd.notna(value) else None
-
-
-
-def parse_training_time_from_model_info(text: str) -> Optional[float]:
-    m = re.search(r"Total training time:\s*([0-9]+(?:\.[0-9]+)?)\s*seconds", text)
-    return float(m.group(1)) if m else None
-
-
-
-def parse_time_per_epoch_from_model_info(text: str) -> Optional[float]:
-    m = re.search(r"Training time per epoch:\s*([0-9]+(?:\.[0-9]+)?)\s*seconds", text)
-    return float(m.group(1)) if m else None
-
-
-
-def parse_trained_epochs_from_model_info(text: str) -> Optional[int]:
-    m = re.search(r"Trained epochs:\s*(\d+)", text)
-    return int(m.group(1)) if m else None
-
-
 
 def named_parameters_list(model: Any) -> List[tuple[str, torch.nn.Parameter]]:
     try:
@@ -454,20 +531,24 @@ def _iter_quantum_parameter_tensors(model: Any) -> Iterable[torch.nn.Parameter]:
         except Exception:
             continue
 
+def extract_params_total(ctx: SeedContext) -> int:
+    parsed = parse_model_info_summary(ctx.model_info_text)
+    total = parsed.get("total_params")
+    if total is not None:
+        return int(total)
+    return int(sum(p.numel() for p in ctx.model.parameters()))
 
 
 def extract_params_quantum(ctx: SeedContext) -> int:
-    """Count quantum trainable parameters from the actual quantum submodules first.
+    parsed = parse_model_info_summary(ctx.model_info_text)
+    q_from_lines = parsed.get("quantum_params_from_lines")
+    if q_from_lines is not None:
+        return int(q_from_lines)
 
-    This is more reliable than name matching because PennyLane TorchLayer stores
-    trainable tensors internally and the exact parameter names can vary across
-    ansatz implementations.
-    """
     quantum_params = list(_iter_quantum_parameter_tensors(ctx.model))
     if quantum_params:
         return int(sum(p.numel() for p in quantum_params))
 
-    # Conservative fallback when the object structure is unfamiliar.
     total = 0
     for name, param in named_parameters_list(ctx.model):
         if _is_quantum_parameter_name(name):
@@ -475,47 +556,55 @@ def extract_params_quantum(ctx: SeedContext) -> int:
     return int(total)
 
 
-
 def extract_params_classical(ctx: SeedContext) -> int:
+    parsed = parse_model_info_summary(ctx.model_info_text)
+    c_from_lines = parsed.get("classical_params_from_lines")
+    if c_from_lines is not None:
+        return int(c_from_lines)
+
     total = extract_params_total(ctx)
     q_total = extract_params_quantum(ctx)
     return int(max(total - q_total, 0))
 
 
-
-def extract_param_ratio_q_classical(ctx: SeedContext) -> Optional[float]:
-    classical = extract_params_classical(ctx)
-    quantum = extract_params_quantum(ctx)
-    if classical == 0:
-        return None
-    return float(quantum / classical)
-
-
-
 def extract_epochs(ctx: SeedContext) -> Optional[int]:
-    model = ctx.model
-    if hasattr(model, "hparams") and hasattr(model.hparams, "epochs"):
-        return int(model.hparams.epochs)
-    return None
+    parsed = parse_model_info_summary(parse_model_info(ctx.model_dir))
+    epochs = parsed.get("trained_epochs")
+    if epochs is not None:
+        return int(epochs)
 
-
-
-def extract_param_ratio_q_classical(ctx: SeedContext) -> Optional[float]:
-    classical = extract_params_classical(ctx)
-    quantum = extract_params_quantum(ctx)
-    if classical == 0:
-        return None
-    return float(quantum / classical)
-
-
-
-def extract_epochs(ctx: SeedContext) -> Optional[int]:
     model_cfg_epochs = safe_get(ctx.hydra_config, "training", "epochs")
     if model_cfg_epochs is not None:
         return int(model_cfg_epochs)
-    return parse_trained_epochs_from_model_info(ctx.model_info_text)
+    return None
 
 
+def extract_training_time_seconds(ctx: SeedContext) -> Optional[float]:
+    performance_path = ctx.model_dir / "performance.json"
+    if performance_path.exists():
+        try:
+            with performance_path.open("r", encoding="utf-8") as f:
+                performance = json.load(f)
+
+            seed_times = performance.get("seed_times", {})
+            seed_key = str(ctx.seed)
+            if seed_key in seed_times:
+                return float(seed_times[seed_key])
+
+            average = performance.get("average")
+            if average is not None:
+                return float(average)
+        except Exception as exc:
+            log.warning("Failed to read performance.json at %s: %s", performance_path, exc)
+
+    return parse_training_time_from_model_info(parse_model_info(ctx.model_dir))
+
+def extract_param_ratio_q_classical(ctx: SeedContext) -> Optional[float]:
+    classical = extract_params_classical(ctx)
+    quantum = extract_params_quantum(ctx)
+    if classical == 0:
+        return None
+    return float(quantum / classical)
 
 def extract_batch_size(ctx: SeedContext) -> Optional[int]:
     for key in ["train_batch_size", "batch_size"]:
@@ -542,11 +631,6 @@ def extract_optimizer(ctx: SeedContext) -> Optional[str]:
     if value is not None:
         return str(value)
     return safe_get(ctx.model, "hparams", "optimizer")
-
-
-
-def extract_training_time_seconds(ctx: SeedContext) -> Optional[float]:
-    return parse_training_time_from_model_info(ctx.model_info_text)
 
 
 
@@ -677,15 +761,128 @@ def extract_convergence_epoch(ctx: SeedContext) -> Optional[int]:
     return int(reached.iloc[0]["epoch"])
 
 
+def _flatten_grad_l2_values(ctx: SeedContext) -> list[float]:
+    metrics = getattr(ctx.model, "metrics", None)
+    if metrics is None:
+        return []
+
+    grad_l2 = metrics.get("grad_l2")
+    if not isinstance(grad_l2, dict):
+        return []
+
+    values: list[float] = []
+    for _, history in grad_l2.items():
+        if not isinstance(history, list):
+            continue
+        for v in history:
+            if v is None:
+                continue
+            try:
+                values.append(float(v))
+            except (TypeError, ValueError):
+                continue
+    return values
+
+
+def _grad_l2_histories(ctx: SeedContext) -> dict[str, list[float]]:
+    metrics = getattr(ctx.model, "metrics", None)
+    if metrics is None:
+        return {}
+
+    grad_l2 = metrics["grad_l2"]
+    if not isinstance(grad_l2, dict):
+        return {}
+
+    cleaned: dict[str, list[float]] = {}
+    for layer_name, history in grad_l2.items():
+        if not isinstance(history, list):
+            continue
+
+        vals = []
+        for v in history:
+            if v is None:
+                continue
+            try:
+                vals.append(float(v))
+            except (TypeError, ValueError):
+                continue
+
+        if vals:
+            cleaned[layer_name] = vals
+
+    return cleaned
 
 def extract_gradient_norm_mean(ctx: SeedContext) -> Optional[float]:
-    return metric_last(ctx.metrics_df, "train_grad_norm_mean", "gradient_mean", "grad_norm_mean")
+    histories = _grad_l2_histories(ctx)
+    if not histories:
+        return None
 
+    n_layers = len(histories)
+    n_points = sum(len(v) for v in histories.values())
+
+    # reject broken one-shot logging
+    if n_points < 2 * n_layers:
+        return None
+
+    flat = [x for values in histories.values() for x in values]
+    if not flat:
+        return None
+
+    return float(pd.Series(flat, dtype=float).mean())
 
 
 def extract_gradient_norm_std(ctx: SeedContext) -> Optional[float]:
-    return metric_last(ctx.metrics_df, "train_grad_norm_std", "gradient_std", "grad_norm_std")
+    histories = _grad_l2_histories(ctx)
+    if not histories:
+        return None
 
+    n_layers = len(histories)
+    n_points = sum(len(v) for v in histories.values())
+
+    if n_points < 2 * n_layers:
+        return None
+
+    flat = [x for values in histories.values() for x in values]
+    if len(flat) < 2:
+        return None
+
+    return float(pd.Series(flat, dtype=float).std(ddof=1))
+
+
+def extract_gradient_norm_final(ctx: SeedContext) -> Optional[float]:
+    histories = _grad_l2_histories(ctx)
+    if not histories:
+        return None
+
+    n_layers = len(histories)
+    n_points = sum(len(v) for v in histories.values())
+
+    if n_points < 2 * n_layers:
+        return None
+
+    finals = [values[-1] for values in histories.values() if values]
+    if not finals:
+        return None
+
+    return float(pd.Series(finals, dtype=float).mean())
+
+
+def extract_gradient_norm_max(ctx: SeedContext) -> Optional[float]:
+    histories = _grad_l2_histories(ctx)
+    if not histories:
+        return None
+
+    n_layers = len(histories)
+    n_points = sum(len(v) for v in histories.values())
+
+    if n_points < 2 * n_layers:
+        return None
+
+    flat = [x for values in histories.values() for x in values]
+    if not flat:
+        return None
+
+    return float(max(flat))
 
 
 def extract_clean_accuracy_attack_baseline(ctx: SeedContext) -> Optional[float]:
@@ -719,21 +916,10 @@ COLUMN_EXTRACTORS: Dict[str, Callable[[SeedContext], Any]] = {
     "Family": extract_family,
     "Architecture": extract_architecture,
     "Variant Configuration (knobs)": extract_variant_configuration_knobs,
-    "Params Total": extract_params_total,
-    "Params Classical": extract_params_classical,
-    "Params Quantum": extract_params_quantum,
-    "Qubits": extract_qubits,
-    "Q Depth": extract_q_depth,
-    "Param Ratio (Q/Classical)": extract_param_ratio_q_classical,
-    "Epochs": extract_epochs,
-    "Training Time (s)": extract_training_time_seconds,
-    "Device": extract_device,
     "Seed": extract_seed,
-    "#Seeds Aggregated": extract_num_seeds_aggregated,
-    "Checkpoint Type": extract_checkpoint_type,
-    "Selection Metric": extract_selection_metric,
-    "Selection Value": extract_selection_value,
+    "Training Time (s)": extract_training_time_seconds,
     "Epoch Selected": extract_epoch_selected,
+    "Selection Value": extract_selection_value,
     "Train Accuracy": extract_train_accuracy,
     "Validation Accuracy": extract_validation_accuracy,
     "Test Accuracy": extract_test_accuracy,
@@ -742,12 +928,10 @@ COLUMN_EXTRACTORS: Dict[str, Callable[[SeedContext], Any]] = {
     "Test Loss": extract_test_loss,
     "Generalization Gap (Acc)": extract_generalization_gap_acc,
     "Generalization Gap (Loss)": extract_generalization_gap_loss,
-    "Accuracy Std (Seeds)": extract_accuracy_std_seeds,
     "Best-Worst Acc Gap": extract_best_worst_acc_gap,
     "Convergence Epoch": extract_convergence_epoch,
     "Gradient Norm Mean": extract_gradient_norm_mean,
     "Gradient Norm Std": extract_gradient_norm_std,
-    "Clean Accuracy (Attack Baseline)": extract_clean_accuracy_attack_baseline,
     "Accuracy per Param": extract_accuracy_per_param,
     "Accuracy per Time": extract_accuracy_per_time,
 }
