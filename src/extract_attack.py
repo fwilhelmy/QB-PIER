@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import argparse
-import json
-import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Optional
@@ -46,6 +43,14 @@ class Cols:
     asr: str = "ASR"
     transfer_gap: str = "transfer_gap"
 
+
+# ---------- configuration ----------
+
+MODEL_BLACKLIST = {
+    "Hybrid/hvql/ansatz=basic,qdepth=50",
+    "Hybrid/hpvql",
+    "Quantum/VQM50-Identity",
+}
 
 # ---------- helpers ----------
 
@@ -191,6 +196,7 @@ def build_pair_metrics(
     output_path: Path,
     eps_min: Optional[float] = None,
     eps_max: Optional[float] = None,
+    model_blacklist: Optional[set[str]] = None,
 ) -> pd.DataFrame:
     cols = Cols()
     df = _read_attack_tables(attack_dir)
@@ -215,6 +221,18 @@ def build_pair_metrics(
 
     if df.empty:
         raise ValueError("No rows left after epsilon filtering.")
+
+    blacklist = {m.strip() for m in (model_blacklist or set()) if isinstance(m, str) and m.strip()}
+    if blacklist:
+        before_rows = len(df)
+        df = df[~df[cols.source].astype(str).isin(blacklist)]
+        df = df[~df[cols.target].astype(str).isin(blacklist)]
+        after_rows = len(df)
+        removed_rows = before_rows - after_rows
+        print(f"Blacklisted rows removed: {removed_rows}")
+
+    if df.empty:
+        raise ValueError("No rows left after blacklist filtering.")
 
     conf_true_col = _find_first_existing(
         df,
@@ -303,13 +321,16 @@ def build_pair_metrics(
         return pd.Series(
             {
                 "Seed": seed_value,
+                "Source Model": source_model,
                 "Source Family": src_family,
                 "Source Architecture": src_arch,
                 "Source Variant": src_variant,
+                "Target Model": target_model,
                 "Target Family": tgt_family,
                 "Target Architecture": tgt_arch,
                 "Target Variant": tgt_variant,
                 "WB/BB Flag": flag,
+                "Is Self Attack": is_self,
                 "Clean Accuracy": clean_acc,
                 "Robust Accuracy": robust_auc,
                 "Accuracy Drop": acc_drop_auc,
@@ -332,17 +353,75 @@ def build_pair_metrics(
     ):
         rows.append(_agg_pair(seed_value, str(source_model), str(target_model), group))
 
-    pair_df = pd.DataFrame(rows)
+    per_seed_df = pd.DataFrame(rows)
 
-    pair_df = pair_df.sort_values(["Seed", "Source Family", "Source Architecture", "Source Model", "Target Family", "Target Architecture", "Target Model"]).reset_index(drop=True)
+    per_seed_df = per_seed_df.sort_values(["Seed", "Source Family", "Source Architecture", "Source Model", "Target Family", "Target Architecture", "Target Model"]).reset_index(drop=True)
+
+    # ==========================
+    # Aggregate over seeds
+    # ==========================
+
+    agg_cols = [
+        "Clean Accuracy",
+        "Robust Accuracy",
+        "Accuracy Drop",
+        "Retention",
+        "Flip Rate",
+        "ASR",
+        "Transfer Robust Accuracy",
+        "Transfer ASR",
+        "Transfer Gap",
+        "True-class Confidence",
+        "Mean Confidence Drop",
+        "Logit Margin",
+        "Mean Margin Drop",
+    ]
+
+    group_cols = [
+        "Source Model",
+        "Source Family",
+        "Source Architecture",
+        "Source Variant",
+        "Target Model",
+        "Target Family",
+        "Target Architecture",
+        "Target Variant",
+        "WB/BB Flag",
+        "Is Self Attack",
+    ]
+
+    pair_df = (
+        per_seed_df.groupby(group_cols, dropna=False)[agg_cols]
+        .mean()
+        .reset_index()
+    )
+
+    # Add seed count
+    seed_counts = (
+        per_seed_df.groupby(group_cols, dropna=False)["Seed"]
+        .nunique()
+        .reset_index()
+        .rename(columns={"Seed": "#Seeds Aggregated"})
+    )
+
+    pair_df = pair_df.merge(seed_counts, on=group_cols, how="left")
+
+    # ==========================
+    # Save both tables
+    # ==========================
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
+
     if output_path.suffix.lower() == ".parquet":
         pair_df.to_parquet(output_path, index=False)
+        per_seed_path = output_path.with_name(f"{output_path.stem}_per_seed.parquet")
+        per_seed_df.to_parquet(per_seed_path, index=False)
     else:
         pair_df.to_csv(output_path, index=False)
+        per_seed_path = output_path.with_name(f"{output_path.stem}_per_seed.csv")
+        per_seed_df.to_csv(per_seed_path, index=False)
 
-    return pair_df
+    return pair_df, per_seed_df
 
 
 def main() -> None:
@@ -351,27 +430,35 @@ def main() -> None:
     eps_min = None
     eps_max = None
 
-    attack_dir = attack_dir
     if attack_dir.name != "attack_experiment":
         maybe = attack_dir / "attack_experiment"
         if maybe.exists():
             attack_dir = maybe
 
-    pair_df = build_pair_metrics(
+    pair_df, per_seed_df = build_pair_metrics(
         attack_dir=attack_dir,
         output_path=output,
         eps_min=eps_min,
         eps_max=eps_max,
+        model_blacklist=MODEL_BLACKLIST,
     )
 
+    per_seed_output = output.with_name(f"{output.stem}_per_seed{output.suffix}")
+
     print(f"Saved pair metrics: {output}")
-    print(f"Rows: {len(pair_df)}")
-    print(f"Columns: {len(pair_df.columns)}")
+    print(f"Saved per-seed debug metrics: {per_seed_output}")
+    print(f"Rows (aggregated): {len(pair_df)}")
+    print(f"Rows (per-seed): {len(per_seed_df)}")
+    print(f"Columns (aggregated): {len(pair_df.columns)}")
 
     wb = int((pair_df["WB/BB Flag"] == "WB").sum())
     bb = int((pair_df["WB/BB Flag"] == "BB").sum())
     print(f"WB rows: {wb}")
     print(f"BB rows: {bb}")
+
+    if MODEL_BLACKLIST:
+        print(f"Blacklisted models: {sorted(MODEL_BLACKLIST)}")
+
 
 if __name__ == "__main__":
     main()
