@@ -1,0 +1,275 @@
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import os
+from pathlib import Path
+from typing import Any, Dict, Iterable, Optional
+
+import numpy as np
+import pandas as pd
+import pennylane as qml
+from omegaconf import OmegaConf
+from tqdm import tqdm
+
+from loading import crawl_experiments
+from models.ModelFactory import ModelFactory
+
+log = logging.getLogger(__name__)
+
+
+QUANTUM_LAYER_NAMES = {
+    "vql",
+    "pvql",
+    "hvql",
+    "hpvql",
+    "dropvql",
+    "resvql",
+    "quanv",
+}
+
+HQNN_MANUAL_PART_MAP = {
+    "hqe": "classifier",
+    "hvqm": "classifier",
+    "hpvqm": "classifier",
+    "hqnn_vql": "classifier",
+    "hqnn_hpvql": "classifier",
+    "hqnn_dropvql": "classifier",
+    "hqnn_resvql": "classifier",
+    "hquanv": "encoder",
+}
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Extract quantum circuit information from trained models."
+    )
+    parser.add_argument("root", type=Path, help="Experiment root (contains model folders with .model).")
+    parser.add_argument("--output", type=Path, default=Path("quantum_data.csv"), help="Output CSV path.")
+    parser.add_argument(
+        "--load",
+        choices=["best", "final"],
+        default="best",
+        help="Checkpoint type to load for each seed.",
+    )
+    parser.add_argument(
+        "--compute-depth",
+        action="store_true",
+        help="Compute circuit depth in qml.specs (can be slower).",
+    )
+    return parser.parse_args()
+
+
+def read_hydra_config(model_dir: Path) -> Dict[str, Any]:
+    cfg_path = model_dir / ".hydra" / "config.yaml"
+    if not cfg_path.exists():
+        return {}
+    return OmegaConf.to_container(OmegaConf.load(str(cfg_path)), resolve=True)  # type: ignore[return-value]
+
+
+def find_checkpoint(seed_dir: Path, load_mode: str) -> Optional[Path]:
+    final_ckpt = seed_dir / "final.ckpt"
+    if load_mode == "final":
+        return final_ckpt if final_ckpt.exists() else None
+
+    ckpt_dir = seed_dir / "checkpoints"
+    if not ckpt_dir.exists():
+        return final_ckpt if final_ckpt.exists() else None
+
+    ckpts = sorted(ckpt_dir.glob("*.ckpt"))
+    if not ckpts:
+        return final_ckpt if final_ckpt.exists() else None
+
+    def loss_score(path: Path) -> float:
+        name = path.name
+        if "loss=" not in name:
+            return float("inf")
+        try:
+            return float(name.split("loss=")[1].split("-")[0])
+        except ValueError:
+            return float("inf")
+
+    return sorted(ckpts, key=loss_score)[0]
+
+
+def iter_seed_dirs(model_dir: Path) -> Iterable[Path]:
+    for item in sorted(model_dir.iterdir()):
+        if item.is_dir() and item.name.isdigit():
+            yield item
+
+
+def load_single_model(model_dir: Path, seed_dir: Path, checkpoint: Path) -> Any:
+    model_name = (model_dir / ".model").read_text(encoding="utf-8").strip()
+    return ModelFactory.load(
+        model_name,
+        checkpoint=str(checkpoint),
+        map_location="cpu",
+        log_dir=str(seed_dir),
+    )
+
+
+def extract_first_ansatz(module: Any) -> Optional[Any]:
+    if hasattr(module, "ansatz"):
+        return module.ansatz
+
+    for child in module.modules():
+        if hasattr(child, "ansatz"):
+            return child.ansatz
+    return None
+
+
+def module_has_quantum_part(module: Any) -> bool:
+    return extract_first_ansatz(module) is not None
+
+
+def _manual_hqnn_part(relative_dir: str, hydra_cfg: Dict[str, Any]) -> str:
+    lower_path = relative_dir.lower()
+    for key, part in HQNN_MANUAL_PART_MAP.items():
+        if key in lower_path:
+            return part
+
+    model_cfg = hydra_cfg.get("model", {}) if isinstance(hydra_cfg, dict) else {}
+    encoder_name = str(((model_cfg.get("encoder") or {}).get("name") or "")).lower()
+    classifier_name = str(((model_cfg.get("classifier") or {}).get("name") or "")).lower()
+    encoder_q = encoder_name in QUANTUM_LAYER_NAMES
+    classifier_q = classifier_name in QUANTUM_LAYER_NAMES
+
+    if encoder_q and classifier_q:
+        return "both"
+    if encoder_q:
+        return "encoder"
+    if classifier_q:
+        return "classifier"
+    return "unknown"
+
+
+def detect_quantum_part(model: Any, relative_dir: str, hydra_cfg: Dict[str, Any]) -> str:
+    if hasattr(model, "encoder") and hasattr(model, "classifier"):
+        encoder_q = module_has_quantum_part(model.encoder)
+        classifier_q = module_has_quantum_part(model.classifier)
+        if encoder_q and classifier_q:
+            return "both"
+        if encoder_q:
+            return "encoder"
+        if classifier_q:
+            return "classifier"
+        return _manual_hqnn_part(relative_dir, hydra_cfg)
+
+    return "model"
+
+
+def extract_specs(ansatz: Any, compute_depth: bool) -> Dict[str, Any]:
+    weight_shapes = ansatz.weight_shapes or {}
+    default_inputs = np.zeros(ansatz.n_qubits)
+
+    kwargs: Dict[str, np.ndarray] = {}
+    for name, shape in weight_shapes.items():
+        kwargs[name] = np.zeros(shape)
+
+    specs_callable = qml.specs(ansatz.qnode, compute_depth=compute_depth)
+    specs = specs_callable(default_inputs, **kwargs)
+
+    resources = specs.get("resources")
+    num_gates = specs.get("num_operations")
+    if num_gates is None and resources is not None:
+        num_gates = getattr(resources, "num_gates", None)
+
+    depth = specs.get("depth")
+    if depth is None and resources is not None:
+        depth = getattr(resources, "depth", None)
+
+    gate_types = specs.get("gate_types")
+    if gate_types is None and resources is not None:
+        gate_types = getattr(resources, "gate_types", None)
+
+    return {
+        "device": getattr(ansatz.qnode.device, "name", str(ansatz.qnode.device)),
+        "shots": str(getattr(ansatz.qnode.device, "shots", None)),
+        "n_qubits": ansatz.n_qubits,
+        "num_gates": num_gates,
+        "circuit_depth": depth,
+        "gate_types": gate_types or {},
+    }
+
+
+def format_gate_types(gate_types: Dict[str, int]) -> str:
+    if not gate_types:
+        return ""
+    lines = [f"{gate}: {count}" for gate, count in sorted(gate_types.items(), key=lambda x: x[0])]
+    return "\n".join(lines)
+
+
+def extract_row(model: Any, relative_dir: str, seed: int, hydra_cfg: Dict[str, Any], compute_depth: bool) -> Dict[str, Any]:
+    ansatz = extract_first_ansatz(model)
+    if ansatz is None:
+        return {
+            "model": relative_dir,
+            "seed": seed,
+            "quantum_part": detect_quantum_part(model, relative_dir, hydra_cfg),
+            "Device": None,
+            "Shots": None,
+            "Number of Qubits": None,
+            "Number of Gates": None,
+            "Circuit Depth": None,
+            "Embedding": None,
+            "Ansatz type": None,
+            "N Layers (of the ansatz)": None,
+            "Weight Shape (of the ansatz)": None,
+            "Gate types": None,
+        }
+
+    specs = extract_specs(ansatz, compute_depth=compute_depth)
+
+    embedding = "none" if ansatz.embedding is None else type(ansatz.embedding).__name__
+    return {
+        "model": relative_dir,
+        "seed": seed,
+        "quantum_part": detect_quantum_part(model, relative_dir, hydra_cfg),
+        "Device": specs["device"],
+        "Shots": specs["shots"],
+        "Number of Qubits": ansatz.n_qubits,
+        "Number of Gates": specs["num_gates"],
+        "Circuit Depth": specs["circuit_depth"],
+        "Embedding": embedding,
+        "Ansatz type": type(ansatz).__name__,
+        "N Layers (of the ansatz)": getattr(ansatz, "n_layers", None),
+        "Weight Shape (of the ansatz)": json.dumps(ansatz.weight_shapes),
+        "Gate types": format_gate_types(specs["gate_types"]),
+    }
+
+
+def main() -> None:
+    args = parse_args()
+    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+
+    model_dirs = [Path(p) for p in crawl_experiments(str(args.root))]
+    rows: list[Dict[str, Any]] = []
+
+    for model_dir in tqdm(model_dirs, desc="Models"):
+        relative_dir = os.path.relpath(model_dir, args.root)
+        hydra_cfg = read_hydra_config(model_dir)
+        for seed_dir in tqdm(list(iter_seed_dirs(model_dir)), desc=f"Seeds ({relative_dir})", leave=False):
+            checkpoint = find_checkpoint(seed_dir, args.load)
+            if checkpoint is None:
+                log.warning("Skipping %s (no checkpoint found for mode=%s)", seed_dir, args.load)
+                continue
+
+            model = load_single_model(model_dir, seed_dir, checkpoint)
+            row = extract_row(
+                model=model,
+                relative_dir=relative_dir,
+                seed=int(seed_dir.name),
+                hydra_cfg=hydra_cfg,
+                compute_depth=args.compute_depth,
+            )
+            rows.append(row)
+
+    df = pd.DataFrame(rows)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(args.output, index=False)
+    log.info("Saved %s rows to %s", len(df), args.output)
+
+
+if __name__ == "__main__":
+    main()
