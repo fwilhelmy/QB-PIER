@@ -1,0 +1,5 @@
+defaults:
+  - layer@encoder: conv
+  - layer@classifier: hvql
+model_class: HQNN
+model_type: hybrid
