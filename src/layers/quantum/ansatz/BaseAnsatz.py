@@ -115,3 +115,29 @@ class BaseAnsatz(ABC):
         if depth is None and "resources" in specs:
             depth = getattr(specs["resources"], "depth", 0)
         return depth
+
+    def circuit_num_gates(self) -> int:
+        """Return the total number of gates in the quantum circuit.
+
+        The gate count is computed from ``qml.specs`` for the ansatz
+        :class:`~pennylane.QNode` evaluated on default zero ``inputs`` and
+        ``weights``.
+
+        Returns:
+            int: The total number of gates in the quantum circuit.
+        """
+
+        assert (
+            self.weight_shapes is not None
+        ), "Weight shapes must be defined before measuring gate count."
+
+        default_inputs = np.zeros(self.n_qubits)
+        weight_shape = self.weight_shapes.get("weights", ())
+        default_weights = np.zeros(weight_shape)
+
+        specs = qml.specs(self.qnode)(default_inputs, default_weights)
+
+        num_gates = specs.get("num_operations")
+        if num_gates is None and "resources" in specs:
+            num_gates = getattr(specs["resources"], "num_gates", 0)
+        return int(num_gates)
