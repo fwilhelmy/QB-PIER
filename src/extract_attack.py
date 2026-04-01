@@ -50,6 +50,7 @@ MODEL_BLACKLIST = {
     "Hybrid/hvql/ansatz=basic,qdepth=50",
     "Hybrid/hpvql",
     "Quantum/VQM50-Identity",
+    "Quantum/VQM50-NoEntangling",
 }
 
 # ---------- helpers ----------
@@ -90,6 +91,17 @@ def _safe_div(num: float, den: float) -> float:
     if den is None or not np.isfinite(den) or den == 0:
         return float("nan")
     return float(num / den)
+
+
+def _clean_numeric_column(df: pd.DataFrame, col: str) -> None:
+    if col in df.columns:
+        df[col] = (
+            df[col]
+            .astype(str)
+            .str.replace("'", "", regex=False)
+            .str.strip()
+        )
+        df[col] = pd.to_numeric(df[col], errors="coerce")
 
 
 def _parse_family_arch_variant(model_name: str) -> tuple[Optional[str], Optional[str], str]:
@@ -207,13 +219,12 @@ def build_pair_metrics(
         raise KeyError(f"Missing required columns in attack aggregates: {missing}")
 
     df = df.copy()
-    df[cols.epsilon] = pd.to_numeric(df[cols.epsilon], errors="coerce")
-    df[cols.robust_acc] = pd.to_numeric(df[cols.robust_acc], errors="coerce")
-    df[cols.flip_rate] = pd.to_numeric(df[cols.flip_rate], errors="coerce")
-    df[cols.asr] = pd.to_numeric(df[cols.asr], errors="coerce")
+    _clean_numeric_column(df, cols.epsilon)
+    _clean_numeric_column(df, cols.robust_acc)
+    _clean_numeric_column(df, cols.flip_rate)
+    _clean_numeric_column(df, cols.asr)
     if cols.transfer_gap in df.columns:
-        df[cols.transfer_gap] = pd.to_numeric(df[cols.transfer_gap], errors="coerce")
-
+        _clean_numeric_column(df, cols.transfer_gap)
     if eps_min is not None:
         df = df[df[cols.epsilon] >= eps_min]
     if eps_max is not None:
