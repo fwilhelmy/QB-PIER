@@ -28,3 +28,18 @@ python src/train.py -m expdir=hvqm_depths training=mid model=hquanv model.classi
 
 
 VQM with depth 500 (extreme)
+
+
+=== NEW ONES ====
+We explore the variants of hquanv:
+python src/train.py -m expdir="hquanv_exp" model=hquanv model.encoder.params.n_qdepth=50,100 model/ansatz@model.encoder.params.ansatz=strong,random training=mid
+
+We explore the variants of ansatz of PQC 10, 100? 
+python src/train.py -m expdir="pqc_random" model=hpvqm model.encoder.params.n_qdepth=50 model.classifier.params.n_qblocks=5,10 model/ansatz@model.encoder.params.ansatz=random training=mid
+python src/train.py -m expdir="hpvqm_late_explore" model=hpvqm model.encoder.params.n_qdepth=50 model.classifier.params.n_qblocks=5,10 model/ansatz@model.encoder.params.ansatz=random,strong training=mid
+
+We explore the variants of random ansatz?
+python src/train.py -m expdir="random_ansatz" model=vqm model.n_qdepth=50 training=mid model/ansatz=random model.ansatz.ratio_imprim=0.25,0.50,0.90
+
+the little tiny tiny vqms
+python src/train.py -m expdir="little_vqms" model=vqm model.n_qdepth=5,10,15,20 training=mid model/ansatz=strong
