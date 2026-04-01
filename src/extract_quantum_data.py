@@ -40,27 +40,6 @@ HQNN_MANUAL_PART_MAP = {
     "hquanv": "encoder",
 }
 
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Extract quantum circuit information from trained models."
-    )
-    parser.add_argument("root", type=Path, help="Experiment root (contains model folders with .model).")
-    parser.add_argument("--output", type=Path, default=Path("quantum_data.csv"), help="Output CSV path.")
-    parser.add_argument(
-        "--load",
-        choices=["best", "final"],
-        default="best",
-        help="Checkpoint type to load for each seed.",
-    )
-    parser.add_argument(
-        "--compute-depth",
-        action="store_true",
-        help="Compute circuit depth in qml.specs (can be slower).",
-    )
-    return parser.parse_args()
-
-
 def read_hydra_config(model_dir: Path) -> Dict[str, Any]:
     cfg_path = model_dir / ".hydra" / "config.yaml"
     if not cfg_path.exists():
@@ -167,25 +146,17 @@ def extract_specs(ansatz: Any, compute_depth: bool) -> Dict[str, Any]:
     for name, shape in weight_shapes.items():
         kwargs[name] = np.zeros(shape)
 
-    specs_callable = qml.specs(ansatz.qnode, compute_depth=compute_depth)
+    specs_callable = qml.specs(ansatz.qnode, compute_depth=compute_depth, level="device")
     specs = specs_callable(default_inputs, **kwargs)
 
-    resources = specs.get("resources")
-    num_gates = specs.get("num_operations")
-    if num_gates is None and resources is not None:
-        num_gates = getattr(resources, "num_gates", None)
-
-    depth = specs.get("depth")
-    if depth is None and resources is not None:
-        depth = getattr(resources, "depth", None)
-
-    gate_types = specs.get("gate_types")
-    if gate_types is None and resources is not None:
-        gate_types = getattr(resources, "gate_types", None)
+    resources = specs.resources
+    num_gates = resources.num_gates
+    depth = resources.depth
+    gate_types = resources.gate_types
 
     return {
-        "device": getattr(ansatz.qnode.device, "name", str(ansatz.qnode.device)),
-        "shots": str(getattr(ansatz.qnode.device, "shots", None)),
+        "device": str(specs.device_name),
+        "shots": str(specs.shots.total_shots),
         "n_qubits": ansatz.n_qubits,
         "num_gates": num_gates,
         "circuit_depth": depth,
@@ -240,19 +211,23 @@ def extract_row(model: Any, relative_dir: str, seed: int, hydra_cfg: Dict[str, A
 
 
 def main() -> None:
-    args = parse_args()
     logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
-    model_dirs = [Path(p) for p in crawl_experiments(str(args.root))]
+    root = Path("logs/ByModel")
+    output = Path("outputs/quantum_data.csv")
+    load = "best"
+    compute_depth = True
+
+    model_dirs = [Path(p) for p in crawl_experiments(str(root))]
     rows: list[Dict[str, Any]] = []
 
     for model_dir in tqdm(model_dirs, desc="Models"):
-        relative_dir = os.path.relpath(model_dir, args.root)
+        relative_dir = os.path.relpath(model_dir, root)
         hydra_cfg = read_hydra_config(model_dir)
         for seed_dir in tqdm(list(iter_seed_dirs(model_dir)), desc=f"Seeds ({relative_dir})", leave=False):
-            checkpoint = find_checkpoint(seed_dir, args.load)
+            checkpoint = find_checkpoint(seed_dir, load)
             if checkpoint is None:
-                log.warning("Skipping %s (no checkpoint found for mode=%s)", seed_dir, args.load)
+                log.warning("Skipping %s (no checkpoint found for mode=%s)", seed_dir, load)
                 continue
 
             model = load_single_model(model_dir, seed_dir, checkpoint)
@@ -261,14 +236,14 @@ def main() -> None:
                 relative_dir=relative_dir,
                 seed=int(seed_dir.name),
                 hydra_cfg=hydra_cfg,
-                compute_depth=args.compute_depth,
+                compute_depth=compute_depth,
             )
             rows.append(row)
 
     df = pd.DataFrame(rows)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(args.output, index=False)
-    log.info("Saved %s rows to %s", len(df), args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(output, index=False)
+    log.info("Saved %s rows to %s", len(df), output)
 
 
 if __name__ == "__main__":
