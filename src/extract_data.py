@@ -916,6 +916,11 @@ COLUMN_EXTRACTORS: Dict[str, Callable[[SeedContext], Any]] = {
     "Family": extract_family,
     "Architecture": extract_architecture,
     "Variant Configuration (knobs)": extract_variant_configuration_knobs,
+    "params_total": extract_params_total,
+    "params_classical": extract_params_classical,
+    "params_quantum": extract_params_quantum,
+    "nqubits": extract_qubits,
+    "param_ratio_q_classical": extract_param_ratio_q_classical,
     "Seed": extract_seed,
     "Training Time (s)": extract_training_time_seconds,
     "Epoch Selected": extract_epoch_selected,
@@ -1018,8 +1023,8 @@ def save_outputs(df: pd.DataFrame, output_prefix: Path) -> None:
 
 
 def main() -> None:
-    root_dir = "logs/ByModel"
-    output_prefix = Path("outputs/model_inventory")
+    root_dir = "../REPLICA"
+    output_prefix = Path("outputs/new_model_inventory")
     load_mode = "best"
     map_location = "cpu"
 
