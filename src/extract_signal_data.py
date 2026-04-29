@@ -46,11 +46,36 @@ def _safe_name(name: str) -> str:
     )
 
 
-def read_hydra_config(model_dir: Path) -> Dict[str, Any]:
-    cfg_path = model_dir / ".hydra" / "config.yaml"
-    if not cfg_path.exists():
+def _load_yaml_if_exists(path: Path) -> Dict[str, Any]:
+    if not path.exists():
         return {}
-    return OmegaConf.to_container(OmegaConf.load(str(cfg_path)), resolve=True)  # type: ignore[return-value]
+    try:
+        return OmegaConf.to_container(OmegaConf.load(str(path)), resolve=True)  # type: ignore[return-value]
+    except Exception:
+        return {}
+
+
+def read_hydra_config(model_dir: Path, seed_dir: Optional[Path] = None) -> Dict[str, Any]:
+    """Best-effort Hydra config loader.
+
+    The training pipeline may persist the composed Hydra config either at the
+    model-config directory level or inside each seed directory. We check both,
+    preferring the seed-local config when available.
+    """
+    candidates: List[Path] = []
+    if seed_dir is not None:
+        candidates.append(seed_dir / ".hydra" / "config.yaml")
+    candidates.append(model_dir / ".hydra" / "config.yaml")
+
+    merged: Dict[str, Any] = {}
+    for path in candidates:
+        cfg = _load_yaml_if_exists(path)
+        if cfg:
+            merged.update(cfg)
+            # Seed-local config is usually fully composed; good enough to stop.
+            if path.parent.parent == seed_dir:
+                return merged
+    return merged
 
 
 def iter_seed_dirs(model_dir: Path) -> Iterator[Path]:
@@ -99,19 +124,75 @@ def load_single_model(model_dir: Path, seed_dir: Path, checkpoint: Path, map_loc
 # -----------------------------------------------------------------------------
 
 
+def _safe_get(obj: Any, *path: str, default: Any = None) -> Any:
+    cur = obj
+    for key in path:
+        if cur is None:
+            return default
+        if isinstance(cur, dict):
+            cur = cur.get(key, default)
+        else:
+            cur = getattr(cur, key, default)
+    return cur
+
+
+def _dataset_cfg_view(hydra_cfg: Dict[str, Any]) -> Dict[str, Any]:
+    """Return the most likely dataset config view.
+
+    In your pipeline the fully composed Hydra config usually stores dataset
+    values under cfg.dataset.*, but some experiment folders may only expose the
+    composed keys at top-level or only preserve Hydra defaults metadata.
+    """
+    if not isinstance(hydra_cfg, dict):
+        return {}
+    ds = hydra_cfg.get("dataset")
+    if isinstance(ds, dict):
+        return ds
+    return hydra_cfg
+
+
+def _resolve_dataset_name(hydra_cfg: Dict[str, Any]) -> Optional[str]:
+    dataset_cfg = _dataset_cfg_view(hydra_cfg)
+    name = dataset_cfg.get("dataset") if isinstance(dataset_cfg, dict) else None
+    if isinstance(name, str) and name.strip():
+        return name
+
+    # Fall back to Hydra defaults such as defaults: [{dataset: mnist}, ...]
+    defaults = hydra_cfg.get("defaults", []) if isinstance(hydra_cfg, dict) else []
+    if isinstance(defaults, list):
+        for item in defaults:
+            if isinstance(item, dict) and "dataset" in item:
+                candidate = item.get("dataset")
+                if isinstance(candidate, str) and candidate.strip():
+                    return candidate
+
+    return None
+
+
 def build_test_loader(hydra_cfg: Dict[str, Any], batch_size_override: Optional[int], num_workers_override: Optional[int]) -> tuple[DataLoader, np.ndarray]:
-    dataset_cfg = hydra_cfg.get("dataset", {}) if isinstance(hydra_cfg, dict) else {}
-    device_cfg = hydra_cfg.get("device", {}) if isinstance(hydra_cfg, dict) else {}
+    dataset_cfg = _dataset_cfg_view(hydra_cfg)
+    device_cfg = hydra_cfg.get("device", {}) if isinstance(hydra_cfg, dict) and isinstance(hydra_cfg.get("device", {}), dict) else {}
 
-    dataset_name = dataset_cfg.get("dataset")
+    dataset_name = _resolve_dataset_name(hydra_cfg)
     if not dataset_name:
-        raise KeyError("Could not resolve cfg.dataset.dataset from Hydra config.")
+        raise KeyError(
+            "Could not resolve dataset name from Hydra config. "
+            "Tried cfg.dataset.dataset, top-level cfg.dataset, and Hydra defaults entries."
+        )
 
-    dm = DatasetFactory.create(dataset_name, root=dataset_cfg.get("root"))
+    root = dataset_cfg.get("root") if isinstance(dataset_cfg, dict) else None
+    if root is None and isinstance(hydra_cfg, dict):
+        data_dir = hydra_cfg.get("DATA_DIR")
+        if isinstance(data_dir, str) and data_dir.strip():
+            root = data_dir
+
+    dm = DatasetFactory.create(dataset_name, root=root)
     dataset = dm.load_dataset(train=False)
     dm.dataset = dataset
 
-    batch_size = int(batch_size_override or dataset_cfg.get("eval_batch_size") or dataset_cfg.get("train_batch_size") or 512)
+    eval_bs = dataset_cfg.get("eval_batch_size") if isinstance(dataset_cfg, dict) else None
+    train_bs = dataset_cfg.get("train_batch_size") if isinstance(dataset_cfg, dict) else None
+    batch_size = int(batch_size_override or eval_bs or train_bs or 512)
     num_workers = int(num_workers_override if num_workers_override is not None else device_cfg.get("num_workers", 0))
 
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
@@ -744,7 +825,7 @@ def main() -> None:
 
     for model_dir in tqdm(model_dirs, desc="Models"):
         relative_model = os.path.relpath(model_dir, root)
-        hydra_cfg = read_hydra_config(model_dir)
+        hydra_cfg = {}
 
         for seed_dir in tqdm(list(iter_seed_dirs(model_dir)), desc=f"Seeds ({relative_model})", leave=False):
             checkpoint = find_checkpoint(seed_dir, args.load)
@@ -754,6 +835,7 @@ def main() -> None:
 
             try:
                 model = load_single_model(model_dir, seed_dir, checkpoint, map_location=args.device)
+                hydra_cfg = read_hydra_config(model_dir, seed_dir)
                 tables = analyze_model_seed(
                     model_name=relative_model,
                     model=model,
