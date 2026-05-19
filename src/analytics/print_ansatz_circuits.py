@@ -20,7 +20,7 @@ python src/print_ansatz_circuits.py \
     --output-dir ./outputs/ansatz_depth5_decomposed
 """
 
-import argparse
+from types import SimpleNamespace
 import logging
 from pathlib import Path
 from typing import Any, Dict, Iterable, List
@@ -46,80 +46,23 @@ def _configure_logging(verbose: bool) -> None:
     )
 
 
-def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Render circuit diagrams for all ansatz configs at a chosen depth.",
+def _default_args() -> SimpleNamespace:
+    return SimpleNamespace(
+        depth=2,
+        output_dir="outputs/ansatz_circuits",
+        n_qubits=4,
+        embedding="none",
+        expanded=False,
+        dpi=220,
+        formats=["png"],
+        ansatz=None,
+        residual_base="strong",
+        verbose=True,
     )
-    parser.add_argument(
-        "--depth",
-        type=int,
-        required=True,
-        help="Number of ansatz layers to render.",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        required=True,
-        help="Directory where figures and the summary CSV will be written.",
-    )
-    parser.add_argument(
-        "--n-qubits",
-        type=int,
-        default=4,
-        help=(
-            "Number of qubits to use for rendering. With embedding=none or angle, "
-            "this is also the input size. With embedding=amplitude, the script uses 2**n_qubits inputs."
-        ),
-    )
-    parser.add_argument(
-        "--embedding",
-        type=str,
-        choices=["none", "angle", "amplitude"],
-        default="none",
-        help="Embedding to include in the rendered circuit. Default isolates the ansatz itself.",
-    )
-    parser.add_argument(
-        "--expanded",
-        action="store_true",
-        help="Render the decomposed/device-level circuit instead of the compact high-level view.",
-    )
-    parser.add_argument(
-        "--dpi",
-        type=int,
-        default=220,
-        help="Output image DPI.",
-    )
-    parser.add_argument(
-        "--formats",
-        nargs="+",
-        default=["png"],
-        help="Figure formats to export, for example: png pdf svg.",
-    )
-    parser.add_argument(
-        "--ansatz",
-        nargs="*",
-        default=None,
-        help="Optional subset of ansatz aliases to render, e.g. basic strong random.",
-    )
-    parser.add_argument(
-        "--residual-base",
-        type=str,
-        default="strong",
-        help=(
-            "Concrete base ansatz to use when rendering the residual wrapper config. "
-            "This only matters for the residual alias."
-        ),
-    )
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Enable info logging.",
-    )
-    return parser.parse_args()
 
 
 def _project_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+    return Path(__file__).resolve().parents[2]
 
 
 def _ansatz_conf_dir() -> Path:
@@ -306,7 +249,7 @@ def _render_figure(
 
 
 def main() -> None:
-    args = _parse_args()
+    args = _default_args()
     _configure_logging(args.verbose)
 
     if args.depth <= 0:

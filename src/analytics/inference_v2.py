@@ -20,7 +20,7 @@ python src/inference.py \
     --device cuda
 """
 
-import argparse
+from types import SimpleNamespace
 import json
 import logging
 import os
@@ -50,86 +50,22 @@ def _configure_logging(verbose: bool) -> None:
 
 
 
-def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Evaluate all trained models in a directory on the test split.",
+def _default_args() -> SimpleNamespace:
+    return SimpleNamespace(
+        models_path="logs/ByModel",
+        output_dir="outputs/inference_v2",
+        dataset="mnist",
+        dataset_root="./data",
+        checkpoint="best",
+        device="auto",
+        map_location="cpu",
+        batch_size=128,
+        num_workers=0,
+        save_preds=False,
+        save_logits=False,
+        overwrite=False,
+        verbose=True,
     )
-    parser.add_argument(
-        "--models-path",
-        type=str,
-        required=True,
-        help="Root directory containing model experiment folders with .model files.",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        required=True,
-        help="Directory where inference outputs will be written.",
-    )
-    parser.add_argument(
-        "--dataset",
-        type=str,
-        required=True,
-        help="Dataset name registered in DatasetFactory (e.g. mnist, fmnist, plusminus).",
-    )
-    parser.add_argument(
-        "--dataset-root",
-        type=str,
-        default="./data",
-        help="Root directory for dataset storage/loading.",
-    )
-    parser.add_argument(
-        "--checkpoint",
-        type=str,
-        choices=["best", "final"],
-        default="best",
-        help="Which checkpoint to evaluate for each seed.",
-    )
-    parser.add_argument(
-        "--device",
-        type=str,
-        default="auto",
-        help="Torch device for inference: auto, cpu, cuda, cuda:0, ...",
-    )
-    parser.add_argument(
-        "--map-location",
-        type=str,
-        default="cpu",
-        help="Device used when loading checkpoints. Default is cpu for safety.",
-    )
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=128,
-        help="Batch size for test inference.",
-    )
-    parser.add_argument(
-        "--num-workers",
-        type=int,
-        default=0,
-        help="Number of dataloader workers.",
-    )
-    parser.add_argument(
-        "--save-preds",
-        action="store_true",
-        help="Save per-sample predicted class indices for each model/seed.",
-    )
-    parser.add_argument(
-        "--save-logits",
-        action="store_true",
-        help="Save per-sample logits for each model/seed.",
-    )
-    parser.add_argument(
-        "--overwrite",
-        action="store_true",
-        help="Recompute outputs even if cached metrics already exist.",
-    )
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Enable info logging.",
-    )
-    return parser.parse_args()
 
 
 
@@ -225,7 +161,7 @@ def _extract_labels(dataset) -> np.ndarray:
 
 
 
-def run_inference(args: argparse.Namespace) -> None:
+def run_inference(args: SimpleNamespace) -> None:
     device = _resolve_device(args.device)
     root = args.output_dir
     tables_dir = os.path.join(root, "tables")
@@ -371,7 +307,7 @@ def run_inference(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
-    args = _parse_args()
+    args = _default_args()
     _configure_logging(args.verbose)
     run_inference(args)
 

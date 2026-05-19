@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import argparse
 import json
 import logging
 import os
@@ -322,8 +321,8 @@ def extract_row(
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
-    root = Path("../REPLICA")
-    output = Path("outputs/new_quantum_data.csv")
+    root = Path("logs/ByModel")
+    output = Path("outputs/quantum_data.csv")
     load_mode = "best"
     compute_depth = True
     decompose = True

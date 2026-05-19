@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import argparse
+from types import SimpleNamespace
 import json
 import logging
 import math
@@ -776,21 +776,21 @@ def analyze_model_seed(
     }
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Extract blockwise training-signal and contribution diagnostics from trained models.")
-    parser.add_argument("--root", type=str, required=True, help="Experiment root containing model configuration folders.")
-    parser.add_argument("--output-dir", type=str, default=None, help="Output directory. Defaults to <root>/signal_experiment.")
-    parser.add_argument("--load", type=str, default="best", choices=["best", "final"], help="Checkpoint loading mode.")
-    parser.add_argument("--device", type=str, default="cpu", help="Torch device for inference/backprop.")
-    parser.add_argument("--batch-size", type=int, default=None, help="Optional override for test/eval batch size.")
-    parser.add_argument("--num-workers", type=int, default=None, help="Optional override for dataloader workers.")
-    parser.add_argument("--grad-batches", type=int, default=None, help="Optional max number of test batches used for gradient-norm estimation.")
-    parser.add_argument("--model-filter", type=str, default=None, help="Optional substring filter over relative model path.")
-    return parser.parse_args()
+def default_args() -> SimpleNamespace:
+    return SimpleNamespace(
+        root="logs/ByModel",
+        output_dir="outputs/signal_experiment",
+        load="best",
+        device="cpu",
+        batch_size=None,
+        num_workers=None,
+        grad_batches=None,
+        model_filter=None,
+    )
 
 
 def main() -> None:
-    args = parse_args()
+    args = default_args()
     logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
     root = Path(args.root).resolve()

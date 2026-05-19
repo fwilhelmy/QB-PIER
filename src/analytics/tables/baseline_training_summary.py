@@ -15,7 +15,6 @@ Expected run_dir layout (seed directory):
 - training.log        (optional, fallback for time/hardware)
 """
 
-import argparse
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -282,24 +281,20 @@ def generate_baseline_training_summary(
 # CLI
 # ---------------------------
 
-def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Generate baseline training summary table from run directories.")
-    p.add_argument("--runs", action="append", required=True, help="Run directory path. Repeat for multiple runs.")
-    p.add_argument("--qname_pattern", default="qlayer", help="Regex pattern to identify quantum parameter names.")
-    p.add_argument("--out_dir", default="outputs/tables", help="Output directory for CSV and LaTeX files.")
-    p.add_argument("--latex", default="baseline_training_summary.tex", help="Output LaTeX filename.")
-    p.add_argument("--full_table_env", action="store_true", help="Wrap output in a full LaTeX table environment.")
-    return p.parse_args()
+RUN_DIRS = ["logs/ByModel"]
+OUT_DIR = "outputs/baseline_training_summary"
+QNAME_PATTERN = "qlayer"
+LATEX_FILENAME = "baseline_training_summary.tex"
+FULL_TABLE_ENV = False
 
 
 def main() -> None:
-    args = parse_args()
     csv_path, latex_path = generate_baseline_training_summary(
-        args.runs,
-        out_dir=args.out_dir,
-        qname_pattern=args.qname_pattern,
-        latex_filename=args.latex,
-        full_table_env=args.full_table_env,
+        RUN_DIRS,
+        out_dir=OUT_DIR,
+        qname_pattern=QNAME_PATTERN,
+        latex_filename=LATEX_FILENAME,
+        full_table_env=FULL_TABLE_ENV,
     )
     print(f"Wrote CSV: {csv_path}")
     print(f"Wrote LaTeX: {latex_path}")

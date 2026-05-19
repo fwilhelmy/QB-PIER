@@ -159,7 +159,7 @@ def load_attacks(path: str) -> pd.DataFrame:
 
 from analytics.training import generate_gradient_flow_plots, plot_models_together
 if __name__ == "__main__":
-    log_root = "logs\ByModel\Classical"
+    log_root = "logs/ByModel"
     os.makedirs(log_root, exist_ok=True)
     data = load_experiment(log_root, load="final")
     log.info("Loaded data for %s model configurations.", len(data))

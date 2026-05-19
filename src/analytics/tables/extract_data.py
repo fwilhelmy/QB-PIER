@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import argparse
 import json
 import logging
 import math
@@ -1023,8 +1022,8 @@ def save_outputs(df: pd.DataFrame, output_prefix: Path) -> None:
 
 
 def main() -> None:
-    root_dir = "../REPLICA"
-    output_prefix = Path("outputs/new_model_inventory")
+    root_dir = "logs/ByModel"
+    output_prefix = Path("outputs/model_inventory")
     load_mode = "best"
     map_location = "cpu"
 

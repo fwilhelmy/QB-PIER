@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import argparse
 import logging
 import os
 from collections import defaultdict
@@ -109,7 +108,7 @@ def generate_attack_figures(attacks_dir: str, output_dir: str | None) -> None:
 def main() -> None:
     training_dir = "./logs/ByModel"
     attack_dir = None
-    output_dir = "./logs/test"
+    output_dir = "./outputs/visualize"
     map_location = "cpu"
 
     logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
