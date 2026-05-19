@@ -157,7 +157,7 @@ def load_attacks(path: str) -> pd.DataFrame:
 
     return results
 
-from visualisation.training import generate_gradient_flow_plots, plot_models_together
+from analytics.training import generate_gradient_flow_plots, plot_models_together
 if __name__ == "__main__":
     log_root = "logs\ByModel\Classical"
     os.makedirs(log_root, exist_ok=True)
