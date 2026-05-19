@@ -1,5 +1,7 @@
 """Utilities for stacking multiple variational quantum circuits."""
 
+from typing import Any, Mapping
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -8,6 +10,7 @@ from torch import Tensor
 from ..BaseLayer import BaseLayer
 from ..LayerFactory import LayerFactory
 from .VQC import VQC
+from qdevice import QuantumDeviceConfig
 
 class ParaVQC(nn.Module):
     """Stacks multiple :class:`VQC` blocks to process larger inputs.
@@ -24,6 +27,7 @@ class ParaVQC(nn.Module):
         n_layers: int,
         embedding: str = "angle",
         ansatz: dict | None = None,
+        quantum_config: Mapping[str, Any] | QuantumDeviceConfig | None = None,
     ) -> None:
         super().__init__()
 
@@ -43,6 +47,7 @@ class ParaVQC(nn.Module):
                     n_layers=n_layers,
                     embedding=embedding,
                     ansatz=ansatz,
+                    quantum_config=quantum_config,
                 )
                 for _ in range(self.n_blocks)
             ]
@@ -85,6 +90,7 @@ class ParaVQL(BaseLayer):
         n_qdepth: int = 3,
         ansatz: dict | None = None,
         embedding: str = "angle",
+        quantum_config: Mapping[str, Any] | QuantumDeviceConfig | None = None,
     ) -> None:
         super().__init__(input_size=input_size)
 
@@ -94,6 +100,7 @@ class ParaVQL(BaseLayer):
             n_layers=n_qdepth,
             embedding=embedding,
             ansatz=ansatz,
+            quantum_config=quantum_config,
         )
 
         self.output_size = self.vqc.output_size

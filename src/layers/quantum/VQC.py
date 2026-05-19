@@ -1,3 +1,5 @@
+from typing import Any, Mapping
+
 from torch.nn import Identity, Linear
 from .ansatz import AnsatzFactory
 import torch
@@ -5,6 +7,7 @@ import torch.nn as nn
 from torch import Tensor
 
 from layers import BaseLayer, LayerFactory
+from qdevice import QuantumDeviceConfig
 
 class VQC(nn.Module):
     """Single quantum circuit module (Variational Quantum Circuit).
@@ -18,6 +21,7 @@ class VQC(nn.Module):
         n_layers: int,
         embedding: str = "angle",
         ansatz: dict | None = None,
+        quantum_config: Mapping[str, Any] | QuantumDeviceConfig | None = None,
     ):
         super().__init__()
         ansatz = ansatz or {}
@@ -29,6 +33,7 @@ class VQC(nn.Module):
             n_layers=n_layers,
             embedding=embedding,
             **ansatz_config,
+            quantum_config=quantum_config,
         )
         self.qlayer = self.ansatz.qlayer
 
@@ -50,6 +55,7 @@ class VQL(BaseLayer):
         ansatz: dict | None = None,
         embedding: str = "angle",
         output_size: int | None = None,
+        quantum_config: Mapping[str, Any] | QuantumDeviceConfig | None = None,
     ) -> None:
         super().__init__(input_size=input_size)
 
@@ -58,6 +64,7 @@ class VQL(BaseLayer):
             n_layers=n_qdepth,
             embedding=embedding,
             ansatz=ansatz,
+            quantum_config=quantum_config,
         )
 
         self.post = Linear(self.vqc.output_size, output_size, bias=True) \

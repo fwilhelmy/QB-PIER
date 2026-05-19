@@ -8,10 +8,11 @@ class RandomStructureAnsatz(BaseAnsatz):
         input_size: int,
         n_layers: int,
         embedding: str = "angle",
+        quantum_config=None,
         ratio_imprim: float = 0.75, # Ratio of rotation 1 qubit gates to cnots
         seed: int = 42,
     ):
-        super().__init__(input_size, n_layers, embedding)
+        super().__init__(input_size, n_layers, embedding, quantum_config=quantum_config)
         self.ratio_imprim = ratio_imprim
         self.seed = seed
 

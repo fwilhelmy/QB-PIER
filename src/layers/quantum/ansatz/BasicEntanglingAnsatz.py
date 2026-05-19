@@ -7,9 +7,10 @@ class BasicEntanglingAnsatz(BaseAnsatz):
         self,
         input_size: int,
         n_layers: int,
-        embedding: str = "angle"
+        embedding: str = "angle",
+        quantum_config=None,
     ):
-        super().__init__(input_size, n_layers, embedding)
+        super().__init__(input_size, n_layers, embedding, quantum_config=quantum_config)
 
     @property
     def weight_shapes(self) -> dict:

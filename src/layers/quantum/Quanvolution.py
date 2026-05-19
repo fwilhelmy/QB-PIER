@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any, Mapping
 
 import torch
 import torch.nn as nn
@@ -8,6 +11,7 @@ from .VQC import VQC
 import torch
 from torch import Tensor, flatten
 from layers import BaseLayer, LayerFactory
+from qdevice import QuantumDeviceConfig
 
 
 log = logging.getLogger(__name__)
@@ -26,6 +30,7 @@ class Quanv2d(nn.Module):
         n_layers: int = 1,
         embedding: str = "angle",
         ansatz: dict | None = None,
+        quantum_config: Mapping[str, Any] | QuantumDeviceConfig | None = None,
     ):
         super().__init__()
         self.in_channels = in_channels
@@ -42,7 +47,8 @@ class Quanv2d(nn.Module):
             input_size=self.input_size,
             n_layers=n_layers,
             embedding=embedding,
-            ansatz=ansatz
+            ansatz=ansatz,
+            quantum_config=quantum_config,
         )
         self.readout = nn.Linear(self.n_qubits, out_channels)
 
@@ -93,6 +99,7 @@ class Quanvolution(BaseLayer):
         ansatz: dict | None = None,
         embedding: str = "angle",
         rotation: str = "X",
+        quantum_config: Mapping[str, Any] | QuantumDeviceConfig | None = None,
     ) -> None:
         super().__init__(input_size=input_size)
         if self.input_size is None:
@@ -110,6 +117,7 @@ class Quanvolution(BaseLayer):
             n_layers=n_qdepth,
             embedding=embedding,
             ansatz=ansatz,
+            quantum_config=quantum_config,
         )
         n_patches = (height - patch_size) // stride + 1
         self.output_size = self.quanv.out_channels * n_patches * n_patches

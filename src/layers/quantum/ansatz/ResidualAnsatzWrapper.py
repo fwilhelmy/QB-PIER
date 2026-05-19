@@ -4,12 +4,13 @@ from . import AnsatzFactory, BaseAnsatz
 
 def ResidualAnsatzWrapper(ansatz_cls: type[BaseAnsatz]) -> type[BaseAnsatz]:
     class ResidualAnsatz(ansatz_cls):
-        def __init__(self, input_size, n_layers, **ansatz_kwargs):
+        def __init__(self, input_size, n_layers, quantum_config=None, **ansatz_kwargs):
             # Initialize the parent ansatz with no embedding
             ansatz_kwargs["embedding"] = "none"
             super().__init__(
                 input_size=input_size,
                 n_layers=n_layers,
+                quantum_config=quantum_config,
                 **ansatz_kwargs,
             )
     

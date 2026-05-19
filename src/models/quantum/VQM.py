@@ -8,6 +8,7 @@ from torch import nn
 
 from models import BaseModel, ModelFactory
 from layers.quantum import VQC
+from qdevice import normalize_quantum_config
 
 @ModelFactory.model("ampvqc") # Legacy name for backward compatibility
 @ModelFactory.model("vqm")
@@ -25,16 +26,19 @@ class VQM(BaseModel):
         n_qdepth: int = 1,
         ansatz: dict | None = None,
         embedding: str = "amplitude",
+        quantum_config=None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.save_hyperparameters("n_qdepth", "ansatz", "embedding")
+        self.quantum_config = normalize_quantum_config(quantum_config)
+        self.save_hyperparameters("n_qdepth", "ansatz", "embedding", "quantum_config")
 
         self.vqc = VQC(
             input_size=np.prod(self.input_size, dtype=int),
             n_layers=n_qdepth,
             embedding=embedding,
             ansatz=ansatz,
+            quantum_config=self.quantum_config.as_dict(),
         )
 
         if self.vqc.output_size != self.output_size:

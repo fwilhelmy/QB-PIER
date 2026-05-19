@@ -1,5 +1,6 @@
 """Factory for registering and instantiating layers."""
 
+import inspect
 from typing import Any, Callable, Type
 
 from torch.nn import Module
@@ -42,7 +43,19 @@ class LayerFactory(HydraFactory[BaseLayer]):
     def create_layer(cls, name: str, **kwargs: Any) -> BaseLayer:
         """Instantiate the layer registered under ``name``."""
 
-        return super().create(name, **kwargs)
+        layer_cls = cls._get(name)
+        init_sig = inspect.signature(layer_cls.__init__)
+        accepts_kwargs = any(
+            param.kind == inspect.Parameter.VAR_KEYWORD
+            for param in init_sig.parameters.values()
+        )
+        if not accepts_kwargs:
+            kwargs = {
+                key: value
+                for key, value in kwargs.items()
+                if key in init_sig.parameters
+            }
+        return layer_cls(**kwargs)
 
 
 __all__ = ["LayerFactory"]

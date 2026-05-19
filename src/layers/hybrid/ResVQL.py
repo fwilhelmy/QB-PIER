@@ -7,6 +7,7 @@ from torch.nn import BatchNorm1d, Linear, ReLU
 from ..BaseLayer import BaseLayer
 from ..LayerFactory import LayerFactory
 from ..quantum.VQC import VQC
+from qdevice import QuantumDeviceConfig
 
 
 @LayerFactory.layer("resvql")
@@ -22,6 +23,7 @@ class ResVQL(BaseLayer):
         ansatz: dict | None = None,
         embedding: str = "amplitude",
         residual_init: float = 0.5,
+        quantum_config: Mapping[str, Any] | QuantumDeviceConfig | None = None,
     ) -> None:
         super().__init__(input_size=input_size, output_size=output_size)
         self.fc1 = Linear(input_size, in_qlayer)
@@ -32,6 +34,7 @@ class ResVQL(BaseLayer):
             n_layers=n_qdepth,
             embedding=embedding,
             ansatz=ansatz,
+            quantum_config=quantum_config,
         )
         self.residual_proj = Linear(input_size, output_size)
         self.residual_scale = torch.nn.Parameter(

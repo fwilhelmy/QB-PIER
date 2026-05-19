@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from typing import Any, Mapping
+
 from torch import Tensor
 from torch.nn import BatchNorm1d, Linear, Module, ReLU
 
 from layers import BaseLayer, LayerFactory
 from layers.quantum import VQC, ParaVQC
+from qdevice import QuantumDeviceConfig
 
 
 @LayerFactory.layer("hvql")
@@ -16,13 +19,14 @@ class HVQL(BaseLayer):
         input_size: int,
         output_size: int,
         in_qlayer: int,
+        quantum_config: Mapping[str, Any] | QuantumDeviceConfig | None = None,
         **qlayer_kwargs,
     ) -> None:
         super().__init__(input_size=input_size, output_size=output_size)
         self.fc1 = Linear(input_size, in_qlayer)
         self.bn = BatchNorm1d(in_qlayer)
         self.relu = ReLU()
-        self.qlayer = self._qcls(in_qlayer=in_qlayer, **qlayer_kwargs)
+        self.qlayer = self._qcls(in_qlayer=in_qlayer, quantum_config=quantum_config, **qlayer_kwargs)
         self.fc2 = Linear(self.qlayer.output_size, output_size)
 
     def forward(self, x: Tensor) -> Tensor:
@@ -46,12 +50,14 @@ class HPVQL(HVQL):
         input_size: int,
         output_size: int,
         in_qlayer: int,
+        quantum_config: Mapping[str, Any] | QuantumDeviceConfig | None = None,
         **qlayer_kwargs,
     ) -> None:
         super().__init__(
             input_size=input_size,
             output_size=output_size,
             in_qlayer=in_qlayer,
+            quantum_config=quantum_config,
             **qlayer_kwargs,
         )
 

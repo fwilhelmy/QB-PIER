@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from typing import Any, Mapping
+
 from torch import Tensor
 from torch.nn import BatchNorm1d, Dropout, Linear, ReLU
 
 from ..BaseLayer import BaseLayer
 from ..LayerFactory import LayerFactory
 from ..quantum.VQC import VQC
+from qdevice import QuantumDeviceConfig
 
 
 @LayerFactory.layer("dropvql")
@@ -21,6 +24,7 @@ class DropVQL(BaseLayer):
         ansatz: dict | None = None,
         embedding: str = "amplitude",
         dropout: float = 0.1,
+        quantum_config: Mapping[str, Any] | QuantumDeviceConfig | None = None,
     ) -> None:
         super().__init__(input_size=input_size, output_size=output_size)
         self.fc1 = Linear(input_size, in_qlayer)
@@ -32,6 +36,7 @@ class DropVQL(BaseLayer):
             n_layers=n_qdepth,
             embedding=embedding,
             ansatz=ansatz,
+            quantum_config=quantum_config,
         )
         self.fc_out = Linear(self.vqc.output_size, output_size)
 

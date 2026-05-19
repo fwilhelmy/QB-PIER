@@ -12,6 +12,7 @@ from torch.nn import Identity, Linear, LogSoftmax
 
 from models import BaseModel, ModelFactory
 from layers import LayerFactory
+from qdevice import normalize_quantum_config
 
 
 @ModelFactory.model("hqnn")
@@ -22,11 +23,13 @@ class HQNN(BaseModel):
         self,
         encoder: Mapping[str, Any] | DictConfig,
         classifier: Mapping[str, Any] | DictConfig,
+        quantum_config=None,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
 
-        self.save_hyperparameters("encoder", "classifier")
+        self.quantum_config = normalize_quantum_config(quantum_config)
+        self.save_hyperparameters("encoder", "classifier", "quantum_config")
 
         encoder_name = encoder["name"]
         encoder_params = encoder.get("params", {}) or {}
@@ -35,6 +38,7 @@ class HQNN(BaseModel):
             encoder_name,
             input_size=self.input_size,
             **encoder_params,
+            quantum_config=self.quantum_config.as_dict(),
         )
 
         classifier_name = classifier["name"]
@@ -45,6 +49,7 @@ class HQNN(BaseModel):
             input_size=self.encoder.output_size,
             output_size=self.output_size,
             **classifier_params,
+            quantum_config=self.quantum_config.as_dict(),
         )
 
         self.output_activation = LogSoftmax(dim=1)

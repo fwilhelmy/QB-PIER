@@ -5,7 +5,7 @@ from datetime import datetime
 import hydra
 import torch
 from hydra.core.hydra_config import HydraConfig
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from DiscordWebhook import DiscordWebhook
 from datasets import DatasetFactory
@@ -36,6 +36,7 @@ def train_model(cfg: DictConfig, log_dir: str):
         k: v for k, v in cfg["model"].items()
         if k not in {"model_class", "model_type"}
     }
+    quantum_config = OmegaConf.to_container(cfg.get("qdevice", {}), resolve=True)
 
     # Create an anchor file for later discovery
     root_dir = LoggingService().root_dir
@@ -77,6 +78,7 @@ def train_model(cfg: DictConfig, log_dir: str):
             input_size=cfg["dataset"]["input_shape"],
             output_size=cfg["dataset"]["classes"],
             **model_config,
+            quantum_config=quantum_config,
         )
         
         model.configure_training(config={
