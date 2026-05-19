@@ -1,12 +1,6 @@
 # Results files
 logs/
-results/
-saves/
-lightning_logs/
-multirun/
 outputs/
-profiles/
-notes/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

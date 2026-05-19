@@ -1,0 +1,8 @@
+defaults:
+  - ansatz: basic
+model_class: DimVQC
+model_type: hybrid
+reduced_dim: 1024
+reduction_method: pca
+n_qdepth: 2
+embedding: amplitude
