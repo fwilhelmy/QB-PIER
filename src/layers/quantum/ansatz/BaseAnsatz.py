@@ -6,7 +6,7 @@ from typing import Any, Mapping
 import numpy as np
 import pennylane as qml
 
-from qdevice import QuantumDeviceConfig, normalize_quantum_config
+from qdevice import QuantumDeviceConfig, make_qnode, normalize_quantum_config
 from ..embedding import EmbeddingFactory
 
 
@@ -39,16 +39,10 @@ class BaseAnsatz(ABC):
 
     @property
     def qnode(self):
-        dev = qml.device(
-            self.quantum_config.device,
-            wires=self.n_qubits,
-            shots=self.quantum_config.shots,
-        )
-        return qml.QNode(
+        return make_qnode(
             self.circuit,
-            dev,
-            interface=self.quantum_config.interface,
-            diff_method=self.quantum_config.diff_method,
+            config=self.quantum_config,
+            n_qubits=self.n_qubits,
         )
 
     @property
@@ -68,44 +62,16 @@ class BaseAnsatz(ABC):
         raise NotImplementedError("Subclasses must implement the ansatz() method.")
 
     def circuit(self, inputs, weights):
-        """Full QNode circuit: embedding + ansatz + optional noise + measurements."""
+        """Full QNode circuit: embedding + ansatz + measurements.
+
+        Optional noise is attached to the QNode through PennyLane's native
+        insertion-based ``qml.NoiseModel`` in :mod:`qdevice`, not inserted
+        manually inside the circuit body.
+        """
         if self.embedding:
             self.embedding(inputs)
         self.ansatz(weights)
-        self._apply_noise()
         return [qml.expval(qml.PauliZ(wires=i)) for i in range(self.n_qubits)]
-
-    def _apply_noise(self) -> None:
-        """Apply a small configurable noise block before measurement.
-
-        This keeps noise explicit and local to quantum circuits. The supported
-        options are deliberately simple and stable: depolarizing,
-        phase_damping, amplitude_damping, bit_flip and phase_flip.
-        """
-        noise = self.quantum_config.noise
-        if not noise.enabled:
-            return
-
-        name = str(noise.name).lower()
-        probability = float(noise.probability)
-        wires = range(self.n_qubits)
-
-        for wire in wires:
-            if name in {"depolarizing", "depolarizing_channel"}:
-                qml.DepolarizingChannel(probability, wires=wire)
-            elif name in {"phase_damping", "phasedamping"}:
-                qml.PhaseDamping(probability, wires=wire)
-            elif name in {"amplitude_damping", "amplitudedamping"}:
-                qml.AmplitudeDamping(probability, wires=wire)
-            elif name in {"bit_flip", "bitflip"}:
-                qml.BitFlip(probability, wires=wire)
-            elif name in {"phase_flip", "phaseflip"}:
-                qml.PhaseFlip(probability, wires=wire)
-            else:
-                raise ValueError(
-                    f"Unsupported quantum noise model '{noise.name}'. "
-                    "Supported: depolarizing, phase_damping, amplitude_damping, bit_flip, phase_flip."
-                )
 
     def visualize(self, expanded: bool = False):
         """Visualize the circuit diagram using matplotlib."""
