@@ -1,6 +1,6 @@
 # Attack pipeline
 
-The attack pipeline is the second place where Hydra is allowed. Analytics should remain path-based and should not depend on Hydra.
+Hydra is used for the attack pipeline.
 
 Entrypoint:
 
@@ -14,7 +14,7 @@ Default config:
 conf/attack.yaml
 ```
 
-Default config groups:
+Default groups:
 
 ```yaml
 device: local
@@ -26,31 +26,17 @@ model_load: final
 models_path: ???
 ```
 
-## Basic usage
-
-Run FGSM on a trained model folder:
+## Common command
 
 ```bash
 python src/attack.py \
-  models_path=logs/training/2026-05-19@12-30-00 \
+  models_path=logs/training/<run-folder> \
   model_load=final \
   dataset=mnist \
   attack=fgsm
 ```
 
-Run with explicit quantum config:
-
-```bash
-python src/attack.py \
-  models_path=logs/training/2026-05-19@12-30-00 \
-  dataset=mnist \
-  attack=fgsm \
-  qdevice=sim
-```
-
 ## Pipeline flow
-
-The intended flow is:
 
 ```text
 Hydra config
@@ -64,7 +50,7 @@ Hydra config
 
 The current attack runner uses fixed epsilons from `0.00` to `1.00` in steps of `0.05`.
 
-## Attack artifacts
+## Artifacts produced by attacks
 
 Attack runs write artifacts under:
 
@@ -81,42 +67,23 @@ logs/attacks/attack_experiment/
 ├── tables/
 └── seed_0/
     ├── labels.npy
-    ├── audit_indices.npy
-    ├── audit_clean_images_uint8.npy
     ├── baselines/
-    │   └── <victim_model>/
-    │       ├── logits_clean.npy
-    │       └── preds_clean.npy
     ├── attacks/
-    │   └── source=<source>__target=<target>.npy
     ├── attacker_audit_adv/
-    │   └── source=<source>.npz
     └── tables/
-        └── aggregates_<chunk>.parquet or .csv
 ```
 
-The important artifacts are:
+The key artifacts are:
 
 - `manifest.json`: attack run metadata.
-- `epsilons.json`: epsilon grid used during evaluation.
-- `labels.npy`: labels for the evaluated dataset split.
-- `audit_indices.npy`: selected indices for image audits.
-- `audit_clean_images_uint8.npy`: clean audit images.
-- `baselines/<victim_model>/logits_clean.npy`: cached clean logits.
-- `baselines/<victim_model>/preds_clean.npy`: cached clean predictions.
-- `attacks/source=<source>__target=<target>.npy`: adversarial evaluation output for one source-target pair.
-- `attacker_audit_adv/source=<source>.npz`: adversarial audit images for one source model.
+- `epsilons.json`: epsilon grid.
+- `labels.npy`: labels for the evaluated split.
+- `baselines/<victim>/logits_clean.npy`: clean logits.
+- `attacks/source=<source>__target=<target>.npy`: adversarial evaluation output.
 - `tables/`: aggregate result tables.
 
-These notes are intentionally redundant with `docs/artifacts.md` because attack debugging usually requires knowing where logits and aggregate tables are saved.
+For the full artifact contract, see `docs/artifacts.md`.
 
 ## Current reliability
 
-The only attack path that should be considered reliable right now is:
-
-```text
-MNIST dataset
-+ FGSM attack
-```
-
-PGD exists in the codebase, but it is not part of the validated path yet.
+The reliable baseline is MNIST + FGSM. PGD exists but is not validated yet.

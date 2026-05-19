@@ -1,6 +1,6 @@
 # Training pipeline
 
-The training pipeline is the main place where Hydra should be used.
+Hydra is used for the training pipeline.
 
 Entrypoint:
 
@@ -14,7 +14,7 @@ Default config:
 conf/train.yaml
 ```
 
-Default config groups:
+Default groups:
 
 ```yaml
 device: local
@@ -25,41 +25,16 @@ training: dev
 logging: verbose
 ```
 
-## Basic usage
-
-Run the default training job:
-
-```bash
-python src/train.py
-```
-
-Run a small debug job:
+## Common commands
 
 ```bash
 python src/train.py model=lenet dataset=mnist training=debug
-```
-
-Run a quantum model with exact simulation:
-
-```bash
 python src/train.py model=vqm dataset=mnist training=dev qdevice=sim
-```
-
-Run a quantum model with finite-shot noisy simulation:
-
-```bash
 python src/train.py model=vqm dataset=mnist training=dev qdevice=noisy
-```
-
-Run a longer training config:
-
-```bash
 python src/train.py model=hvql dataset=mnist training=full device=local
 ```
 
 ## Pipeline flow
-
-The intended flow is:
 
 ```text
 Hydra config
@@ -71,7 +46,7 @@ Hydra config
 → checkpoints, metrics, figures, logs
 ```
 
-Quantum configuration is passed explicitly:
+Quantum settings should be passed explicitly:
 
 ```text
 conf/qdevice/*.yaml
@@ -85,34 +60,7 @@ conf/qdevice/*.yaml
 
 Do not reintroduce global quantum state.
 
-## Quantum device configs
-
-Current qdevice configs:
-
-```text
-conf/qdevice/sim.yaml
-conf/qdevice/noisy.yaml
-```
-
-`sim.yaml` is the default exact simulator path:
-
-```text
-default.qubit
-shots: null
-noise: disabled
-```
-
-`noisy.yaml` is the finite-shot noisy path:
-
-```text
-default.mixed
-shots: 1000
-noise: PennyLane NoiseModel
-```
-
-Noise construction should stay centralized in `src/qdevice.py`.
-
-## Training artifacts
+## Artifacts produced by training
 
 Training writes artifacts under:
 
@@ -123,45 +71,28 @@ logs/training/<date@time>/<hydra-overrides>/
 Typical structure:
 
 ```text
-logs/training/2026-05-19@12-30-00/model=lenet,dataset=mnist/
+logs/training/<run>/
 ├── .hydra/
-│   ├── config.yaml
-│   ├── hydra.yaml
-│   └── overrides.yaml
 ├── .model
 ├── experiment.json
-├── 0/
-│   ├── final.ckpt
-│   ├── checkpoints/
-│   ├── metrics/
-│   └── figures/
-└── 42/
+└── <seed>/
     ├── final.ckpt
     ├── checkpoints/
     ├── metrics/
     └── figures/
 ```
 
-The important artifacts are:
+The key artifacts are:
 
 - `.model`: model class name for loading.
-- `experiment.json`: run metadata.
 - `.hydra/config.yaml`: resolved config snapshot.
 - `.hydra/overrides.yaml`: command-line overrides.
-- `<seed>/final.ckpt`: final model checkpoint for that seed.
-- `<seed>/checkpoints/`: intermediate checkpoints.
+- `<seed>/final.ckpt`: final checkpoint.
 - `<seed>/metrics/`: saved metrics.
 - `<seed>/figures/`: saved training figures.
 
-These notes are intentionally redundant with `docs/artifacts.md` because training users usually need the artifact layout directly beside the training commands.
+For the full artifact contract, see `docs/artifacts.md`.
 
 ## Current reliability
 
-The only training path that should be considered reliable right now is:
-
-```text
-MNIST dataset
-+ standard training pipeline
-```
-
-Other datasets and some quantum paths may exist, but they still need validation.
+The reliable baseline is MNIST training. Other datasets and some quantum paths exist, but they should be smoke-tested before being treated as stable.

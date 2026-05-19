@@ -21,7 +21,7 @@ project/
 └── logs/
 ```
 
-`data/` and `logs/` are generated/runtime folders and should generally not be committed.
+`data/` and `logs/` are runtime folders and should generally not be committed.
 
 ## Docs
 
@@ -33,14 +33,6 @@ docs/
 ├── implementation_state.md
 └── project_structure.md
 ```
-
-Purpose:
-
-- `artifacts.md`: where generated training and attack files are saved.
-- `training.md`: how to run training and what training leaves behind.
-- `attacking.md`: how to run attacks and what attacks leave behind.
-- `implementation_state.md`: what currently works and what is only partially validated.
-- `project_structure.md`: overview of the repository layout.
 
 ## Configs
 
@@ -57,14 +49,7 @@ conf/
 └── training/
 ```
 
-Hydra should stay limited to:
-
-```text
-training
-attacks
-```
-
-Analytics should not require Hydra.
+Hydra should stay limited to training and attacks.
 
 ## Experiments
 
@@ -74,12 +59,6 @@ experiments/
 ├── attacks/
 └── prototypes/
 ```
-
-Purpose:
-
-- `models/`: model exploration and training notebooks.
-- `attacks/`: attack experiments and attack tutorials.
-- `prototypes/`: UI tests, scratch notebooks, TensorBoard tests, and old exploratory work.
 
 Notebooks are allowed to be messy. Production logic should move into `src/`.
 
@@ -111,43 +90,3 @@ Main responsibilities:
 - `src/attacks/`: attack implementations and attack factory.
 - `src/metrics/`: metric containers/profilers used during training.
 - `src/analytics/`: figures, tables, and utility scripts for analysis.
-
-## Analytics
-
-```text
-src/analytics/
-├── attacks/
-├── model/
-├── scripts/
-├── tables/
-├── training/
-└── utils.py
-```
-
-Analytics should be practical and path-based. Prefer functions that accept:
-
-```text
-input_path
-output_path
-model filters
-attack filters
-save options
-```
-
-Avoid adding more global state or Hydra coupling here.
-
-## Quantum device design
-
-Quantum settings should be passed explicitly:
-
-```text
-Hydra qdevice config
-→ train.py / attack.py
-→ ModelFactory
-→ model
-→ quantum layer
-→ ansatz
-→ QNode
-```
-
-Do not reintroduce module-level global quantum state.

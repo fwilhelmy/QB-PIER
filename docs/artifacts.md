@@ -1,6 +1,6 @@
 # Artifacts
 
-This project writes runtime artifacts under `logs/`. Training and attack artifacts are different, but both should be treated as generated outputs, not source code.
+Training and attack outputs are runtime artifacts. They should usually live under `logs/` and should not be committed.
 
 ## Training artifacts
 
@@ -10,22 +10,16 @@ Training is launched with:
 python src/train.py
 ```
 
-Default config:
-
-```text
-conf/train.yaml
-```
-
 Typical output root:
 
 ```text
 logs/training/<date@time>/<hydra-overrides>/
 ```
 
-Typical run structure:
+Typical structure:
 
 ```text
-logs/training/2026-05-19@12-30-00/model=lenet,dataset=mnist/
+logs/training/<run>/
 ├── .hydra/
 │   ├── config.yaml
 │   ├── hydra.yaml
@@ -46,13 +40,13 @@ logs/training/2026-05-19@12-30-00/model=lenet,dataset=mnist/
 
 Important files:
 
-- `.model`: stores the model class name used by loading utilities.
-- `experiment.json`: stores run-level metadata.
-- `.hydra/`: stores the resolved Hydra config and overrides.
+- `.model`: model class name used by loading utilities.
+- `experiment.json`: run-level metadata.
+- `.hydra/`: resolved Hydra config and overrides.
 - `<seed>/final.ckpt`: final checkpoint for one seed.
-- `<seed>/checkpoints/`: intermediate checkpoints if checkpointing is enabled.
-- `<seed>/metrics/`: training metrics when produced by the model/training pipeline.
-- `<seed>/figures/`: training figures when produced by the model/training pipeline.
+- `<seed>/checkpoints/`: intermediate checkpoints.
+- `<seed>/metrics/`: saved training metrics.
+- `<seed>/figures/`: saved training figures.
 
 ## Attack artifacts
 
@@ -62,19 +56,13 @@ Attacks are launched with:
 python src/attack.py models_path=<path-to-trained-model-folder>
 ```
 
-Default config:
-
-```text
-conf/attack.yaml
-```
-
 Typical output root:
 
 ```text
 logs/attacks/attack_experiment/
 ```
 
-Typical attack structure:
+Typical structure:
 
 ```text
 logs/attacks/attack_experiment/
@@ -99,22 +87,18 @@ logs/attacks/attack_experiment/
 
 Important files:
 
-- `manifest.json`: metadata describing the attack run.
-- `epsilons.json`: list of epsilon values used for evaluation.
-- `labels.npy`: clean labels for the evaluated split.
-- `audit_indices.npy`: sampled indices used for audit images.
-- `audit_clean_images_uint8.npy`: clean audit images.
-- `baselines/<victim_model>/logits_clean.npy`: cached clean logits for a victim model.
-- `baselines/<victim_model>/preds_clean.npy`: cached clean predictions for a victim model.
-- `attacks/source=<source>__target=<target>.npy`: adversarial evaluation result for one source-target pair.
+- `manifest.json`: metadata for the attack run.
+- `epsilons.json`: epsilon grid.
+- `labels.npy`: labels for the evaluated split.
+- `baselines/<victim>/logits_clean.npy`: clean victim logits.
+- `baselines/<victim>/preds_clean.npy`: clean victim predictions.
+- `attacks/source=<source>__target=<target>.npy`: adversarial evaluation output for one source-target pair.
 - `attacker_audit_adv/source=<source>.npz`: small adversarial image audit sample.
 - `tables/`: aggregate result tables.
 
 ## Commit policy
 
-Do not commit generated artifacts unless there is a very specific reason.
-
-Usually ignored/generated:
+Usually do not commit:
 
 ```text
 logs/
@@ -123,5 +107,3 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 ```
-
-Raw datasets, trained checkpoints, attack logits, and generated figures should usually stay out of Git.

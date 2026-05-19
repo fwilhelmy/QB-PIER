@@ -2,188 +2,158 @@
 
 QB-PIER provides a set of tools to evaluate how robust classical and quantum neural networks are against adversarial attacks.
 
+The current reliable baseline is intentionally narrow: MNIST training with FGSM attack evaluation. Other datasets, attacks, and some quantum paths exist, but they should be treated as partially validated unless stated otherwise.
+
 ## Table of Contents
 - [Overview](#overview)
 - [Installation](#installation)
 - [Project Structure](#project-structure)
 - [Running Experiments](#running-experiments)
 - [Training Pipeline](#training-pipeline)
-- [Metrics & Logging](#metrics-storage)
-- [Running Tests](#tests)
-- [Documentation](#documentation)
+- [Attack Pipeline](#attack-pipeline)
+- [Metrics & Logging](#metrics--logging)
+- [Artifacts](#artifacts)
+- [Implementation State](#implementation-state)
 - [Credits](#credits)
 
 ## Overview
-The codebase focuses on benchmarking the adversarial robustness of different classifiers. The main training and attack pipelines live under `src/`. Models are written with PyTorch and PyTorch Lightning. Quantum layers rely on PennyLane. The project also includes Jupyter notebooks demonstrating training, attacks, and data exploration.
 
-Results (checkpoints, figures and TensorBoard logs) are saved under a timestamped folder created by Hydra and consumed by `LoggingService`.
+QB-PIER is built around two main workflows:
+
+1. train classical, quantum, or hybrid neural networks;
+2. evaluate their robustness under adversarial attacks.
+
+The main validated path is:
+
+```text
+MNIST dataset
++ training pipeline
++ FGSM attack pipeline
+```
+
+For the exact current state of the implementation, see `docs/implementation_state.md`.
 
 ## Installation
-1. Ensure you have Python 3.8-3.11 available (the provided helpers create a Python 3.10 environment).
-2. Create and activate a virtual environment. Running `make create_environment` will:
-   - create a conda environment named `QMLBenchmark` with Python 3.10 when conda is available, or
-   - create a local `.venv` directory using `python -m venv` as a fallback.
-   Use `make help` to list all available Makefile commands.
-3. Install the dependencies listed in `requirements.txt`:
-   ```bash
-   pip install -r requirements.txt
-   ```
-   Alternatively, run `make requirements` to verify the interpreter and install everything.
-   The pipeline requires `hydra-core` version 1.3.2-1.3.x.
-4. Run `python test_environment.py` to confirm the Python interpreter meets the
-   requirements.
 
-Supported environment combination:
-- Python 3.8-3.11
-- Hydra `hydra-core` 1.3.2-1.3.x
+Clone the repository:
+
+```bash
+git clone <repository-url>
+cd QB-PIER
+```
+
+Create and activate a Python environment:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate       # Linux / macOS
+# .venv\Scripts\activate       # Windows PowerShell
+```
+
+Install the required Python packages for your environment. The project depends on the usual PyTorch / Lightning / Hydra / PennyLane stack used by the training and attack pipelines.
+
+If you maintain a project-specific requirements file, install it here:
+
+```bash
+pip install -r requirements.txt
+```
+
+If no requirements file is present, install the environment manually according to your local CUDA/PyTorch and PennyLane setup.
 
 ## Project Structure
+
+High-level layout:
+
+```text
+conf/          Hydra configs for training and attacks
+experiments/   notebooks and prototypes
+src/           source code
+docs/          markdown documentation
 ```
-├── src/                  # Main source code
-│   ├── attacks/          # Adversarial attack implementations
-│   ├── data/             # Dataset management
-│   ├── metrics/          # Metric containers and logging utilities
-│   ├── models/           # Classical, quantum and hybrid models
-│   ├── layers/           # Layer abstractions and implementations (classical, quantum, hybrid)
-│   ├── visualisation/    # Figure generation helpers
-│   └── experiments/      # Experiment utilities
-├── conf/                 # Hydra configuration files
-├── logs/                 # Training outputs created at runtime
-├── tests/                # Pytest unit tests
-├── notebooks/            # Example notebooks and archived code
-├── docs/                 # Sphinx documentation
-└── HELPER                # Convenience scripts for remote runs
-```
+
+For the deeper folder-by-folder breakdown, see `docs/project_structure.md`.
 
 ## Running Experiments
-Experiments are orchestrated with [Hydra](https://github.com/facebookresearch/hydra).
-The entry point [`main.py`](src/main.py) is decorated with `@hydra.main` and reads
-defaults from [`conf/`](conf/). Any parameter can be overridden on the command line
-to modify a run without touching the code.
 
-The top-level `Makefile` provides shortcuts that forward Hydra overrides via an
-`ARGS` variable. For example, `make train ARGS="device=colab_t4"` dispatches to
-`python -m src.train`, and `make attack ARGS="attack=pgd dataset=fmnist"` wraps
-`python -m src.attack`. Using these helpers keeps experiment commands consistent
-across machines.
-
-Device profiles under `conf/device/` make it easy to switch hardware settings:
+Training and attacks are launched through Hydra entrypoints:
 
 ```bash
-# Use the Google Colab GPU setup
-python src/main.py device=colab_t4
-
-# Run on a 64-CPU cluster
-python src/main.py device=cpu_cluster
-
-# Default local configuration
-python src/main.py device=local
+python src/train.py ...
+python src/attack.py ...
 ```
 
-Quantum circuit layouts are configured through ansatz files under
-`conf/model/ansatz/`. Each YAML specifies the ansatz class and optional
-parameters. Models include a `defaults` entry like `- ansatz: strong` to select
-the desired circuit.
+Hydra should stay limited to training and attacks. Analytics scripts should use normal paths and normal function arguments.
 
-You can also launch a fully configured experiment by referencing one of the
-presets stored under `conf/experiment/`:
+For concrete commands, see:
 
-```bash
-python src/main.py +experiment=VQM200
-```
-
-To sweep over multiple values you can enable Hydra's multi-run mode. The `-m`
-flag expands comma-separated values into a cartesian product, and additional
-overrides can follow afterwards so that they apply to every spawned run. For
-example, to sweep two learning rates while keeping the device fixed you can
-execute:
-
-```bash
-python src/main.py -m model=vqm optimizer.lr=0.001,0.0001 device=colab_t4
-```
+- `docs/training.md`
+- `docs/attacking.md`
 
 ## Training Pipeline
-All models inherit from [`BaseModel`](src/models/BaseModel.py), a thin wrapper
-around `LightningModule` that configures optimizers, callbacks and logging.
-`configure_training()` builds a `Trainer` with the desired devices and
-hyperparameters, and the `fit()` method simply forwards to `Trainer.fit()` while
-saving a final checkpoint and the collected metrics. This hierarchy keeps the
-training loop consistent across the classical, quantum and hybrid models found
-under `src/models/`.
 
+The training pipeline handles dataset creation, model construction, training, checkpointing, metrics, and figures.
+
+Example:
+
+```bash
+python src/train.py model=lenet dataset=mnist training=debug
+```
+
+Quantum models can use explicit qdevice configs:
+
+```bash
+python src/train.py model=vqm dataset=mnist training=dev qdevice=sim
+python src/train.py model=vqm dataset=mnist training=dev qdevice=noisy
+```
+
+For details on config flow and training outputs, see `docs/training.md`.
 
 ## Attack Pipeline
-The script [`attack.py`](src/attack.py) performs pairwise transfer attacks using Hydra.
-Example usage:
-```bash
-python src/attack.py experiment_dir=./logs/my_experiment
-python src/attack.py attack=pgd dataset=fmnist stride=10 experiment_dir=./logs/my_experiment
-```
-Configuration files live under `conf/attack/` and `conf/dataset/` allowing easy overrides of attack type, datasets, and other options.
 
-<a id="metrics-storage"></a>
+The attack pipeline loads trained models, generates adversarial examples, evaluates source-target transfer pairs, and saves logits/tables for later analysis.
+
+Example:
+
+```bash
+python src/attack.py \
+  models_path=logs/training/<run-folder> \
+  model_load=final \
+  dataset=mnist \
+  attack=fgsm
+```
+
+For details on attack flow and attack outputs, see `docs/attacking.md`.
+
 ## Metrics & Logging
-Training and validation results are aggregated through
-[`MetricsContainer`](src/metrics/MetricsContainer.py) and stored with
-[`pandas`](https://pandas.pydata.org/). During training values are also written
-to TensorBoard for live monitoring.
 
-Logs follow the structure:
+Training metrics, checkpoints, and attack evaluations are saved under `logs/`.
 
-```
-experiment_dir/
-└─ model_class_name/
-   └─ model_config_name/
-      └─ seed/
-         ├─ checkpoints/
-         ├─ metrics/
-         ├─ tensorboard/
-         └─ final.ckpt
-```
+Training runs produce checkpoints, metrics, optional figures, and Hydra snapshots. Attack runs produce clean baselines, adversarial logits, audit images, epsilon metadata, and aggregate tables.
 
-An empty `.model` file is created inside each configuration directory to mark it
-as a loadable model. Utilities can scan the project and load any directory
-containing this anchor file. In particular `load_utils.load_experiment()` now
-recursively searches a folder for these anchors and loads every matching model.
+For the full save layout, see `docs/artifacts.md`.
 
-The experiment root contains an `experiment_info.json` similar to:
+## Artifacts
 
-```json
-{
-  "pipeline_version": "0.2.0",
-  "start_time": "2025-07-04T00:46:06.599638",
-  "cuda_available": false,
-  "configuration": {"DATA_DIR": "./data/processed", ...}
-}
+Artifacts are the generated files left by training and attack runs. They are useful for plotting, recomputing metrics, and avoiding reruns.
+
+Most artifacts should not be committed:
+
+```text
+logs/
+data/processed/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
 ```
 
-Metrics can be accessed via `model.metrics`, loaded with
-`load_utils.load_metrics()` or inspected in TensorBoard using
-`tensorboard --logdir logs`.
-Model checkpoints can be reloaded with `load_utils.load_model(path, best=True)`
-where the `best` flag selects the best checkpoint or the final one.
-Multiple directories can be loaded at once with
-`load_utils.load_from_dict({"name": "path/to/model"})` which returns a mapping of
-the provided names to the loaded models.
+For the full artifact contract, see `docs/artifacts.md`.
 
-<a id="tests"></a>
-## Running Tests
-Unit tests live in `tests/`. After installing the development dependencies you
-can run:
+## Implementation State
 
-```bash
-make lint  # style check with flake8
-make test  # execute pytest suite
-```
-Both commands should complete without errors once all required packages are
-available.
+The currently validated path is MNIST + FGSM. PGD, FMNIST, and PlusMinus exist but should not be treated as stable yet.
 
-## Documentation
-Sphinx documentation lives in `docs/`. After installing `Sphinx`, you can build the
-HTML pages with `make docs`, which runs `sphinx-build -b html docs docs/_build/html`.
-Open `_build/html/index.html` in a browser to read the generated documentation.
+For the full implementation status, see `docs/implementation_state.md`.
 
 ## Credits
-- Initial code was adapted by the work of Samuel Richard and I from the course GTI755.
-- I used some code from my assignements in the course IFT6135.
-- Parts of the project were structured with the help of ChatGPT.
+
+QB-PIER is developed for experimentation with quantum machine learning robustness, hybrid architectures, and adversarial evaluation workflows.
