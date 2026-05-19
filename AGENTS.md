@@ -241,7 +241,77 @@ Avoid relying exclusively on aggregate tables: logits cubes are the source of tr
 
 ---
 
-## 6) Common pitfalls and recommended coding standards
+## 6) Coding rules for agents
+
+These rules are part of the project contract. They are as important as the artifact layout above.
+
+### 6.1 Hydra boundaries
+
+- Hydra config is allowed only in the two real experiment pipelines:
+  - `src/train.py`
+  - `src/attack.py`
+- No other path should launch through Hydra or depend on a live Hydra runtime.
+- Analytics code may read old `.hydra/config.yaml` snapshots from saved runs when needed for metadata, but it must treat them as artifacts, not as runtime configuration.
+- Analytics, table extraction, visualization, inspection, and utility code should use normal Python arguments, notebook config cells, or hard-coded constants.
+
+### 6.2 No argparse unless explicitly requested
+
+- Do not add `argparse` to new files unless the user explicitly asks for a CLI.
+- For runnable utility scripts outside `train.py` and `attack.py`, use a simple `main()` with hard-coded arguments at the top of the file.
+- Prefer obvious constants like:
+
+```python
+INPUT_DIR = "logs/ByModel"
+OUTPUT_DIR = "outputs/<file_or_figure_name>"
+
+def main() -> None:
+    ...
+
+if __name__ == "__main__":
+    main()
+```
+
+### 6.3 Analytics figure workflow
+
+Analytics figure modules should be library code only. Do not put a `main()` block in figure modules such as:
+
+```text
+src/analytics/model/hquanv.py
+src/analytics/training/*.py
+src/analytics/attacks/*.py
+```
+
+Each useful figure module should have a notebook beside it with the same base name, for example:
+
+```text
+src/analytics/model/hquanv.py
+src/analytics/model/hquanv.ipynb
+```
+
+The notebook should drive the figure generation and should be split into exactly these practical blocks:
+
+1. **Imports, utilities, and config**
+   - default model root: `logs/ByModel`
+   - default output path: `outputs/<figure_or_file_name>`
+2. **Crawl and find models/artifacts**
+   - discover model directories using `.model` anchors
+   - discover attack folders/tables when working on attack figures
+3. **Load models or prepare data**
+   - inspect what was crawled
+   - manually select a subset before expensive model loading or data preparation
+4. **Generate the figure/table**
+   - call the Python module functions
+   - save under `outputs/<figure_or_file_name>`
+
+The crawl and load/prepare blocks must stay separated. This lets the user inspect discovered models first, then choose which models to load or which attack rows to use.
+
+### 6.4 Default paths
+
+- Default model/artifact search root: `logs/ByModel`
+- Default output root: `outputs/`
+- Default output location for a figure/table should be `outputs/<file_or_figure_name>/` or `outputs/<file_or_figure_name>.<ext>` depending on what the code writes.
+
+### 6.5 General coding style
 
 - **Assuming root naming:** use `.model` as the anchor, not folder naming conventions.
 - **Convoluted try/catch and verifications:** avoid bloating the code with convoluted verifications or try/catch during import or such. Make minimal implementation and verification will be added later as specified by the user.
