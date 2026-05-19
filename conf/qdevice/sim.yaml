@@ -1,4 +1,10 @@
-CIRCUIT_STYLE: pennylane
-QDEVICE: default.qubit
-INTERFACE: torch
-QDIFF: backprop
+# Exact simulator: current behavior.
+device: default.qubit
+interface: torch
+diff_method: backprop
+circuit_style: pennylane
+shots: null
+noise:
+  name: null
+  probability: 0.0
+  apply_to: all_ops

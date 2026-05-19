@@ -1,0 +1,18 @@
+# Finite-shot noisy simulator.
+# default.mixed is required for channel-based noise such as depolarizing noise.
+device: default.mixed
+interface: torch
+diff_method: parameter-shift
+circuit_style: pennylane
+shots: 1000
+noise:
+  # Built as a native PennyLane qml.NoiseModel in src/qdevice.py.
+  name: depolarizing
+  probability: 0.01
+  apply_to: all_ops
+  # Optional alternatives:
+  # apply_to: single_qubit_gates
+  # apply_to: two_qubit_gates
+  # apply_to: named_ops
+  # operations: [RX, RY, RZ]
+  # wires: [0, 1]
