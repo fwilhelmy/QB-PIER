@@ -6,6 +6,8 @@ from typing import Mapping, Sequence
 import matplotlib.pyplot as plt
 import numpy as np
 
+from analytics.metrics_io import ModelMetrics, resolve_metrics
+
 
 def _rms_stack(curves: list[np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
     """
@@ -36,7 +38,7 @@ def _seed_rms_by_group(grad_dict: dict, keys: Sequence[str]) -> np.ndarray | Non
 
 
 def gradient_norms(
-    models: Mapping[str, Mapping[int, object]],
+    models: ModelMetrics,
     out_dir: str | Path = "logs",
     *,
     qname_pattern: str = "qlayer",
@@ -75,9 +77,10 @@ def gradient_norms(
         curves_quantum: list[np.ndarray] = []
         curves_classical: list[np.ndarray] = []
 
-        for seed, model in seed_dict.items():
-            grad = model.metrics["grad_l2"]
-            epochs = np.arange(len(model.metrics["epoch"]), dtype=float)
+        for seed, seed_obj in seed_dict.items():
+            metrics = resolve_metrics(seed_obj)
+            grad = metrics["grad_l2"]
+            epochs = np.arange(len(metrics["epoch"]), dtype=float)
 
             if grad is None or epochs is None:
                 continue

@@ -8,11 +8,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from analytics.utils import line_with_std, metric_stats_from_seeds
+from analytics.metrics_io import ModelMetrics
 
 log = logging.getLogger(__name__)
 
 def generalization_gap(
-    models: Mapping[str, Mapping[int, object]],
+    models: ModelMetrics,
     out_dir: str | Path = "logs",
     *,
     gap_type: str = "loss",          # "loss" or "acc"

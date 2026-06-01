@@ -16,6 +16,8 @@ from tqdm import tqdm
 
 from loading import crawl_experiments, load_model
 
+from analytics.tables._experiment_io import read_hydra_config
+
 log = logging.getLogger(__name__)
 
 
@@ -62,14 +64,6 @@ def read_text_if_exists(path: Path) -> str:
     if not path.exists():
         return ""
     return path.read_text(encoding="utf-8", errors="ignore")
-
-
-
-def read_hydra_config(model_dir: Path) -> Dict[str, Any]:
-    hydra_cfg = model_dir / ".hydra" / "config.yaml"
-    if not hydra_cfg.exists():
-        return {}
-    return OmegaConf.to_container(OmegaConf.load(str(hydra_cfg)), resolve=True)  # type: ignore[return-value]
 
 
 
@@ -414,27 +408,6 @@ def extract_variant_configuration_knobs(ctx: SeedContext) -> str:
         return "baseline configuration"
 
     return inferred_knobs or ""
-
-
-
-def extract_params_total(ctx: SeedContext) -> int:
-    return int(sum(p.numel() for p in ctx.model.parameters()))
-
-
-
-def extract_params_quantum(ctx: SeedContext) -> int:
-    total = 0
-    for name, param in named_parameters_list(ctx.model):
-        if _is_quantum_parameter_name(name):
-            total += param.numel()
-    return int(total)
-
-
-
-def extract_params_classical(ctx: SeedContext) -> int:
-    total = extract_params_total(ctx)
-    q_total = extract_params_quantum(ctx)
-    return int(max(total - q_total, 0))
 
 
 

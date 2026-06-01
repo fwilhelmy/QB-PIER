@@ -436,7 +436,7 @@ def build_pair_metrics(
 
 
 def main() -> None:
-    attack_dir = Path("logs/ATTACKS")
+    attack_dir = Path("logs/ATTACK") / "attack_experiment"
     output = Path("outputs/pair_metrics.csv")
     eps_min = None
     eps_max = None

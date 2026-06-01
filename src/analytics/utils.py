@@ -45,6 +45,8 @@ def metric_stats_from_seeds(
     x_axis: str = "step",
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Build aligned step/mean/std arrays for a metric across model seeds."""
+    from analytics.metrics_io import resolve_metrics
+
     valid_x_axis = {"step", "epoch", "indice", "time"}
     if x_axis not in valid_x_axis:
         raise ValueError(f"Invalid x_axis '{x_axis}'. Expected one of: {sorted(valid_x_axis)}")
@@ -53,20 +55,21 @@ def metric_stats_from_seeds(
     metric_values, step_values = [], []
 
     for seed, seed_model in seed_dict.items():
+        metrics = resolve_metrics(seed_model)
         if x_axis == "time":
             try:
-                tb_dir = find_tensorboard_dir(Path(seed_model.log_dir))
+                tb_dir = find_tensorboard_dir(Path(metrics.log_dir))
                 seed_steps, seed_metrics = _extract_scalar_series(tb_dir=tb_dir, scalar_tag=metric_name)
             except FileNotFoundError as e:
                 log.warning(f"Could not load metrics from tensorboard for seed {seed}: {e}")
                 continue
         else:
-            seed_metrics = np.asarray(seed_model.metrics[metric_name])
+            seed_metrics = np.asarray(metrics[metric_name])
             if seed_metrics.size == 0 or seed_metrics.ndim != 1:
                 continue
 
             step_name = f"{group}/step" if group else "epoch"
-            seed_steps = np.asarray(seed_model.metrics[step_name]) if x_axis == "step" else np.arange(seed_metrics.shape[0])
+            seed_steps = np.asarray(metrics[step_name]) if x_axis == "step" else np.arange(seed_metrics.shape[0])
 
         if seed_steps.shape != seed_metrics.shape:
             raise ValueError(f"Inconsistent step and metric counts for seed {seed}: steps shape {seed_steps.shape}, metrics shape {seed_metrics.shape}")

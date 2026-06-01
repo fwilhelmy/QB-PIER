@@ -308,6 +308,7 @@ The crawl and load/prepare blocks must stay separated. This lets the user inspec
 ### 6.4 Default paths
 
 - Default model/artifact search root: `logs/ByModel`
+- Default attack aggregate root (tables): `logs/ATTACK/attack_experiment/tables/*.parquet`
 - Default output root: `outputs/`
 - Default output location for a figure/table should be `outputs/<file_or_figure_name>/` or `outputs/<file_or_figure_name>.<ext>` depending on what the code writes.
 

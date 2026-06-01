@@ -6,7 +6,8 @@ import logging
 import os
 import re
 from datetime import datetime
-from typing import Any, Dict, List
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
 import pandas as pd
 from tqdm import tqdm
@@ -116,6 +117,62 @@ def load_experiment(path: str, *, load: str = "final", map_location: str = "cpu"
     return experiment
 
 
+def load_training_metrics_tree(
+    root: str | Path,
+    *,
+    model_filter: Callable[[str], bool] | None = None,
+) -> Dict[str, Dict[int, MetricsContainer]]:
+    """Load MetricsContainers for every model config under *root*.
+
+    Returns a mapping: rel_model_path -> {seed -> MetricsContainer}.
+    """
+    root_path = Path(root)
+    out: Dict[str, Dict[int, MetricsContainer]] = {}
+    for model_path in tqdm(crawl_experiments(str(root_path)), desc="Loading training metrics"):
+        rel = os.path.relpath(model_path, str(root_path))
+        if model_filter is not None and not model_filter(rel):
+            continue
+        try:
+            out[rel] = load_metrics(model_path)
+        except Exception as exc:
+            log.warning("Skipping metrics for %s: %s", rel, exc)
+    return out
+
+
+def load_attack_aggregates(
+    attack_experiment_dir: Path | None = None,
+    *,
+    project_root: Path | None = None,
+) -> pd.DataFrame:
+    """Load attack aggregate parquet/csv chunks from `attack_experiment/tables/`."""
+    if attack_experiment_dir is None:
+        if project_root is None:
+            project_root = Path.cwd().resolve()
+        attack_experiment_dir = project_root / "logs" / "ATTACK" / "attack_experiment"
+
+    tables_dir = Path(attack_experiment_dir) / "tables"
+    if not tables_dir.exists():
+        raise FileNotFoundError(f"Could not find tables directory: {tables_dir}")
+
+    parquet_files = sorted(tables_dir.glob("*.parquet"))
+    csv_files = sorted(tables_dir.glob("*.csv"))
+    frames: list[pd.DataFrame] = []
+
+    if parquet_files:
+        for fp in parquet_files:
+            frames.append(pd.read_parquet(fp))
+    elif csv_files:
+        for fp in csv_files:
+            frames.append(pd.read_csv(fp))
+    else:
+        raise FileNotFoundError(f"No parquet/csv attack tables found in {tables_dir}")
+
+    df = pd.concat(frames, ignore_index=True)
+    if df.empty:
+        raise ValueError("Attack aggregate table is empty.")
+    return df
+
+
 def load_attacks(path: str) -> pd.DataFrame:
     """Load attack results from ``path``.
 
@@ -156,14 +213,3 @@ def load_attacks(path: str) -> pd.DataFrame:
         )
 
     return results
-
-from analytics.training import generate_gradient_flow_plots, plot_models_together
-if __name__ == "__main__":
-    log_root = "logs/ByModel"
-    os.makedirs(log_root, exist_ok=True)
-    data = load_experiment(log_root, load="final")
-    log.info("Loaded data for %s model configurations.", len(data))
-    # for model_name, model_data in data.items():
-    #     log.info("Generating gradient flow plots for %s.", model_name)
-    #     generate_gradient_flow_plots(model_data, fig_dir=os.path.join(log_root, model_name))
-    plot_models_together(data, fig_dir=log_root)

@@ -13,7 +13,13 @@ from omegaconf import OmegaConf
 from tqdm import tqdm
 
 from loading import crawl_experiments
-from models.ModelFactory import ModelFactory
+
+from analytics.tables._experiment_io import (
+    find_checkpoint,
+    iter_seed_dirs,
+    load_single_model,
+    read_hydra_config,
+)
 
 log = logging.getLogger(__name__)
 
@@ -38,54 +44,6 @@ HQNN_MANUAL_PART_MAP = {
     "hqnn_resvql": "classifier",
     "hquanv": "encoder",
 }
-
-
-def read_hydra_config(model_dir: Path) -> Dict[str, Any]:
-    cfg_path = model_dir / ".hydra" / "config.yaml"
-    if not cfg_path.exists():
-        return {}
-    return OmegaConf.to_container(OmegaConf.load(str(cfg_path)), resolve=True)  # type: ignore[return-value]
-
-
-def find_checkpoint(seed_dir: Path, load_mode: str) -> Optional[Path]:
-    final_ckpt = seed_dir / "final.ckpt"
-    if load_mode == "final":
-        return final_ckpt if final_ckpt.exists() else None
-
-    ckpt_dir = seed_dir / "checkpoints"
-    if not ckpt_dir.exists():
-        return final_ckpt if final_ckpt.exists() else None
-
-    ckpts = sorted(ckpt_dir.glob("*.ckpt"))
-    if not ckpts:
-        return final_ckpt if final_ckpt.exists() else None
-
-    def loss_score(path: Path) -> float:
-        name = path.name
-        if "loss=" not in name:
-            return float("inf")
-        try:
-            return float(name.split("loss=")[1].split("-")[0])
-        except ValueError:
-            return float("inf")
-
-    return sorted(ckpts, key=loss_score)[0]
-
-
-def iter_seed_dirs(model_dir: Path) -> Iterable[Path]:
-    for item in sorted(model_dir.iterdir()):
-        if item.is_dir() and item.name.isdigit():
-            yield item
-
-
-def load_single_model(model_dir: Path, seed_dir: Path, checkpoint: Path) -> Any:
-    model_name = (model_dir / ".model").read_text(encoding="utf-8").strip()
-    return ModelFactory.load(
-        model_name,
-        checkpoint=str(checkpoint),
-        map_location="cpu",
-        log_dir=str(seed_dir),
-    )
 
 
 def extract_first_ansatz(module: Any) -> Optional[Any]:

@@ -185,3 +185,65 @@ def visualize_hquanv_sample(
 
     torch.save(outputs, os.path.join(out_dir, f"{prefix}_feature_maps.pt"))
     return outputs
+
+
+def run_hquanv_batch(
+    experiment_root: str = "./logs/ByModel",
+    output_root: str = "./outputs/hquanv_analytics",
+    *,
+    map_location: str = "cpu",
+    load_best_checkpoint: bool = True,
+    use_train_split: bool = False,
+    n_samples: int = 2,
+    sample_prefix: str = "dataset_sample",
+) -> None:
+    """Generate HQANV sample visualizations for all matching experiments under *experiment_root*."""
+    import logging
+    from omegaconf import OmegaConf
+    from tqdm.auto import tqdm
+
+    from datasets import DatasetFactory
+    from loading import crawl_experiments, load_model
+
+    log = logging.getLogger(__name__)
+    os.makedirs(output_root, exist_ok=True)
+
+    for model_dir in tqdm(list(crawl_experiments(experiment_root)), desc="HQuanv models", unit="model"):
+        try:
+            models_by_seed = load_model(model_dir, best=load_best_checkpoint, map_location=map_location)
+        except Exception as exc:
+            log.warning("Skipping %s because loading failed: %s", model_dir, exc)
+            continue
+
+        if not models_by_seed:
+            continue
+
+        first_model = next(iter(models_by_seed.values()))
+        if not is_hquanv_model(first_model):
+            continue
+
+        rel_dir = os.path.relpath(model_dir, experiment_root)
+        config_path = os.path.join(model_dir, ".hydra", "config.yaml")
+        cfg = OmegaConf.load(config_path)
+        dataset_name = cfg["dataset"]["dataset"]
+        dataset_root = cfg["dataset"].get("root")
+        dm = DatasetFactory.create(dataset_name, root=dataset_root, train=use_train_split)
+        dataset = dm.dataset
+
+        samples, labels = [], []
+        for idx in range(min(n_samples, len(dataset))):
+            x, y = dataset[idx]
+            if x.ndim == 2:
+                x = x.unsqueeze(0)
+            samples.append(x)
+            labels.append(int(y))
+        batch = torch.stack(samples, dim=0)
+
+        for seed, model in models_by_seed.items():
+            model.eval()
+            seed_out_dir = os.path.join(output_root, rel_dir, str(seed))
+            os.makedirs(seed_out_dir, exist_ok=True)
+            visualize_hquanv_sample(model=model, inputs=batch, out_dir=seed_out_dir, prefix=sample_prefix)
+            with open(os.path.join(seed_out_dir, "labels.txt"), "w", encoding="utf-8") as handle:
+                handle.write("\n".join(str(label) for label in labels))
+            OmegaConf.save(cfg, os.path.join(seed_out_dir, "resolved_config.yaml"))

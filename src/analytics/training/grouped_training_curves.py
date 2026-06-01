@@ -19,6 +19,8 @@ log = logging.getLogger(__name__)
 
 @rank_zero_only
 def plot_models_together(trained_models, fig_dir: str = None, file_name: str = "models_together.png", show: bool = False):
+    from analytics.metrics_io import resolve_metrics
+
     fig, ax = plt.subplots(2, 2, figsize=(12, 10), sharex="col", sharey="row")
     ax_train_loss, ax_val_loss = ax[0]
     ax_train_acc, ax_val_acc = ax[1]
@@ -47,8 +49,9 @@ def plot_models_together(trained_models, fig_dir: str = None, file_name: str = "
             log.error(f"Skipping model '{name}' due to error: {e}")
             continue
                 
-    first_model = list(next(iter(trained_models.values())).values())[0]
-    epoch_steps = np.array(first_model.metrics["epoch"], dtype=float)
+    first_seed_obj = list(next(iter(trained_models.values())).values())[0]
+    first_metrics = resolve_metrics(first_seed_obj)
+    epoch_steps = np.array(first_metrics["epoch"], dtype=float)
 
     for subax, (row, col) in zip(
         (ax_train_loss, ax_val_loss, ax_train_acc, ax_val_acc),

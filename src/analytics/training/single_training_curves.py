@@ -10,24 +10,26 @@ import numpy as np
 from lightning.pytorch.utilities import rank_zero_only
 
 from analytics.utils import line_with_std, metric_stats_from_seeds, format_x_axis
+from analytics.metrics_io import SeedMetrics, resolve_metrics
 
 log = logging.getLogger(__name__)
 
 @rank_zero_only
-def plot_training_curves(model_name, seed_dict, fig_dir=None):
+def plot_training_curves(model_name, seed_dict: SeedMetrics, fig_dir=None):
     """Plot averaged loss, accuracy and weights norm over multiple seeds."""
 
     valid_seeds = []
-    for seed, model in seed_dict.items():
+    for seed, seed_obj in seed_dict.items():
+        metrics = resolve_metrics(seed_obj)
         required_metrics = {"train/loss", "val/loss", "train/acc", "val/acc", "train/weights_l2"}
-        if all(model.metrics[metric] is not None and len(model.metrics[metric]) > 0 for metric in required_metrics):
+        if all(metrics[metric] is not None and len(metrics[metric]) > 0 for metric in required_metrics):
             valid_seeds.append(seed)
         else:
-            missing = required_metrics - set(model.metrics._raw)
+            missing = required_metrics - set(getattr(metrics, "_raw", {}).keys())
             log.warning(f"Seed {seed} is missing required metrics: {missing}")
     if not valid_seeds:
         raise ValueError("No seeds with required metrics found for plotting")
-    first_model = seed_dict[valid_seeds[0]]
+    first_metrics = resolve_metrics(seed_dict[valid_seeds[0]])
 
     fig, (ax_loss, ax_acc, ax_w2) = plt.subplots(3, 1, figsize=(12, 16), sharex=True)
 
@@ -53,7 +55,7 @@ def plot_training_curves(model_name, seed_dict, fig_dir=None):
     ax_w2.legend()
     ax_w2.grid(axis="x", linestyle="--", linewidth=0.5)
 
-    epoch_steps = np.array(first_model.metrics["epoch"], dtype=float)
+    epoch_steps = np.array(first_metrics["epoch"], dtype=float)
 
     for idx, _ax in enumerate((ax_loss, ax_acc, ax_w2)):
         ax_top = format_x_axis(_ax, epoch_steps, bottom="step", top="epoch", nbins=10)

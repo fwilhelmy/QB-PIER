@@ -1,10 +1,12 @@
-"""Visualization helpers for training, attacks and datasets."""
+"""Visualization helpers for training, attacks, tables, and models.
 
-from . import attacks, dataset, training, utils
+Import subpackages explicitly, e.g. ``from analytics.training import generalization_gap``.
+"""
 
 __all__ = [
     "attacks",
-    "dataset",
+    "model",
+    "tables",
     "training",
     "utils",
 ]

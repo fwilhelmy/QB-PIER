@@ -7,6 +7,7 @@ from typing import Mapping
 import matplotlib.pyplot as plt
 
 from analytics.utils import line_with_std, metric_stats_from_seeds
+from analytics.metrics_io import ModelMetrics
 
 log = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ _UNITS_TO_SECONDS = {"seconds": 1.0, "minutes": 60.0, "hours": 3600.0}
 
 
 def accuracy_vs_time(
-    models: Mapping[str, Mapping[int, object]],
+    models: ModelMetrics,
     out_dir: str | Path = "logs",
     *,
     include_train: bool = False,

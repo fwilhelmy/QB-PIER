@@ -122,13 +122,15 @@ def plot_gradient_map(grad_dict, title):
 
 
 @rank_zero_only
-def generate_gradient_flow_plots(seed_dict: dict[Any, Any], fig_dir=None):
+def generate_gradient_map_plots(seed_dict: dict[Any, Any], fig_dir=None):
     """Generate and save smoothed gradient map visualizations."""
+    from analytics.metrics_io import resolve_metrics
+
     if not seed_dict:
         raise ValueError("No seeds provided for gradient map plotting.")
 
     first_seed = next(iter(seed_dict.values()))
-    grad_norms = first_seed.metrics["grad_l2"]
+    grad_norms = resolve_metrics(first_seed)["grad_l2"]
     if grad_norms is None:
         raise ValueError("No gradient norms found in metrics for this model.")
 
@@ -177,13 +179,9 @@ def generate_gradient_flow_plots(seed_dict: dict[Any, Any], fig_dir=None):
 
 
 
-def generate_gradient_map_plots(seed_dict: dict[Any, Any], fig_dir=None):
-    """Backward-compatible alias for gradient map generation."""
-    return generate_gradient_flow_plots(seed_dict, fig_dir=fig_dir)
-
 def try_plot_gradient_map(seed_dict: dict[Any, Any], fig_dir=None):
     try:
         return generate_gradient_map_plots(seed_dict, fig_dir)
-    except ValueError as e:
+    except Exception as e:
         log.warning(f"Could not generate gradient map plot for {fig_dir}: {e}")
         return None, None

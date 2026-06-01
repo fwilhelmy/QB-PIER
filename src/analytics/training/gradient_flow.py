@@ -50,11 +50,13 @@ def plot_gradient_flow(grad_dict, title):
 
 @rank_zero_only
 def generate_gradient_flow_plots(seed_dict: dict[Any, Any], fig_dir=None):
+    from analytics.metrics_io import resolve_metrics
+
     if not seed_dict:
         raise ValueError("No seeds provided for gradient flow plotting.")
 
     first_seed = next(iter(seed_dict.values()))
-    grad_norms = first_seed.metrics["grad_l2"]
+    grad_norms = resolve_metrics(first_seed)["grad_l2"]
     if grad_norms is None or grad_norms == {}:
         raise ValueError("No gradient norms found in metrics for this model.")
 
