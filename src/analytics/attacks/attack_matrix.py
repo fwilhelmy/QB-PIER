@@ -10,7 +10,7 @@ def cell_effectiveness_max_steepness(subdf: pd.DataFrame) -> float:
     maximum accuracy drop per epsilon step.
 
     subdf: rows for fixed (source_model, target_model) with:
-           'epsilon', 'accuracy'.
+           'epsilon', 'robust_accuracy'.
 
     Returns:
         scalar >= 0. Larger => sharper worst-case drop (more vulnerable).
@@ -20,7 +20,7 @@ def cell_effectiveness_max_steepness(subdf: pd.DataFrame) -> float:
 
     subdf = subdf.sort_values("epsilon")
     eps = subdf["epsilon"].to_numpy(float)
-    acc = subdf["accuracy"].to_numpy(float)
+    acc = subdf["robust_accuracy"].to_numpy(float)
 
     if eps.size < 2:
         return 0.0
@@ -51,7 +51,7 @@ def cell_effectiveness_max_rel_drop(subdf: pd.DataFrame) -> float:
         return 0.0
 
     subdf = subdf.sort_values("epsilon")
-    acc = subdf["accuracy"].to_numpy(float)
+    acc = subdf["robust_accuracy"].to_numpy(float)
 
     if acc.size == 0:
         return 0.0

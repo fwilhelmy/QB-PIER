@@ -24,7 +24,7 @@ def training_log_root(project_root: Path) -> Path:
 
 
 def attack_log_root(project_root: Path) -> Path:
-    return project_root / "logs" / "ATTACK"
+    return project_root / "logs" / "ATTACKS"
 
 
 def attack_experiment_dir(project_root: Path) -> Path:

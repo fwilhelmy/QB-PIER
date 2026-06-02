@@ -37,6 +37,11 @@ class MetricsContainer(Logger):
         return self._log_dir
 
     @property
+    def metrics(self) -> "MetricsContainer":
+        """Alias for API parity with ``BaseModel.metrics`` (avoids ``__getattr__``)."""
+        return self
+
+    @property
     def version(self) -> int | str | None:
         return None
 

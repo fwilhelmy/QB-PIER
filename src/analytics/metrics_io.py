@@ -29,12 +29,31 @@ SeedMetrics: TypeAlias = Mapping[int, MetricsContainerLike | SeedModelLike]
 ModelMetrics: TypeAlias = Mapping[str, SeedMetrics]
 
 
+def _is_metrics_container(obj: object) -> bool:
+    """True for a loaded metrics container, not a seed dict or mistaken empty lookup."""
+    return (
+        not isinstance(obj, dict)
+        and hasattr(obj, "log_dir")
+        and hasattr(obj, "__getitem__")
+    )
+
+
 def resolve_metrics(seed_obj: MetricsContainerLike | SeedModelLike) -> MetricsContainerLike:
     """Return an indexable metrics container regardless of seed object type."""
-    metrics = getattr(seed_obj, "metrics", None)
-    if metrics is not None and hasattr(metrics, "__getitem__"):
-        return metrics
-    if hasattr(seed_obj, "__getitem__"):
-        return seed_obj  # already a metrics-like container
+    if isinstance(seed_obj, dict):
+        raise TypeError(
+            "Expected a per-seed MetricsContainer or model instance, not a seed dict "
+            f"(keys: {list(seed_obj.keys())[:5]}...)"
+        )
+
+    # BaseModel and similar: real ``.metrics`` attribute pointing at MetricsContainer.
+    inner = getattr(seed_obj, "metrics", None)
+    if _is_metrics_container(inner):
+        return inner  # type: ignore[return-value]
+
+    # Bare MetricsContainer from ``load_metrics`` (no wrapper model).
+    if _is_metrics_container(seed_obj):
+        return seed_obj  # type: ignore[return-value]
+
     raise TypeError(f"Seed object is not metrics-like: {type(seed_obj).__name__}")
 
