@@ -9,11 +9,21 @@ from .results import store_attack_results
 from .transfer_attack_effects import plot_transfer_attack_effects
 from .heatmap import plot_tp_heatmaps_by_class
 from .attack_matrix import (
+    ATTACK_TABLE_METRICS,
+    MatrixAxisGroups,
+    available_attack_metrics,
     plot_model_attack_effectiveness_matrix,
     cell_effectiveness_auc_drop,
     cell_effectiveness_eps_to_fraction,
     cell_effectiveness_max_rel_drop,
-    cell_effectiveness_max_steepness
+    cell_effectiveness_max_steepness,
+    cell_effectiveness_metric_auc,
+    cell_effectiveness_robust_auc,
+    make_metric_cell_fn,
+    validate_attack_metric,
+    assign_axis_group_key,
+    model_group_key,
+    parse_canonical_model_name,
 )
 
 __all__ = [
@@ -29,5 +39,15 @@ __all__ = [
     "cell_effectiveness_auc_drop",
     "cell_effectiveness_eps_to_fraction",
     "cell_effectiveness_max_rel_drop",
-    "cell_effectiveness_max_steepness"
+    "cell_effectiveness_max_steepness",
+    "cell_effectiveness_robust_auc",
+    "cell_effectiveness_metric_auc",
+    "make_metric_cell_fn",
+    "ATTACK_TABLE_METRICS",
+    "available_attack_metrics",
+    "validate_attack_metric",
+    "MatrixAxisGroups",
+    "assign_axis_group_key",
+    "model_group_key",
+    "parse_canonical_model_name",
 ]

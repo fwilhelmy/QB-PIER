@@ -1,26 +1,141 @@
+from __future__ import annotations
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
+from dataclasses import dataclass
+from typing import Callable, Literal, Sequence
+
+from analytics.tables.extract_attack import _normalized_auc
+
+GroupByLevel = Literal["family", "architecture", "variant", "keyword"]
+GroupAgg = Literal["mean", "max", "auc"]
+
+# Aggregate metric columns per AGENTS.md §4.3 (attack_experiment tables).
+ATTACK_TABLE_METRICS: tuple[str, ...] = (
+    "robust_accuracy",
+    "flip_rate",
+    "ASR",
+    "mean_confidence_drop_all",
+    "mean_margin_drop_all",
+    "mean_confidence_drop_cc",
+    "mean_margin_drop_cc",
+    "transfer_gap",
+)
+
+AttackMetric = Literal[
+    "robust_accuracy",
+    "flip_rate",
+    "ASR",
+    "mean_confidence_drop_all",
+    "mean_margin_drop_all",
+    "mean_confidence_drop_cc",
+    "mean_margin_drop_cc",
+    "transfer_gap",
+]
+
+# Metrics that increase as the attack becomes more effective.
+METRICS_HIGHER_IS_WORSE: frozenset[str] = frozenset(
+    {
+        "flip_rate",
+        "ASR",
+        "mean_confidence_drop_all",
+        "mean_margin_drop_all",
+        "mean_confidence_drop_cc",
+        "mean_margin_drop_cc",
+        "transfer_gap",
+    }
+)
 
 
-def cell_effectiveness_max_steepness(subdf: pd.DataFrame) -> float:
+def _metric_increases_with_attack(metric_col: str) -> bool:
+    return metric_col in METRICS_HIGHER_IS_WORSE
+
+
+def available_attack_metrics(df: pd.DataFrame) -> list[str]:
+    """Return attack-table metric columns present in *df*."""
+    return [m for m in ATTACK_TABLE_METRICS if m in df.columns]
+
+
+def validate_attack_metric(df: pd.DataFrame, metric: str) -> str:
+    """Ensure *metric* is a known attack-table column and exists in *df*."""
+    if metric not in ATTACK_TABLE_METRICS:
+        allowed = ", ".join(ATTACK_TABLE_METRICS)
+        raise ValueError(f"Unknown attack metric {metric!r}. Choose one of: {allowed}")
+    if metric not in df.columns:
+        present = ", ".join(available_attack_metrics(df)) or "(none)"
+        raise ValueError(
+            f"Metric column {metric!r} not in dataframe. Available: {present}"
+        )
+    return metric
+
+
+@dataclass
+class MatrixAxisGroups:
+    """
+  Grouping and filtering for one matrix axis (rows or columns).
+
+  Structured levels (``family``, ``architecture``, ``variant``) use the
+  canonical model path. ``keyword`` mode assigns each model to the first
+  group whose pattern appears as a substring in the full model name (case
+  insensitive).
+
+  Examples
+  --------
+  All Quantum models as columns, bucketed by ansatz::
+
+      MatrixAxisGroups(
+          by="keyword",
+          keywords=["ansatz=strong", "ansatz=basic", "ansatz=random"],
+          filter_family="Quantum",
+      )
+
+  Only ``Quantum/VQM`` variants, custom group labels::
+
+      MatrixAxisGroups(
+          by="keyword",
+          keyword_groups={
+              "strong": ["ansatz=strong"],
+              "basic": ["ansatz=basic"],
+              "random": ["ansatz=random", "ansatz=no_entangling"],
+          },
+          filter_family="Quantum",
+          filter_architecture="VQM",
+      )
+  """
+
+    by: GroupByLevel = "family"
+    keywords: Sequence[str] | None = None
+    keyword_groups: dict[str, Sequence[str]] | None = None
+    filter_family: str | None = None
+    filter_architecture: str | None = None
+    filter_contains: str | None = None
+    include_other: bool = False
+
+    def __post_init__(self) -> None:
+        if self.by == "keyword" and not self.keywords and not self.keyword_groups:
+            raise ValueError(
+                "keyword grouping requires keywords=... or keyword_groups={...}"
+            )
+
+
+def cell_effectiveness_max_steepness(
+    subdf: pd.DataFrame,
+    metric_col: str = "robust_accuracy",
+) -> float:
     """
     Attack effectiveness for a single (source, target) pair:
-    maximum accuracy drop per epsilon step.
+    maximum drop per epsilon step in *metric_col* (larger => more vulnerable).
 
-    subdf: rows for fixed (source_model, target_model) with:
-           'epsilon', 'robust_accuracy'.
-
-    Returns:
-        scalar >= 0. Larger => sharper worst-case drop (more vulnerable).
+    subdf: rows for fixed (source_model, target_model) with ``epsilon`` and *metric_col*.
     """
-    if subdf.empty:
+    if subdf.empty or metric_col not in subdf.columns:
         return 0.0
 
     subdf = subdf.sort_values("epsilon")
     eps = subdf["epsilon"].to_numpy(float)
-    acc = subdf["robust_accuracy"].to_numpy(float)
+    acc = pd.to_numeric(subdf[metric_col], errors="coerce").to_numpy(dtype=float)
 
     if eps.size < 2:
         return 0.0
@@ -31,27 +146,29 @@ def cell_effectiveness_max_steepness(subdf: pd.DataFrame) -> float:
         if de <= 0:
             continue
 
-        da = acc[i - 1] - acc[i]  # positive if accuracy drops
+        if _metric_increases_with_attack(metric_col):
+            da = acc[i] - acc[i - 1]
+        else:
+            da = acc[i - 1] - acc[i]
         if da > 0:
             max_slope = max(max_slope, da / de)
 
     return float(max_slope)
 
 
-def cell_effectiveness_max_rel_drop(subdf: pd.DataFrame) -> float:
+def cell_effectiveness_max_rel_drop(
+    subdf: pd.DataFrame,
+    metric_col: str = "robust_accuracy",
+) -> float:
     """
-    Max relative accuracy drop at max epsilon
-    “Given our strongest attack in this sweep, how much do you suffer vs clean?”
-
-    (clean_acc - min_acc) / clean_acc
-
-    Higher => huge final damage given max epsilon.
+    Max relative drop at max epsilon for *metric_col*:
+    (value_at_eps0 - min) / value_at_eps0.
     """
-    if subdf.empty:
+    if subdf.empty or metric_col not in subdf.columns:
         return 0.0
 
     subdf = subdf.sort_values("epsilon")
-    acc = subdf["robust_accuracy"].to_numpy(float)
+    acc = pd.to_numeric(subdf[metric_col], errors="coerce").to_numpy(dtype=float)
 
     if acc.size == 0:
         return 0.0
@@ -60,9 +177,101 @@ def cell_effectiveness_max_rel_drop(subdf: pd.DataFrame) -> float:
     if clean_acc <= 0:
         return 0.0
 
-    min_acc = float(acc.min())
-    rel_drop = (clean_acc - min_acc) / clean_acc
+    if _metric_increases_with_attack(metric_col):
+        peak = float(np.nanmax(acc))
+        rel_drop = (peak - clean_acc) / clean_acc
+    else:
+        trough = float(np.nanmin(acc))
+        rel_drop = (clean_acc - trough) / clean_acc
     return float(max(rel_drop, 0.0))
+
+def cell_effectiveness_robust_auc(subdf: pd.DataFrame) -> float:
+    """Normalized AUC of ``robust_accuracy`` (alias for metric AUC)."""
+    return _pair_normalized_auc(subdf, metric_col="robust_accuracy")
+
+
+def cell_effectiveness_metric_auc(
+    subdf: pd.DataFrame,
+    metric_col: str = "robust_accuracy",
+) -> float:
+    """
+    Normalized trapezoidal AUC of *metric_col* over epsilon.
+
+    Same definition as attack-table pair compilation (``extract_attack``).
+    """
+    return _pair_normalized_auc(subdf, metric_col=metric_col)
+
+
+def make_metric_cell_fn(
+    metric: str,
+    *,
+    style: Literal["auc", "max_steepness", "max_rel_drop"] = "auc",
+) -> Callable[[pd.DataFrame], float]:
+    """Build a per-pair cell function for a given attack-table *metric*."""
+    if style == "auc":
+
+        def _auc(subdf: pd.DataFrame) -> float:
+            return cell_effectiveness_metric_auc(subdf, metric_col=metric)
+
+        return _auc
+    if style == "max_steepness":
+
+        def _steep(subdf: pd.DataFrame) -> float:
+            return cell_effectiveness_max_steepness(subdf, metric_col=metric)
+
+        return _steep
+    if style == "max_rel_drop":
+
+        def _rel(subdf: pd.DataFrame) -> float:
+            return cell_effectiveness_max_rel_drop(subdf, metric_col=metric)
+
+        return _rel
+    raise ValueError(f"Unknown cell style: {style!r}")
+
+
+def _pair_normalized_auc(
+    subdf: pd.DataFrame,
+    metric_col: str = "robust_accuracy",
+) -> float:
+    if subdf.empty or metric_col not in subdf.columns:
+        return 0.0
+    work = subdf.sort_values("epsilon")
+    x = work["epsilon"].to_numpy(dtype=float)
+    y = pd.to_numeric(work[metric_col], errors="coerce").to_numpy(dtype=float)
+    val = _normalized_auc(x, y)
+    return float(val) if np.isfinite(val) else 0.0
+
+
+def _block_normalized_auc(
+    df: pd.DataFrame,
+    source_models: list[str],
+    target_models: list[str],
+    metric_col: str = "robust_accuracy",
+) -> float:
+    """
+    Pool (source, target) pairs in a matrix block: mean metric at each epsilon,
+    then normalized AUC (attack-table style).
+    """
+    frames: list[pd.DataFrame] = []
+    for s in source_models:
+        for t in target_models:
+            sub = df[(df["source_model"] == s) & (df["target_model"] == t)]
+            if not sub.empty:
+                frames.append(sub)
+    if not frames:
+        return 0.0
+
+    combined = pd.concat(frames, ignore_index=True)
+    pooled = (
+        combined.groupby("epsilon", as_index=False)[metric_col]
+        .mean(numeric_only=True)
+        .sort_values("epsilon")
+    )
+    x = pooled["epsilon"].to_numpy(dtype=float)
+    y = pd.to_numeric(pooled[metric_col], errors="coerce").to_numpy(dtype=float)
+    val = _normalized_auc(x, y)
+    return float(val) if np.isfinite(val) else 0.0
+
 
 def cell_effectiveness_auc_drop(subdf: pd.DataFrame) -> float:
     """
@@ -125,45 +334,281 @@ def cell_effectiveness_eps_to_fraction(subdf: pd.DataFrame, frac: float = 0.5) -
     return 0.0
 
 
+def parse_canonical_model_name(model_name: str) -> tuple[str, str, str]:
+    """
+    Parse canonical model paths: Family/Architecture[/variant knobs].
+
+    Examples
+    --------
+    Classical/ResNet18 -> (Classical, ResNet18, "")
+    Classical/CNN/LeNet -> (Classical, CNN, LeNet)
+    Hybrid/HVQL/ansatz=strong, qdepth=50 -> (Hybrid, HVQL, ansatz=strong, qdepth=50)
+    """
+    if not isinstance(model_name, str) or not model_name.strip():
+        return "Unknown", "Unknown", ""
+
+    parts = [p for p in model_name.strip().replace("\\", "/").split("/") if p]
+    if len(parts) >= 3:
+        return parts[0], parts[1], parts[2]
+    if len(parts) == 2:
+        return parts[0], parts[1], ""
+    if len(parts) == 1:
+        return "Unknown", parts[0], ""
+    return "Unknown", "Unknown", model_name
+
+
+def model_group_key(model_name: str, group_by: GroupByLevel) -> str:
+    """Return the grouping label for *model_name* at the requested level."""
+    family, arch, variant = parse_canonical_model_name(model_name)
+    if group_by == "family":
+        return family
+    if group_by == "architecture":
+        return f"{family}/{arch}" if family != "Unknown" else arch
+    if group_by == "variant":
+        if variant:
+            return variant
+        return f"{family}/{arch}" if family != "Unknown" else arch
+    if group_by == "keyword":
+        raise ValueError(
+            "Use MatrixAxisGroups(by='keyword', keywords=...) for keyword grouping"
+        )
+    raise ValueError(f"Unknown group_by level: {group_by!r}")
+
+
+def keyword_groups_ordered(spec: MatrixAxisGroups) -> list[tuple[str, list[str]]]:
+    """Return (label, patterns) pairs in display order."""
+    if spec.keyword_groups:
+        return [(label, list(patterns)) for label, patterns in spec.keyword_groups.items()]
+    if spec.keywords:
+        return [(kw, [kw]) for kw in spec.keywords]
+    return []
+
+
+def model_matches_axis_filter(model_name: str, spec: MatrixAxisGroups | None) -> bool:
+    if spec is None:
+        return True
+    family, arch, _variant = parse_canonical_model_name(model_name)
+    if spec.filter_family and family.lower() != spec.filter_family.strip().lower():
+        return False
+    if spec.filter_architecture and arch.lower() != spec.filter_architecture.strip().lower():
+        return False
+    if spec.filter_contains and spec.filter_contains.lower() not in model_name.lower():
+        return False
+    return True
+
+
+def assign_axis_group_key(
+    model_name: str, spec: MatrixAxisGroups | None
+) -> str | None:
+    """
+    Group label for *model_name*, or None if filtered out / unmatched.
+    """
+    if spec is None:
+        return model_name
+    if not model_matches_axis_filter(model_name, spec):
+        return None
+
+    if spec.by != "keyword":
+        return model_group_key(model_name, spec.by)
+
+    for label, patterns in keyword_groups_ordered(spec):
+        for pattern in patterns:
+            if pattern.lower() in model_name.lower():
+                return label
+    return "_other_" if spec.include_other else None
+
+
+def _coerce_axis_spec(
+    level: GroupByLevel | None,
+    spec: MatrixAxisGroups | None,
+) -> MatrixAxisGroups | None:
+    if spec is not None:
+        return spec
+    if level is None:
+        return None
+    return MatrixAxisGroups(by=level)
+
+
+def _ordered_group_labels(
+    keys: list[str | None], spec: MatrixAxisGroups | None
+) -> list[str]:
+    if spec is None:
+        return sorted({k for k in keys if k is not None})
+
+    if spec.by == "keyword":
+        labels = [label for label, _ in keyword_groups_ordered(spec)]
+        if spec.include_other:
+            labels = [*labels, "_other_"]
+        return labels
+
+    return sorted({k for k in keys if k is not None})
+
+
+def _axis_title_fragment(spec: MatrixAxisGroups | None, axis: str) -> str:
+    if spec is None:
+        return ""
+    parts = [f"{axis}={spec.by}"]
+    if spec.filter_family:
+        parts.append(f"family={spec.filter_family}")
+    if spec.filter_architecture:
+        parts.append(f"arch={spec.filter_architecture}")
+    if spec.filter_contains:
+        parts.append(f"contains={spec.filter_contains!r}")
+    if spec.by == "keyword":
+        labels = [label for label, _ in keyword_groups_ordered(spec)]
+        parts.append("groups=[" + ", ".join(labels) + "]")
+    return " ".join(parts)
+
+
+def _aggregate_matrix(
+    mat: np.ndarray,
+    sources: list[str],
+    targets: list[str],
+    df: pd.DataFrame,
+    *,
+    row_spec: MatrixAxisGroups | None,
+    col_spec: MatrixAxisGroups | None,
+    group_agg: GroupAgg,
+    metric_col: str = "robust_accuracy",
+) -> tuple[np.ndarray, list[str], list[str]]:
+    row_keys = [assign_axis_group_key(s, row_spec) for s in sources]
+    col_keys = [assign_axis_group_key(t, col_spec) for t in targets]
+
+    row_groups = _ordered_group_labels(row_keys, row_spec)
+    col_groups = _ordered_group_labels(col_keys, col_spec)
+    out = np.zeros((len(row_groups), len(col_groups)), dtype=float)
+
+    for i, g_row in enumerate(row_groups):
+        row_idx = [k for k, g in enumerate(row_keys) if g == g_row]
+        row_models = [sources[k] for k in row_idx]
+        for j, g_col in enumerate(col_groups):
+            col_idx = [k for k, g in enumerate(col_keys) if g == g_col]
+            col_models = [targets[k] for k in col_idx]
+            if group_agg == "auc":
+                out[i, j] = _block_normalized_auc(
+                    df, row_models, col_models, metric_col=metric_col
+                )
+                continue
+            block = mat[np.ix_(row_idx, col_idx)]
+            if block.size == 0:
+                continue
+            if group_agg == "max":
+                out[i, j] = float(np.max(block))
+            else:
+                out[i, j] = float(np.mean(block))
+
+    return out, row_groups, col_groups
+
+
 def plot_model_attack_effectiveness_matrix(
     df: pd.DataFrame,
     out_dir: str,
-    cell_fn=cell_effectiveness_max_steepness,
+    cell_fn: Callable[[pd.DataFrame], float] = cell_effectiveness_max_steepness,
     normalize: bool = True,
     cmap: str = "viridis",
     fname: str = "attack_effectiveness_matrix.png",
     annotate: bool = True,
+    group_by: GroupByLevel | None = None,
+    group_rows_by: GroupByLevel | None = None,
+    group_cols_by: GroupByLevel | None = None,
+    group_rows: MatrixAxisGroups | None = None,
+    group_cols: MatrixAxisGroups | None = None,
+    group_agg: GroupAgg = "mean",
+    metric: str = "robust_accuracy",
 ) -> None:
     """
     Build and plot a matrix of attack effectiveness between models.
 
-    Rows : adversarial source models
-    Cols : evaluated target models
+    Rows : adversarial source models (or row groups)
+    Cols : evaluated target models (or column groups)
     Cell : cell_fn(df_pair) for that (source, target)
 
     If normalize=True, divide all positive values by the global max so the
     strongest vulnerability = 1.0.
+
+    Parameters
+    ----------
+    group_by:
+        Shorthand for both axes: family, architecture, variant, or keyword
+        (keyword still needs *group_rows* / *group_cols* with patterns).
+    group_rows_by, group_cols_by:
+        Simple per-axis level (ignored when *group_rows* / *group_cols* set).
+    group_rows, group_cols:
+        Full axis spec: grouping mode, keyword buckets, and optional filters
+        (``filter_family``, ``filter_architecture``, ``filter_contains``).
+    group_agg:
+        When grouping: ``mean`` / ``max`` over per-model *cell_fn* scores, or
+        ``auc`` to pool epsilon curves in each block and apply normalized AUC
+        (same as attack-table pair metrics). With ``auc`` and no grouping,
+        each cell uses normalized AUC of *metric* vs epsilon.
+    metric:
+        Attack-table aggregate column (AGENTS.md §4.3): ``robust_accuracy``,
+        ``flip_rate``, ``ASR``, ``mean_confidence_drop_all``, etc. Used for
+        ``group_agg='auc'``. For ``mean``/``max``, set *cell_fn* via
+        ``make_metric_cell_fn(metric, style=...)`` or pass *metric_col* to
+        cell helpers.
     """
     os.makedirs(out_dir, exist_ok=True)
+    metric = validate_attack_metric(df, metric)
+
+    row_spec = group_rows if group_rows is not None else _coerce_axis_spec(
+        group_rows_by if group_rows_by is not None else group_by, None
+    )
+    col_spec = group_cols if group_cols is not None else _coerce_axis_spec(
+        group_cols_by if group_cols_by is not None else group_by, None
+    )
 
     sources = sorted(df["source_model"].unique())
     targets = sorted(df["target_model"].unique())
 
     n_src, n_tgt = len(sources), len(targets)
     mat = np.zeros((n_src, n_tgt), dtype=float)
+    use_auc_cells = group_agg == "auc" and row_spec is None and col_spec is None
 
-    # fill matrix
-    for i, s in enumerate(sources):
-        for j, t in enumerate(targets):
-            subdf = df[(df["source_model"] == s) & (df["target_model"] == t)]
-            mat[i, j] = cell_fn(subdf)
+    if not (group_agg == "auc" and (row_spec is not None or col_spec is not None)):
+        for i, s in enumerate(sources):
+            for j, t in enumerate(targets):
+                subdf = df[(df["source_model"] == s) & (df["target_model"] == t)]
+                if use_auc_cells:
+                    mat[i, j] = _pair_normalized_auc(subdf, metric_col=metric)
+                else:
+                    mat[i, j] = cell_fn(subdf)
 
-    # normalise
+    row_labels = list(sources)
+    col_labels = list(targets)
+    if row_spec is not None or col_spec is not None:
+        mat, row_labels, col_labels = _aggregate_matrix(
+            mat,
+            sources,
+            targets,
+            df,
+            row_spec=row_spec,
+            col_spec=col_spec,
+            group_agg=group_agg,
+            metric_col=metric,
+        )
+
+    n_src, n_tgt = len(row_labels), len(col_labels)
+
     if normalize:
         max_val = np.max(mat)
         mat_norm = mat / max_val if max_val > 0 else mat
     else:
         mat_norm = mat
+
+    title_suffix = ""
+    if row_spec is not None or col_spec is not None:
+        parts = []
+        row_frag = _axis_title_fragment(row_spec, "rows")
+        col_frag = _axis_title_fragment(col_spec, "cols")
+        if row_frag:
+            parts.append(row_frag)
+        if col_frag:
+            parts.append(col_frag)
+        parts.append(f"{group_agg}[{metric}]")
+        title_suffix = f" ({'; '.join(parts)})"
+    elif group_agg == "auc" or use_auc_cells:
+        title_suffix = f" (auc[{metric}])"
 
     fig, ax = plt.subplots(figsize=(1.2 + 0.5 * n_tgt, 1.2 + 0.5 * n_src))
 
@@ -176,14 +621,19 @@ def plot_model_attack_effectiveness_matrix(
         vmax=1.0,
     )
 
-    # use model names directly, but no extra "source/target" axis labels
     ax.set_xticks(range(n_tgt))
-    ax.set_xticklabels([str(t) for t in targets], rotation=45, ha="right")
+    ax.set_xticklabels([str(t) for t in col_labels], rotation=45, ha="right")
 
     ax.set_yticks(range(n_src))
-    ax.set_yticklabels([str(s) for s in sources])
+    ax.set_yticklabels([str(s) for s in row_labels])
 
-    ax.set_title("Model×Model attack effectiveness (normalised)", fontsize=10)
+    ax.set_xlabel("Target model (victim)", fontsize=9, labelpad=8)
+    ax.set_ylabel("Source model (attacker)", fontsize=9, labelpad=8)
+
+    ax.set_title(
+        f"Model×Model attack effectiveness (normalised){title_suffix}",
+        fontsize=10,
+    )
 
     # light grid to make the matrix easier to read
     ax.set_xticks(np.arange(-0.5, n_tgt, 1), minor=True)
@@ -207,7 +657,11 @@ def plot_model_attack_effectiveness_matrix(
                     )
 
     cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-    cbar.set_label("Normalised vulnerability", fontsize=8)
+    if group_agg == "auc" or use_auc_cells:
+        cbar_label = f"Normalised AUC ({metric})"
+    else:
+        cbar_label = "Normalised vulnerability"
+    cbar.set_label(cbar_label, fontsize=8)
 
     fig.tight_layout()
     fig.savefig(os.path.join(out_dir, fname), dpi=220)

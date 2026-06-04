@@ -30,6 +30,24 @@ def test_resolve_metrics_duck_typing() -> None:
         def __init__(self):
             self.metrics = FakeMetrics()
 
+    class FakeContainerWithGetattr:
+        """Mimics MetricsContainer without ``.metrics``: ``getattr(..., 'metrics')`` -> ``{}``."""
+
+        log_dir = "."
+
+        def __getitem__(self, key: str):
+            return []
+
+        def __getattr__(self, item: str):
+            return self[item] if item != "metrics" else {}
+
     m = FakeMetrics()
     assert resolve_metrics(m) is m
     assert resolve_metrics(FakeModel()).log_dir == "."
+    bare = FakeContainerWithGetattr()
+    assert resolve_metrics(bare) is bare
+
+    import pytest
+
+    with pytest.raises(TypeError, match="seed dict"):
+        resolve_metrics({0: m})

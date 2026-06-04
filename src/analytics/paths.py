@@ -28,7 +28,7 @@ def attack_log_root(project_root: Path) -> Path:
 
 
 def attack_experiment_dir(project_root: Path) -> Path:
-    return attack_log_root(project_root) / "attack_experiment"
+    return attack_log_root(project_root) / "attack_experiment_canonical"
 
 
 def attack_tables_dir(project_root: Path) -> Path:

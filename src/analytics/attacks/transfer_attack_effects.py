@@ -22,7 +22,7 @@ def plot_transfer_attack_effects(df: pd.DataFrame, out_dir: str, title_prefix: s
             id_vars=id_cols,
             value_vars=eps_cols,
             var_name="epsilon",
-            value_name="accuracy",
+            value_name="robust_accuracy",
         )
         df["epsilon"] = df["epsilon"].astype(float)
 
@@ -36,7 +36,7 @@ def plot_transfer_attack_effects(df: pd.DataFrame, out_dir: str, title_prefix: s
         plt.figure(figsize=(8, 5))
         for victim in victim_names:
             rec = subset[subset["target_model"] == victim]
-            stats = rec.groupby("epsilon")["accuracy"].agg(["mean", "std"]).reindex(epsilons)
+            stats = rec.groupby("epsilon")["robust_accuracy"].agg(["mean", "std"]).reindex(epsilons)
             line_with_std(plt.gca(), epsilons, stats["mean"], stats["std"], label=victim)
 
         attacker_name = attacker.split("/")[0]
