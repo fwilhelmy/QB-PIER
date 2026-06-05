@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Callable, Literal, Sequence
 
 from analytics.tables.extract_attack import _normalized_auc
+from analytics.tables.model_blacklist import filter_attack_aggregate_df
 
 GroupByLevel = Literal["family", "architecture", "variant", "keyword"]
 GroupAgg = Literal["mean", "max", "auc"]
@@ -739,6 +740,7 @@ def plot_model_attack_effectiveness_matrix(
     """
     os.makedirs(out_dir, exist_ok=True)
     metric = validate_attack_metric(df, metric)
+    df = filter_attack_aggregate_df(df)
 
     row_spec = group_rows if group_rows is not None else _coerce_axis_spec(
         group_rows_by if group_rows_by is not None else group_by, None
