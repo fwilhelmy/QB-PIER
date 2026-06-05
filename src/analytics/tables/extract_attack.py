@@ -46,12 +46,12 @@ class Cols:
 
 # ---------- configuration ----------
 
-MODEL_BLACKLIST = {
-    "Hybrid/hvql/ansatz=basic,qdepth=50",
-    "Hybrid/hpvql",
-    "Quantum/VQM50-Identity",
-    "Quantum/VQM50-NoEntangling",
-}
+from analytics.tables.model_blacklist import (
+    ATTACK_MODEL_BLACKLIST,
+    ATTACK_MODEL_BLACKLIST_SUBSTRING_RULES,
+    MODEL_BLACKLIST,
+    filter_attack_aggregate_df,
+)
 
 # ---------- helpers ----------
 
@@ -205,11 +205,11 @@ def _infer_clean_accuracy(df: pd.DataFrame, cols: Cols) -> pd.DataFrame:
 
 def build_pair_metrics(
     attack_dir: Path,
-    output_path: Path,
+    output_path: Optional[Path] = None,
     eps_min: Optional[float] = None,
     eps_max: Optional[float] = None,
     model_blacklist: Optional[set[str]] = None,
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     cols = Cols()
     df = _read_attack_tables(attack_dir)
 
@@ -233,13 +233,16 @@ def build_pair_metrics(
     if df.empty:
         raise ValueError("No rows left after epsilon filtering.")
 
-    blacklist = {m.strip() for m in (model_blacklist or set()) if isinstance(m, str) and m.strip()}
-    if blacklist:
-        before_rows = len(df)
-        df = df[~df[cols.source].astype(str).isin(blacklist)]
-        df = df[~df[cols.target].astype(str).isin(blacklist)]
-        after_rows = len(df)
-        removed_rows = before_rows - after_rows
+    extra = {m.strip() for m in (model_blacklist or set()) if isinstance(m, str) and m.strip()}
+    before_rows = len(df)
+    df = filter_attack_aggregate_df(
+        df,
+        source_col=cols.source,
+        target_col=cols.target,
+        extra_exact=tuple(extra) if extra else None,
+    )
+    removed_rows = before_rows - len(df)
+    if removed_rows:
         print(f"Blacklisted rows removed: {removed_rows}")
 
     if df.empty:
@@ -418,19 +421,20 @@ def build_pair_metrics(
     pair_df = pair_df.merge(seed_counts, on=group_cols, how="left")
 
     # ==========================
-    # Save both tables
+    # Save both tables (optional)
     # ==========================
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if output_path is not None:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if output_path.suffix.lower() == ".parquet":
-        pair_df.to_parquet(output_path, index=False)
-        per_seed_path = output_path.with_name(f"{output_path.stem}_per_seed.parquet")
-        per_seed_df.to_parquet(per_seed_path, index=False)
-    else:
-        pair_df.to_csv(output_path, index=False)
-        per_seed_path = output_path.with_name(f"{output_path.stem}_per_seed.csv")
-        per_seed_df.to_csv(per_seed_path, index=False)
+        if output_path.suffix.lower() == ".parquet":
+            pair_df.to_parquet(output_path, index=False)
+            per_seed_path = output_path.with_name(f"{output_path.stem}_per_seed.parquet")
+            per_seed_df.to_parquet(per_seed_path, index=False)
+        else:
+            pair_df.to_csv(output_path, index=False)
+            per_seed_path = output_path.with_name(f"{output_path.stem}_per_seed.csv")
+            per_seed_df.to_csv(per_seed_path, index=False)
 
     return pair_df, per_seed_df
 
