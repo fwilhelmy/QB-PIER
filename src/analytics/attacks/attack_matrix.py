@@ -11,6 +11,7 @@ from analytics.tables.extract_attack import _normalized_auc
 
 GroupByLevel = Literal["family", "architecture", "variant", "keyword"]
 GroupAgg = Literal["mean", "max", "auc"]
+BlockBordersBy = Literal["family"]
 
 # Aggregate metric columns per AGENTS.md §4.3 (attack_experiment tables).
 ATTACK_TABLE_METRICS: tuple[str, ...] = (
@@ -103,6 +104,21 @@ class MatrixAxisGroups:
           filter_family="Quantum",
           filter_architecture="VQM",
       )
+
+  By-architecture matrix with an extra row/col per best variant (e.g.
+  ``Classical/CNN`` = all variants, ``Classical/CNN*`` = best only). Best
+  variants remain in the architecture bucket; ``*`` labels are placed right
+  after their architecture group. Diagonal uses white-box pairs only::
+
+      MatrixAxisGroups(
+          by="architecture",
+          extra_groups={
+              "Classical/CNN*": ["conv_channels=[32,64], fc_sizes=[128]"],
+              "Classical/MLP*": ["hidden_sizes=[1024,512,64,64]"],
+              "Quantum/VQM*": ["ansatz=strong, qdepth=200"],
+          },
+          diagonal_whitebox_only=True,
+      )
   """
 
     by: GroupByLevel = "family"
@@ -112,6 +128,8 @@ class MatrixAxisGroups:
     filter_architecture: str | None = None
     filter_contains: str | None = None
     include_other: bool = False
+    extra_groups: dict[str, Sequence[str]] | None = None
+    diagonal_whitebox_only: bool = False
 
     def __post_init__(self) -> None:
         if self.by == "keyword" and not self.keywords and not self.keyword_groups:
@@ -247,6 +265,8 @@ def _block_normalized_auc(
     source_models: list[str],
     target_models: list[str],
     metric_col: str = "robust_accuracy",
+    *,
+    same_model_pairs_only: bool = False,
 ) -> float:
     """
     Pool (source, target) pairs in a matrix block: mean metric at each epsilon,
@@ -255,6 +275,8 @@ def _block_normalized_auc(
     frames: list[pd.DataFrame] = []
     for s in source_models:
         for t in target_models:
+            if same_model_pairs_only and s != t:
+                continue
             sub = df[(df["source_model"] == s) & (df["target_model"] == t)]
             if not sub.empty:
                 frames.append(sub)
@@ -384,6 +406,13 @@ def keyword_groups_ordered(spec: MatrixAxisGroups) -> list[tuple[str, list[str]]
     return []
 
 
+def extra_groups_ordered(spec: MatrixAxisGroups) -> list[tuple[str, list[str]]]:
+    """Return (label, patterns) for ``extra_groups`` in display order."""
+    if not spec.extra_groups:
+        return []
+    return [(label, list(patterns)) for label, patterns in spec.extra_groups.items()]
+
+
 def model_matches_axis_filter(model_name: str, spec: MatrixAxisGroups | None) -> bool:
     if spec is None:
         return True
@@ -397,11 +426,18 @@ def model_matches_axis_filter(model_name: str, spec: MatrixAxisGroups | None) ->
     return True
 
 
+def _model_matches_patterns(model_name: str, patterns: Sequence[str]) -> bool:
+    return any(pattern.lower() in model_name.lower() for pattern in patterns)
+
+
 def assign_axis_group_key(
     model_name: str, spec: MatrixAxisGroups | None
 ) -> str | None:
     """
-    Group label for *model_name*, or None if filtered out / unmatched.
+    Primary group label for *model_name*, or None if filtered out / unmatched.
+
+    ``extra_groups`` do not replace this label; they add optional ``*`` rows/cols
+    via :func:`models_for_axis_group`.
     """
     if spec is None:
         return model_name
@@ -418,6 +454,115 @@ def assign_axis_group_key(
     return "_other_" if spec.include_other else None
 
 
+def family_from_group_label(label: str) -> str:
+    """Family segment from a matrix axis label (e.g. ``Classical/CNN`` -> ``Classical``)."""
+    return label.split("/")[0] if "/" in label else label
+
+
+def extra_group_anchor(anchor_label: str, extra_label: str) -> bool:
+    """True if *extra_label* should be displayed immediately after *anchor_label*."""
+    if extra_label.endswith("*"):
+        return extra_label[:-1] == anchor_label
+    return False
+
+
+def family_block_boundaries(axis_labels: Sequence[str]) -> list[float]:
+    """Imshow coordinates for lines between contiguous family blocks on one axis."""
+    if len(axis_labels) < 2:
+        return []
+    bounds: list[float] = []
+    for i in range(1, len(axis_labels)):
+        if family_from_group_label(axis_labels[i]) != family_from_group_label(
+            axis_labels[i - 1]
+        ):
+            bounds.append(i - 0.5)
+    return bounds
+
+
+def _draw_block_borders(
+    ax: plt.Axes,
+    row_labels: Sequence[str],
+    col_labels: Sequence[str],
+    *,
+    block_borders_by: BlockBordersBy,
+    linewidth: float = 2.5,
+    color: str = "white",
+) -> None:
+    if block_borders_by != "family":
+        raise ValueError(f"Unknown block_borders_by: {block_borders_by!r}")
+    for x in family_block_boundaries(col_labels):
+        ax.axvline(x, color=color, linewidth=linewidth, zorder=10)
+    for y in family_block_boundaries(row_labels):
+        ax.axhline(y, color=color, linewidth=linewidth, zorder=10)
+
+
+def models_for_axis_group(
+    group_label: str,
+    model_names: Sequence[str],
+    spec: MatrixAxisGroups,
+) -> list[str]:
+    """All models belonging to *group_label* on one matrix axis."""
+    extra_map = dict(extra_groups_ordered(spec))
+    if group_label in extra_map:
+        patterns = extra_map[group_label]
+        return [
+            m
+            for m in model_names
+            if model_matches_axis_filter(m, spec)
+            and _model_matches_patterns(m, patterns)
+        ]
+    return [
+        m
+        for m in model_names
+        if assign_axis_group_key(m, spec) == group_label
+    ]
+
+
+def ordered_axis_group_labels(
+    model_names: Sequence[str],
+    spec: MatrixAxisGroups | None,
+) -> list[str]:
+    """Row/column labels in display order (architecture groups + interleaved extras)."""
+    if spec is None:
+        return sorted({str(m) for m in model_names})
+
+    if spec.by == "keyword":
+        labels = [label for label, _ in keyword_groups_ordered(spec)]
+        if spec.include_other:
+            labels = [*labels, "_other_"]
+        return labels
+
+    base_labels = sorted(
+        {
+            key
+            for m in model_names
+            if (key := assign_axis_group_key(m, spec)) is not None
+        },
+        key=lambda label: (family_from_group_label(label), label),
+    )
+
+    if not spec.extra_groups:
+        return base_labels
+
+    ordered: list[str] = []
+    extra_labels = [label for label, _ in extra_groups_ordered(spec)]
+    for base in base_labels:
+        ordered.append(base)
+        for extra in extra_labels:
+            if not extra_group_anchor(base, extra):
+                continue
+            if models_for_axis_group(extra, model_names, spec):
+                ordered.append(extra)
+
+    for extra in extra_labels:
+        if extra in ordered:
+            continue
+        if models_for_axis_group(extra, model_names, spec):
+            ordered.append(extra)
+
+    return ordered
+
+
 def _coerce_axis_spec(
     level: GroupByLevel | None,
     spec: MatrixAxisGroups | None,
@@ -427,21 +572,6 @@ def _coerce_axis_spec(
     if level is None:
         return None
     return MatrixAxisGroups(by=level)
-
-
-def _ordered_group_labels(
-    keys: list[str | None], spec: MatrixAxisGroups | None
-) -> list[str]:
-    if spec is None:
-        return sorted({k for k in keys if k is not None})
-
-    if spec.by == "keyword":
-        labels = [label for label, _ in keyword_groups_ordered(spec)]
-        if spec.include_other:
-            labels = [*labels, "_other_"]
-        return labels
-
-    return sorted({k for k in keys if k is not None})
 
 
 def _axis_title_fragment(spec: MatrixAxisGroups | None, axis: str) -> str:
@@ -460,6 +590,40 @@ def _axis_title_fragment(spec: MatrixAxisGroups | None, axis: str) -> str:
     return " ".join(parts)
 
 
+def _diagonal_whitebox_enabled(
+    row_spec: MatrixAxisGroups | None,
+    col_spec: MatrixAxisGroups | None,
+) -> bool:
+    if row_spec is None or col_spec is None:
+        return False
+    return row_spec.diagonal_whitebox_only and col_spec.diagonal_whitebox_only
+
+
+def _block_cell_values(
+    mat: np.ndarray,
+    sources: list[str],
+    targets: list[str],
+    row_models: list[str],
+    col_models: list[str],
+    *,
+    same_group: bool,
+    diagonal_whitebox_only: bool,
+) -> list[float]:
+    src_index = {name: i for i, name in enumerate(sources)}
+    tgt_index = {name: j for j, name in enumerate(targets)}
+    vals: list[float] = []
+    for s in row_models:
+        for t in col_models:
+            if same_group and diagonal_whitebox_only and s != t:
+                continue
+            i = src_index.get(s)
+            j = tgt_index.get(t)
+            if i is None or j is None:
+                continue
+            vals.append(float(mat[i, j]))
+    return vals
+
+
 def _aggregate_matrix(
     mat: np.ndarray,
     sources: list[str],
@@ -471,31 +635,48 @@ def _aggregate_matrix(
     group_agg: GroupAgg,
     metric_col: str = "robust_accuracy",
 ) -> tuple[np.ndarray, list[str], list[str]]:
-    row_keys = [assign_axis_group_key(s, row_spec) for s in sources]
-    col_keys = [assign_axis_group_key(t, col_spec) for t in targets]
-
-    row_groups = _ordered_group_labels(row_keys, row_spec)
-    col_groups = _ordered_group_labels(col_keys, col_spec)
+    row_groups = ordered_axis_group_labels(sources, row_spec)
+    col_groups = ordered_axis_group_labels(targets, col_spec)
     out = np.zeros((len(row_groups), len(col_groups)), dtype=float)
+    diagonal_wb = _diagonal_whitebox_enabled(row_spec, col_spec)
 
     for i, g_row in enumerate(row_groups):
-        row_idx = [k for k, g in enumerate(row_keys) if g == g_row]
-        row_models = [sources[k] for k in row_idx]
+        row_models = (
+            models_for_axis_group(g_row, sources, row_spec)
+            if row_spec is not None
+            else [g_row]
+        )
         for j, g_col in enumerate(col_groups):
-            col_idx = [k for k, g in enumerate(col_keys) if g == g_col]
-            col_models = [targets[k] for k in col_idx]
+            col_models = (
+                models_for_axis_group(g_col, targets, col_spec)
+                if col_spec is not None
+                else [g_col]
+            )
+            same_group = g_row == g_col
             if group_agg == "auc":
                 out[i, j] = _block_normalized_auc(
-                    df, row_models, col_models, metric_col=metric_col
+                    df,
+                    row_models,
+                    col_models,
+                    metric_col=metric_col,
+                    same_model_pairs_only=same_group and diagonal_wb,
                 )
                 continue
-            block = mat[np.ix_(row_idx, col_idx)]
-            if block.size == 0:
+            vals = _block_cell_values(
+                mat,
+                sources,
+                targets,
+                row_models,
+                col_models,
+                same_group=same_group,
+                diagonal_whitebox_only=diagonal_wb,
+            )
+            if not vals:
                 continue
             if group_agg == "max":
-                out[i, j] = float(np.max(block))
+                out[i, j] = float(np.max(vals))
             else:
-                out[i, j] = float(np.mean(block))
+                out[i, j] = float(np.mean(vals))
 
     return out, row_groups, col_groups
 
@@ -515,6 +696,9 @@ def plot_model_attack_effectiveness_matrix(
     group_cols: MatrixAxisGroups | None = None,
     group_agg: GroupAgg = "mean",
     metric: str = "robust_accuracy",
+    block_borders_by: BlockBordersBy | None = None,
+    block_border_color: str = "white",
+    block_border_linewidth: float = 2.5,
 ) -> None:
     """
     Build and plot a matrix of attack effectiveness between models.
@@ -547,6 +731,11 @@ def plot_model_attack_effectiveness_matrix(
         ``group_agg='auc'``. For ``mean``/``max``, set *cell_fn* via
         ``make_metric_cell_fn(metric, style=...)`` or pass *metric_col* to
         cell helpers.
+    block_borders_by:
+        If ``"family"``, draw thick lines between contiguous family blocks on
+        both axes (e.g. Classical | Hybrid | Quantum).
+    block_border_color, block_border_linewidth:
+        Style for family block separators.
     """
     os.makedirs(out_dir, exist_ok=True)
     metric = validate_attack_metric(df, metric)
@@ -640,6 +829,16 @@ def plot_model_attack_effectiveness_matrix(
     ax.set_yticks(np.arange(-0.5, n_src, 1), minor=True)
     ax.grid(which="minor", linestyle="-", linewidth=0.3, alpha=0.4)
     ax.tick_params(which="minor", bottom=False, left=False)
+
+    if block_borders_by is not None:
+        _draw_block_borders(
+            ax,
+            row_labels,
+            col_labels,
+            block_borders_by=block_borders_by,
+            linewidth=block_border_linewidth,
+            color=block_border_color,
+        )
 
     # annotate cells with numeric values (suppress tiny ones)
     if annotate:

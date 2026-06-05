@@ -23,6 +23,7 @@ from .attack_matrix import (
     validate_attack_metric,
     assign_axis_group_key,
     model_group_key,
+    ordered_axis_group_labels,
     parse_canonical_model_name,
 )
 
@@ -49,5 +50,6 @@ __all__ = [
     "MatrixAxisGroups",
     "assign_axis_group_key",
     "model_group_key",
+    "ordered_axis_group_labels",
     "parse_canonical_model_name",
 ]
