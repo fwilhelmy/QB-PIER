@@ -27,6 +27,13 @@ from .transfer_scatter import (
     run_transfer_scatter_figures,
     run_transfer_scatter_report,
 )
+from .top_sources_by_target import (
+    TopSourceOutputs,
+    build_architecture_top_sources,
+    build_family_top_architecture_sources,
+    build_variant_top_sources,
+    run_top_sources_report,
+)
 from .attack_matrix import (
     ATTACK_TABLE_METRICS,
     MatrixAxisGroups,
@@ -88,6 +95,11 @@ __all__ = [
     "plot_variant_transfer_scatter",
     "run_transfer_scatter_figures",
     "run_transfer_scatter_report",
+    "TopSourceOutputs",
+    "build_architecture_top_sources",
+    "build_family_top_architecture_sources",
+    "build_variant_top_sources",
+    "run_top_sources_report",
     "plot_attack_accuracy_df",
     "plot_attack_effect_on_accuracy",
     "plot_confusion_matrix",
@@ -113,3 +125,24 @@ __all__ = [
     "ordered_axis_group_labels",
     "parse_canonical_model_name",
 ]
+
+# Notebook-friendly black-box transfer role helpers.
+try:
+    from .transfer_role_tools import (  # noqa: F401
+        TransferViewConfig,
+        VIEW_TEMPLATES,
+        get_template,
+        list_templates,
+        load_or_build_pair_metrics,
+        aggregate_transfer_pairs,
+        build_attack_matrix,
+        build_source_target_scatter,
+        build_top_sources_by_target,
+        build_top_targets_by_source,
+        plot_attack_matrix,
+        plot_source_target_scatter,
+        write_outputs,
+    )
+except Exception:
+    # Keep package import robust in environments without optional notebook deps.
+    pass
