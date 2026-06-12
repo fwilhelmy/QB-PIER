@@ -46,7 +46,7 @@ from analytics.attacks.gradient_similarity import (
 )
 
 # --- configuration (toggle here; no argparse per AGENTS.md) ---
-MODEL_LOGDIR = "logs/ByModel"
+MODEL_LOGDIR = "../Experiments/MODELS/ByModel"
 CACHE_DIR = "logs/GRADIENTS"
 N_SAMPLES = 512
 BATCH_SIZE = 32
