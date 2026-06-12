@@ -34,6 +34,12 @@ from .top_sources_by_target import (
     build_variant_top_sources,
     run_top_sources_report,
 )
+from .bottom_sources_targets import (
+    BottomKTransferOutputs,
+    build_bottom_sources_by_target,
+    build_bottom_targets_by_source,
+    run_bottomk_report,
+)
 from .attack_matrix import (
     ATTACK_TABLE_METRICS,
     MatrixAxisGroups,
@@ -100,6 +106,10 @@ __all__ = [
     "build_family_top_architecture_sources",
     "build_variant_top_sources",
     "run_top_sources_report",
+    "BottomKTransferOutputs",
+    "build_bottom_sources_by_target",
+    "build_bottom_targets_by_source",
+    "run_bottomk_report",
     "plot_attack_accuracy_df",
     "plot_attack_effect_on_accuracy",
     "plot_confusion_matrix",
