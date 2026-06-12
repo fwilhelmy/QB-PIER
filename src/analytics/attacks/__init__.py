@@ -63,7 +63,10 @@ try:
     from .attack_effect_on_accuracy import plot_attack_effect_on_accuracy
     from .confusion_matrix import plot_confusion_matrix
     from .loss_landscape import plot_loss_landscape
-    from .perturbation_and_saliency import plot_perturbation_and_saliency
+    from .perturbation_and_saliency import (
+        plot_perturbation_and_saliency,
+        run_perturbation_saliency_for_models,
+    )
     from .results import store_attack_results
     from .transfer_attack_effects import plot_transfer_attack_effects
     from .heatmap import plot_tp_heatmaps_by_class
@@ -73,6 +76,7 @@ except ImportError:  # optional runtime deps (e.g. lightning, torch)
     plot_confusion_matrix = None
     plot_loss_landscape = None
     plot_perturbation_and_saliency = None
+    run_perturbation_saliency_for_models = None
     store_attack_results = None
     plot_transfer_attack_effects = None
     plot_tp_heatmaps_by_class = None
@@ -115,6 +119,7 @@ __all__ = [
     "plot_confusion_matrix",
     "plot_loss_landscape",
     "plot_perturbation_and_saliency",
+    "run_perturbation_saliency_for_models",
     "plot_transfer_attack_effects",
     "store_attack_results",
     "plot_tp_heatmaps_by_class",
@@ -155,4 +160,49 @@ try:
     )
 except Exception:
     # Keep package import robust in environments without optional notebook deps.
+    pass
+
+# White-box gradient-similarity analytics (gradient_similarity notebook).
+try:
+    from .gradient_similarity import (  # noqa: F401
+        GRADSIM_METRICS,
+        GRADSIM_TEMPLATES,
+        GRADSIM_FIGURE_TEMPLATES,
+        DEFAULT_GRADIENT_CACHE_DIR,
+        safe_model_name,
+        compute_pair_metrics,
+        compute_pair_metrics_from_cache,
+        load_gradient_pair_metrics,
+        get_gradsim_template,
+        run_gradient_similarity_report,
+    )
+except Exception:
+    # Optional dependency (pandas/matplotlib) missing; keep package importable.
+    pass
+
+# Black-box transfer analytics V2 (attacksv2_* notebooks).
+try:
+    from .attacksv2_transfer_tools import (  # noqa: F401
+        AttacksV2Config,
+        V2_TEMPLATES,
+        ensure_v2,
+        get_v2_template,
+        list_v2_templates,
+        v2_output_dir,
+        metric_direction_notes,
+        aggregate_pairs_v2,
+        export_table,
+        export_figure,
+        build_topk_instances,
+        summarize_recurring,
+        build_recurring_damaging_sources,
+        build_recurring_robust_targets,
+        plot_topk_ranking,
+        build_directional_pair_table,
+        plot_directional_asymmetry_bars,
+        make_synthetic_pair_metrics,
+        run_smoke_test,
+    )
+except Exception:
+    # Optional dependency (pandas/matplotlib) missing; keep package importable.
     pass

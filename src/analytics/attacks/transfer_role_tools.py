@@ -155,8 +155,11 @@ class TransferViewConfig:
     include_no_entangling_as_ansatz: bool = True
 
     # Blacklist and filters.  blacklist_contains is useful for one-off exclusions.
+    # apply_global_blacklist=False keeps models from the shared MODEL_BLACKLIST
+    # (e.g. for gradient-similarity views that want every model).
     model_blacklist: tuple[str, ...] = tuple()
     blacklist_contains: tuple[str, ...] = tuple()
+    apply_global_blacklist: bool = True
     source_family_filter: str | None = None
     target_family_filter: str | None = None
     source_architecture_filter: str | None = None
@@ -401,7 +404,9 @@ def _contains_filter(series: pd.Series, term: str | None) -> pd.Series:
 
 
 def _apply_blacklist(df: pd.DataFrame, config: TransferViewConfig) -> pd.DataFrame:
-    bad_exact = {str(x) for x in MODEL_BLACKLIST} | {str(x) for x in config.model_blacklist}
+    bad_exact = {str(x) for x in config.model_blacklist}
+    if getattr(config, "apply_global_blacklist", True):
+        bad_exact |= {str(x) for x in MODEL_BLACKLIST}
     work = df.copy()
     if bad_exact:
         work = work[~work["Source Model"].astype(str).isin(bad_exact)]
