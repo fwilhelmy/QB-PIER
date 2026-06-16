@@ -161,7 +161,7 @@ V2_TEMPLATES: dict[str, AttacksV2Config] = {
         target_grain="architecture",
         comparison_mode="inter_architecture",
         metric="Transfer ASR",
-        blacklist_contains=("HQuanv",),
+        #blacklist_contains=("HQuanv",),
     ),
     "architecture_with_variants": AttacksV2Config(
         source_grain="architecture",
