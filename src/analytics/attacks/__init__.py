@@ -206,3 +206,27 @@ try:
 except Exception:
     # Optional dependency (pandas/matplotlib) missing; keep package importable.
     pass
+
+# AttackV2 epsilon-vs-accuracy curves from stored aggregate tables.
+try:
+    from .attacksv2_accuracy_curves import (  # noqa: F401
+        CurveMode,
+        ROBUST_METRIC,
+        load_attack_curve_rows,
+        prepare_curve_rows,
+        available_curve_groups,
+        build_accuracy_curve_table,
+        build_custom_accuracy_curve_table,
+        plot_accuracy_curves,
+        safe_path_part,
+        curve_file_stem,
+        curve_image_dir,
+        build_average_overview_curve_table,
+        plot_average_overview_curves,
+        export_all_accuracy_curve_views,
+        make_synthetic_attack_curve_rows,
+        run_smoke_test as run_accuracy_curve_smoke_test,
+    )
+except Exception:
+    # Optional dependency (pandas/matplotlib) missing; keep package importable.
+    pass
