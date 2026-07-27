@@ -132,6 +132,35 @@ Training runs produce checkpoints, metrics, optional figures, and Hydra snapshot
 
 For the full save layout, see `docs/artifacts.md`.
 
+## Export Training Dynamics
+
+Use the artifact-only exporter to create clean CSV files for downstream
+training-dynamics analysis:
+
+```bash
+python scripts/export_training_dynamics.py --models-root <PATH_TO_MODELS> --output-dir <OUTPUT_DIR>
+```
+
+Example for the default model artifact tree:
+
+```bash
+python scripts/export_training_dynamics.py --models-root logs/ByModel --output-dir outputs/training_dynamics_export --overwrite true
+```
+
+The exporter crawls `.model` anchors and reads existing files such as
+`metrics.csv`, `metrics.json`, `model.info`, Hydra YAML snapshots, and
+TensorBoard `hparams.yaml`. It does not train models, run attacks, or load
+checkpoint tensors. TensorBoard event scalar parsing is optional:
+
+```bash
+python scripts/export_training_dynamics.py --models-root logs/ByModel --output-dir outputs/training_dynamics_export --include-tensorboard-events true --overwrite true
+```
+
+Validate the outputs by opening `extraction_quality_report.csv` first, then
+checking `extraction_summary.md` for missing metrics, malformed files, metric
+naming variants, and accuracy-scale notes. Use `training_curves_long.csv` for
+flexible plotting and `training_curves_wide.csv` for epoch-aligned summaries.
+
 ## Artifacts
 
 Artifacts are the generated files left by training and attack runs. They are useful for plotting, recomputing metrics, and avoiding reruns.
