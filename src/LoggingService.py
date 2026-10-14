@@ -80,6 +80,8 @@ class LoggingService:
             return
 
         handler = DiscordWebhook()
+        if not handler.webhook_url:
+            return
         handler.setLevel(logging.WARNING)
         handler.setFormatter(logging.Formatter("%(message)s"))
         logging.getLogger().addHandler(handler)
