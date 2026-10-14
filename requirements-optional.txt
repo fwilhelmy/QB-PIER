@@ -1,0 +1,6 @@
+# Install selectively for auxiliary features / not-fully-validated paths.
+discord-webhook     # optional notifications, controlled via DISCORD_WEBHOOK_URL
+aiohttp            # optional PennyLane dataset download pathway
+fsspec             # optional PennyLane dataset filesystem integration
+h5py               # optional PennyLane dataset read path
+fastparquet        # optional Parquet artifact support
