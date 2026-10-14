@@ -1,26 +1,5 @@
-"""Training analytics helpers."""
-
-from .gradient_flow import generate_gradient_flow_plots
-from .accuracy_vs_time import accuracy_vs_time
-from .generalization_gap import generalization_gap
-from .gradient_norms import gradient_norms
-from .gradient_flow import plot_gradient_flow, try_plot_gradient_flow
-from .gradient_map import generate_gradient_map_plots, plot_gradient_map, try_plot_gradient_map
-from .grouped_training_curves import plot_models_together
+"""The plotting helpers used by the training entrypoint."""
+from .gradient_flow import generate_gradient_flow_plots, plot_gradient_flow, try_plot_gradient_flow
 from .single_training_curves import plot_training_curves
 
-__all__ = [
-    "accuracy_vs_time",
-    "generalization_gap",
-    "gradient_norms",
-    "generate_gradient_flow_plots",
-    "try_plot_gradient_flow",
-    "try_plot_gradient_map",
-    "generate_gradient_map_plots",
-    "plot_gradient_flow",
-    "plot_gradient_map",
-    "plot_models_together",
-    "plot_training_curves",
-    "try_plot_gradient_flow",
-    "try_plot_gradient_map",
-]
+__all__ = ["generate_gradient_flow_plots", "plot_gradient_flow", "try_plot_gradient_flow", "plot_training_curves"]

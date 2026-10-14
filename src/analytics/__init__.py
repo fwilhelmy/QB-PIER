@@ -1,12 +1,3 @@
-"""Visualization helpers for training, attacks, tables, and models.
+"""Reusable training metrics and visualization helpers (no research results)."""
 
-Import subpackages explicitly, e.g. ``from analytics.training import generalization_gap``.
-"""
-
-__all__ = [
-    "attacks",
-    "model",
-    "tables",
-    "training",
-    "utils",
-]
+__all__ = ["training", "utils", "metrics_io", "paths"]

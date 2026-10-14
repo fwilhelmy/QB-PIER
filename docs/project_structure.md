@@ -1,10 +1,9 @@
 # Project structure
 
-The project is organized around four main areas:
+This public source distribution is organized around three main areas:
 
 ```text
 conf/          Hydra configs for training and attacks
-experiments/   notebooks and prototypes
 src/           source code
 docs/          plain markdown documentation
 ```
@@ -15,7 +14,6 @@ docs/          plain markdown documentation
 project/
 ├── conf/
 ├── docs/
-├── experiments/
 ├── src/
 ├── data/
 └── logs/
@@ -51,17 +49,6 @@ conf/
 
 Hydra should stay limited to training and attacks.
 
-## Experiments
-
-```text
-experiments/
-├── models/
-├── attacks/
-└── prototypes/
-```
-
-Notebooks are allowed to be messy. Production logic should move into `src/`.
-
 ## Source code
 
 ```text
@@ -89,4 +76,6 @@ Main responsibilities:
 - `src/datasets/`: dataset wrappers and dataset factory.
 - `src/attacks/`: attack implementations and attack factory.
 - `src/metrics/`: metric containers/profilers used during training.
-- `src/analytics/`: figures, tables, and utility scripts for analysis.
+- `src/analytics/`: generic training plots and metric helpers required by the training entrypoint. Research-specific analytics and notebooks are excluded.
+
+Research notebooks, locally downloaded datasets, and experimental results are not part of the public source distribution. See `PUBLIC_RELEASE_CHECKLIST.md`.

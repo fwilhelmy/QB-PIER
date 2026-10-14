@@ -68,5 +68,5 @@ Analytics should accept normal paths and arguments.
 - MNIST is the only dataset that should be considered working.
 - PGD exists but is not part of the validated path yet.
 - FMNIST and PlusMinus exist but are not part of the validated path yet.
-- Some notebooks are prototypes, not maintained production code.
-- Some analytics scripts may still assume older result layouts.
+- Exploratory notebooks and research-specific analytics are intentionally not distributed in the public source release.
+- A full clean-environment runtime test is still required for this curated export.
